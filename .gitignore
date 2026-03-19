@@ -4,3 +4,6 @@ dist
 .amplify
 amplify_outputs*
 amplifyconfiguration*
+.venv
+__pycache__/
+*.pyc

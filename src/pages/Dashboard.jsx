@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { generateClient } from 'aws-amplify/data';
 import MetricCard from '../components/MetricCard';
 import MissionViabilityPanel from '../components/MissionViabilityPanel';
-import AgentLog from '../components/AgentLog';
+import AgentNetworkPanel from '../components/AgentNetworkPanel';
 import CropTable from '../components/CropTable';
+import { buildAgentViewModel } from '../lib/agentViewModel';
 import {
   mockAgentEvents,
   mockCrops,
@@ -25,6 +26,11 @@ export default function Dashboard({ amplifyConfigured = false }) {
   const [agentEvents, setAgentEvents] = useState([]);
   const [crops, setCrops] = useState([]);
   const [loadError, setLoadError] = useState(null);
+  const agentModel = buildAgentViewModel({
+    latestReading,
+    crops,
+    agentEvents,
+  });
 
   useEffect(() => {
     if (!amplifyConfigured) {
@@ -123,12 +129,9 @@ export default function Dashboard({ amplifyConfigured = false }) {
         />
       </section>
 
-      <div style={styles.lower}>
-        <section aria-label="Agent Event Log" style={styles.logSection}>
-          <h2 style={styles.sectionHeading}>Agent Log</h2>
-          <AgentLog events={agentEvents} />
-        </section>
+      <AgentNetworkPanel model={agentModel} events={agentEvents} />
 
+      <div style={styles.lower}>
         <section aria-label="Crop Records" style={styles.tableSection}>
           <h2 style={styles.sectionHeading}>Crops</h2>
           <CropTable crops={crops} />
@@ -160,10 +163,9 @@ const styles = {
   },
   lower: {
     display: 'grid',
-    gridTemplateColumns: '1fr 2fr',
+    gridTemplateColumns: '1fr',
     gap: '1rem',
   },
-  logSection: { display: 'flex', flexDirection: 'column' },
   tableSection: { display: 'flex', flexDirection: 'column' },
   sectionHeading: {
     fontSize: '1rem',

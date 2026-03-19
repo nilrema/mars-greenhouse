@@ -451,54 +451,10 @@ Do NOT generate long reports. Just identify issues and trigger responses.
 
 
 def run_stress_agent(greenhouse_id: str = "mars-greenhouse-1") -> str:
-    """Run one cycle of the stress agent."""
-    model = BedrockModel(
-        model_id="us.anthropic.claude-sonnet-4-5-20250929-v1:0",
-        region_name=AWS_REGION,
-        temperature=0.2,
-        max_tokens=4096,
-    )
+    """Compatibility wrapper for the new Crop Health Agent."""
+    from agents.crop_health_agent import run_crop_health_agent
 
-    tools = [
-        get_latest_sensor_reading,
-        get_sensor_history,
-        analyze_plant_health,
-        analyze_crop_image,
-        diagnose_stress_symptoms,
-        trigger_stress_response,
-        query_knowledge_base,
-        get_plant_stress_guide,
-    ]
-
-    agent = Agent(
-        model=model,
-        tools=tools,
-        system_prompt=build_system_prompt(),
-    )
-
-    # Check if crop images are available
-    crop_image_bucket = os.environ.get("CROP_IMAGE_BUCKET", "")
-    image_instruction = ""
-    if crop_image_bucket:
-        image_instruction = f"""
-7. Check for crop images in S3 bucket '{crop_image_bucket}' and run visual disease detection"""
-
-    prompt = f"""Monitor plant health in greenhouse {greenhouse_id}:
-
-1. Get current sensor readings
-2. Analyze for plant stress indicators
-3. If stress is detected, diagnose the cause
-4. Query knowledge base for Martian-specific treatments
-5. Trigger appropriate response based on severity (use CRITICAL for life-threatening issues)
-6. Document all findings and actions{image_instruction}
-
-Be proactive but conservative. On Mars, we can't afford to lose crops!"""
-
-    logger.info("Stress agent starting health monitoring cycle")
-    response = agent(prompt)
-    logger.info("Stress agent cycle complete")
-
-    return str(response)
+    return run_crop_health_agent(greenhouse_id=greenhouse_id)
 
 
 if __name__ == "__main__":

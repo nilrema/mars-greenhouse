@@ -18,19 +18,35 @@ export const mockSensorReading = {
 export const mockAgentEvents = [
   {
     id: 'mock-event-1',
-    agentId: 'orchestrator',
-    severity: 'INFO',
-    message: 'Mock mode is active until amplify_outputs.json is available.',
-    actionTaken: 'Serving demo telemetry',
+    agentId: 'mission-orchestrator',
+    severity: 'CRITICAL',
+    message: 'Mission orchestration cycle complete.',
+    actionTaken: 'Lead response: crew-nutrition. Operations=STABLE, Crop=MONITOR, CrewRisk=HIGH',
     createdAt: new Date(now - 5 * 60 * 1000).toISOString(),
   },
   {
     id: 'mock-event-2',
-    agentId: 'environment',
+    agentId: 'greenhouse-operations',
     severity: 'WARN',
     message: 'Humidity drift detected in zone A.',
     actionTaken: 'Queued humidifier adjustment',
     createdAt: new Date(now - 2 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'mock-event-3',
+    agentId: 'crop-health',
+    severity: 'WARN',
+    message: 'Tomato canopy requires disease inspection.',
+    actionTaken: 'Inspect affected crop sections',
+    createdAt: new Date(now - 90 * 1000).toISOString(),
+  },
+  {
+    id: 'mock-event-4',
+    agentId: 'crew-nutrition',
+    severity: 'CRITICAL',
+    message: 'Crew nutrition score dropped below target threshold.',
+    actionTaken: 'Recommend wheat replanting to restore food security',
+    createdAt: new Date(now - 30 * 1000).toISOString(),
   },
 ];
 
