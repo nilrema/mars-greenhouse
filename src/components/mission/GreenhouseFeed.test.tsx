@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { GreenhouseFeed } from './GreenhouseFeed';
-import type { MarsBase } from './types';
+import type { InspectionSelection, MarsBase } from './types';
 
 const base: MarsBase = {
   id: 'mars-alpha',
@@ -33,6 +33,24 @@ const base: MarsBase = {
     heaterPower: 30,
     irrigationPumpFlow: 55,
     ledBrightness: 70,
+  },
+};
+
+const initialSelection: InspectionSelection = {
+  cameraId: 'CAM-01',
+  createdAt: '2026-03-19T10:00:00.000Z',
+  normalizedBounds: {
+    x: 0.2,
+    y: 0.3,
+    width: 0.25,
+    height: 0.2,
+    centerX: 0.325,
+    centerY: 0.4,
+  },
+  viewport: {
+    zoom: 1.25,
+    panX: 0,
+    panY: 0,
   },
 };
 
@@ -72,5 +90,33 @@ describe('GreenhouseFeed', () => {
     expect(screen.getByText(/NO AREA SELECTED/i)).toBeInTheDocument();
 
     vi.useRealTimers();
+  });
+
+  it('opens and closes the inspection popup from the selected target', () => {
+    const { rerender } = render(<GreenhouseFeed base={base} initialSelection={initialSelection} />);
+
+    const viewport = screen.getByTestId('greenhouse-camera-viewport');
+    Object.defineProperty(viewport, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        x: 0,
+        y: 0,
+        left: 0,
+        top: 0,
+        right: 200,
+        bottom: 120,
+        width: 200,
+        height: 120,
+        toJSON: () => ({}),
+      }),
+    });
+    rerender(<GreenhouseFeed base={base} initialSelection={initialSelection} />);
+
+    fireEvent.click(screen.getByTestId('inspection-selection'));
+    expect(screen.getByText(/Inspection Target Preview/i)).toBeInTheDocument();
+    expect(screen.getByTestId('inspection-preview-image')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Close/i }));
+    expect(screen.queryByText(/Inspection Target Preview/i)).not.toBeInTheDocument();
   });
 });

@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import greenhouseImg from '@/assets/greenhouse-topdown.png';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   clamp,
   clampPan,
@@ -9,6 +10,7 @@ import {
   MAX_CAMERA_ZOOM,
   MIN_CAMERA_ZOOM,
   rectFromPoints,
+  selectionToViewportRect,
   zoomAroundPoint,
 } from './liveInspection';
 import type { CameraViewportState, InspectionSelection, MarsBase } from './types';
@@ -41,13 +43,19 @@ const defaultViewportState: CameraViewportState = {
   panY: 0,
 };
 
-export function GreenhouseFeed({ base }: { base: MarsBase }) {
+interface GreenhouseFeedProps {
+  base: MarsBase;
+  initialSelection?: InspectionSelection | null;
+}
+
+export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeedProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
-  const [viewportState, setViewportState] = useState<CameraViewportState>(defaultViewportState);
+  const [viewportState, setViewportState] = useState<CameraViewportState>(initialSelection?.viewport ?? defaultViewportState);
   const [cameraMode, setCameraMode] = useState<CameraMode>('pan');
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [selectionDraft, setSelectionDraft] = useState<SelectionDraft | null>(null);
-  const [selection, setSelection] = useState<InspectionSelection | null>(null);
+  const [selection, setSelection] = useState<InspectionSelection | null>(initialSelection);
+  const [inspectionDialogOpen, setInspectionDialogOpen] = useState(false);
 
   const selectionOverlay = useMemo(() => {
     if (!selectionDraft) {
@@ -60,7 +68,7 @@ export function GreenhouseFeed({ base }: { base: MarsBase }) {
     );
   }, [selectionDraft]);
 
-  const selectionViewportRect = useMemo(() => {
+  const selectionViewportRect = (() => {
     if (!selection || !viewportRef.current) {
       return null;
     }
@@ -70,12 +78,22 @@ export function GreenhouseFeed({ base }: { base: MarsBase }) {
       return null;
     }
 
+    const rect = selectionToViewportRect(selection.normalizedBounds, viewportState, { width, height });
+
     return {
-      left: selection.normalizedBounds.x * width,
-      top: selection.normalizedBounds.y * height,
-      width: selection.normalizedBounds.width * width,
-      height: selection.normalizedBounds.height * height,
+      left: rect.x,
+      top: rect.y,
+      width: rect.width,
+      height: rect.height,
     };
+  })();
+
+  const inspectionPreviewScale = useMemo(() => {
+    if (!selection) {
+      return 1;
+    }
+
+    return Math.min(8, Math.max(2.2, 1 / Math.max(selection.normalizedBounds.width, selection.normalizedBounds.height)));
   }, [selection]);
 
   const handleWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
@@ -262,6 +280,7 @@ export function GreenhouseFeed({ base }: { base: MarsBase }) {
     setSelection(null);
     setSelectionDraft(null);
     setCameraMode('pan');
+    setInspectionDialogOpen(false);
   };
 
   return (
@@ -333,20 +352,23 @@ export function GreenhouseFeed({ base }: { base: MarsBase }) {
           />
 
           {selectionViewportRect && !selectionDraft && (
-            <div
-              className="absolute border border-cyan-300 bg-cyan-400/15 shadow-[0_0_0_1px_rgba(34,211,238,0.35)]"
+            <button
+              type="button"
+              onClick={() => setInspectionDialogOpen(true)}
+              className="absolute border border-cyan-200 bg-cyan-400/18 shadow-[0_0_0_1px_rgba(103,232,249,0.55)] transition-colors hover:bg-cyan-300/24 focus:outline-none focus:ring-2 focus:ring-cyan-200/70"
               style={{
                 left: selectionViewportRect.left,
                 top: selectionViewportRect.top,
                 width: selectionViewportRect.width,
                 height: selectionViewportRect.height,
               }}
+              aria-label="Open inspection target"
               data-testid="inspection-selection"
             >
               <div className="absolute -top-5 left-0 rounded bg-cyan-400/85 px-1.5 py-0.5 text-[8px] font-mono font-medium tracking-wide text-slate-950">
                 INSPECTION TARGET
               </div>
-            </div>
+            </button>
           )}
 
           {selectionOverlay && (
@@ -401,12 +423,12 @@ export function GreenhouseFeed({ base }: { base: MarsBase }) {
               </div>
             </div>
 
-            <div className="mt-2 rounded border border-white/10 bg-black/35 p-2 text-[9px] text-white/72">
+            <div className="mt-2 rounded border border-white/15 bg-black/65 p-2 text-[9px] text-white/88">
               <div className="flex items-center justify-between gap-3">
-                <span className="font-mono tracking-wide text-white/45">SELECTION PAYLOAD</span>
-                <span className="font-mono text-white/50">{selection ? 'READY FOR CROP AGENT HANDOFF' : 'NO AREA SELECTED'}</span>
+                <span className="font-mono tracking-wide text-white/70">SELECTION PAYLOAD</span>
+                <span className="font-mono text-white/72">{selection ? 'READY FOR CROP AGENT HANDOFF' : 'NO AREA SELECTED'}</span>
               </div>
-              <pre className="mt-1 overflow-hidden text-[8px] leading-4 text-cyan-100/85" data-testid="inspection-selection-json">
+              <pre className="mt-1 overflow-hidden text-[8px] leading-4 text-cyan-50" data-testid="inspection-selection-json">
                 {selection
                   ? JSON.stringify(selection, null, 2)
                   : JSON.stringify(
@@ -429,6 +451,38 @@ export function GreenhouseFeed({ base }: { base: MarsBase }) {
           <div className="absolute bottom-[108px] right-2 w-4 h-4 border-b border-r border-white/15" />
         </div>
       </div>
+
+      <Dialog open={inspectionDialogOpen} onOpenChange={setInspectionDialogOpen}>
+        <DialogContent className="sm:max-w-[760px] border-border bg-slate-950 p-0 text-white">
+          <DialogHeader className="border-b border-white/10 px-5 py-4">
+            <DialogTitle className="text-[14px] font-medium text-white">Inspection Target Preview</DialogTitle>
+            <DialogDescription className="text-[11px] text-white/65">
+              Zoomed camera crop centered on the current inspection target.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selection && (
+            <div className="p-5 pt-0">
+              <div className="relative mt-5 aspect-[4/3] overflow-hidden rounded-md border border-cyan-200/15 bg-black">
+                <div
+                  className="absolute inset-0 bg-cover bg-no-repeat"
+                  style={{
+                    backgroundImage: `url(${greenhouseImg})`,
+                    backgroundSize: `${inspectionPreviewScale * 100}% ${inspectionPreviewScale * 100}%`,
+                    backgroundPosition: `${selection.normalizedBounds.centerX * 100}% ${selection.normalizedBounds.centerY * 100}%`,
+                  }}
+                  data-testid="inspection-preview-image"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/55 via-transparent to-transparent" />
+                <div className="absolute inset-[12%] border border-cyan-200/65 shadow-[0_0_0_1px_rgba(125,211,252,0.45)]" />
+                <div className="absolute bottom-3 left-3 rounded bg-slate-950/80 px-2 py-1 text-[9px] font-mono text-cyan-50">
+                  {selection.normalizedBounds.width.toFixed(4)}w · {selection.normalizedBounds.height.toFixed(4)}h
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

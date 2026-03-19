@@ -115,6 +115,24 @@ export function normalizeSelectionRect(
   };
 }
 
+export function selectionToViewportRect(
+  bounds: NormalizedInspectionBounds,
+  viewportState: CameraViewportState,
+  viewport: ViewportSize
+): ScreenRect {
+  const centerX = viewport.width / 2;
+  const centerY = viewport.height / 2;
+  const left = bounds.x * viewport.width;
+  const top = bounds.y * viewport.height;
+
+  return {
+    x: (left - centerX) * viewportState.zoom + centerX + viewportState.panX,
+    y: (top - centerY) * viewportState.zoom + centerY + viewportState.panY,
+    width: bounds.width * viewport.width * viewportState.zoom,
+    height: bounds.height * viewport.height * viewportState.zoom,
+  };
+}
+
 export function createInspectionSelection({
   rect,
   viewportState,

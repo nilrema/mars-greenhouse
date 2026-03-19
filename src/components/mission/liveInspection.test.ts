@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createInspectionSelection, normalizeSelectionRect } from './liveInspection';
+import { createInspectionSelection, normalizeSelectionRect, selectionToViewportRect } from './liveInspection';
 
 describe('liveInspection helpers', () => {
   it('normalizes a screen-space selection against the current viewport transform', () => {
@@ -44,6 +44,28 @@ describe('liveInspection helpers', () => {
         panX: 18.46,
         panY: -4.33,
       },
+    });
+  });
+
+  it('projects a saved selection back into the active camera transform', () => {
+    const rect = selectionToViewportRect(
+      {
+        x: 0.2,
+        y: 0.25,
+        width: 0.3,
+        height: 0.2,
+        centerX: 0.35,
+        centerY: 0.35,
+      },
+      { zoom: 1.5, panX: 30, panY: -12 },
+      { width: 200, height: 120 }
+    );
+
+    expect(rect).toEqual({
+      x: 40,
+      y: 3,
+      width: 90,
+      height: 36,
     });
   });
 });
