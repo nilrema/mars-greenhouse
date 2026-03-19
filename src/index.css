@@ -17,6 +17,10 @@ body {
   color: #e6edf3;
 }
 
+#root {
+  min-height: 100vh;
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
@@ -186,9 +190,27 @@ code {
   .grid-responsive {
     grid-template-columns: 1fr;
   }
-  
+
   .metric-card {
     margin-bottom: 1rem;
+  }
+}
+
+@media (max-width: 1280px) {
+  .mars-overview-shell {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .mars-overview-crew-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 920px) {
+  .mars-overview-shell,
+  .mars-overview-summary-grid,
+  .mars-overview-crew-grid {
+    grid-template-columns: 1fr !important;
   }
 }
 
