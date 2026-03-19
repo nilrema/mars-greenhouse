@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import os
 import time
+import uuid
 from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -23,6 +24,8 @@ from mcp.client.streamable_http import streamablehttp_client
 from strands import Agent, tool
 from strands.models import BedrockModel
 from strands.tools.mcp.mcp_client import MCPClient
+
+from agents.mcp_support import describe_mcp_access, get_mcp_configuration
 
 DEFAULT_MODEL_ID = os.environ.get("STRANDS_MODEL_ID", "us.amazon.nova-pro-v1:0")
 DEFAULT_MCP_URL = os.environ.get(
@@ -180,6 +183,20 @@ def _extract_text(result: Any) -> str:
     return "\n".join(part for part in parts if part).strip()
 
 
+def _extract_tool_result_text(result: Any) -> str:
+    content = getattr(result, "get", None)
+    blocks = content("content", []) if callable(content) else result.get("content", [])
+    parts = [str(block["text"]).strip() for block in blocks if isinstance(block, dict) and block.get("text")]
+    if parts:
+        return "\n".join(part for part in parts if part)
+
+    structured = result.get("structuredContent") if isinstance(result, dict) else None
+    if structured:
+        return str(structured)
+
+    return str(result)
+
+
 def _parse_keyed_block(text: str) -> dict[str, str]:
     parsed: dict[str, str] = {}
     current_key: str | None = None
@@ -261,7 +278,7 @@ You are {_agent_name(agent_id)}, a Mars greenhouse specialist.
 Simulation context:
 {context_summary}
 
-If MCP knowledge-base tools are available, use them only when the operator query requires external agronomy or mission guidance. Do not force tool use when the simulation context already answers the question.
+If the `consult_mars_crop_knowledge` tool is available, use it only when the operator query requires external agronomy or mission guidance. Do not force tool use when the simulation context already answers the question.
 
 Reply in exactly this format:
 STATUS: NOMINAL or WARNING or CRITICAL
@@ -310,13 +327,14 @@ class StrandsMissionRuntime(AbstractContextManager):
         session = boto3.Session(region_name=os.environ.get("AWS_REGION"))
         self.model = BedrockModel(boto_session=session, model_id=self.model_id)
         self.mcp_client = MCPClient(_mcp_transport, startup_timeout=30, prefix="mars_kb")
-        self.kb_tools: list[Any] = []
         self._mcp_entered = False
+        self._mcp_available = False
 
     def __enter__(self) -> "StrandsMissionRuntime":
         self.mcp_client.__enter__()
-        self.kb_tools = list(self.mcp_client.list_tools_sync())
+        self.mcp_client.list_tools_sync()
         self._mcp_entered = True
+        self._mcp_available = True
         return self
 
     def __exit__(self, exc_type, exc, tb) -> None:
@@ -348,8 +366,28 @@ class StrandsMissionRuntime(AbstractContextManager):
         }
         return raw_text
 
+    def _knowledge_tool(self, agent_id: str):
+        @tool(name="consult_mars_crop_knowledge")
+        def consult_mars_crop_knowledge(query: str) -> str:
+            """Retrieve Mars crop and greenhouse guidance from the shared MCP knowledge server."""
+            config = get_mcp_configuration()
+            access = describe_mcp_access()
+            if not self._mcp_available or not access["configured"]:
+                return "Knowledge base is unavailable in this runtime. Continue with simulation context only."
+
+            result = self.mcp_client.call_tool_sync(
+                tool_use_id=f"{agent_id}-{uuid.uuid4()}",
+                name=config["toolName"],
+                arguments={"query": query, "max_results": 5},
+            )
+            if result["status"] == "error":
+                raise RuntimeError(_extract_tool_result_text(result))
+            return _extract_tool_result_text(result)
+
+        return consult_mars_crop_knowledge
+
     def _run_specialist(self, agent_id: str, query: str) -> str:
-        tools = self.kb_tools if _should_enable_mcp(agent_id, query) else []
+        tools = [self._knowledge_tool(agent_id)] if _should_enable_mcp(agent_id, query) else []
         specialist = Agent(
             model=self.model,
             system_prompt=_specialist_prompt(agent_id, self.context_summary),

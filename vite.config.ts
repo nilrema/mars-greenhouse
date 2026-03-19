@@ -9,6 +9,14 @@ export default defineConfig(() => ({
     hmr: {
       overlay: false,
     },
+    watch: {
+      ignored: [
+        "**/.amplify/**",
+        "**/cdk.out/**",
+        "**/__pycache__/**",
+        "**/*.pyc",
+      ],
+    },
   },
   plugins: [react()],
   resolve: {

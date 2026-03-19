@@ -112,6 +112,19 @@ def test_mcp_is_only_enabled_for_knowledge_grounded_queries():
     assert strands_runtime._should_enable_mcp("resource", "Summarize the current power availability.") is False
 
 
+def test_tool_result_text_extractor_prefers_text_content():
+    assert (
+        strands_runtime._extract_tool_result_text(
+            {
+                "status": "success",
+                "content": [{"text": "guidance block"}],
+                "toolUseId": "abc",
+            }
+        )
+        == "guidance block"
+    )
+
+
 def test_keyed_block_parser_supports_specialist_and_orchestrator_formats():
     specialist = strands_runtime._parse_keyed_block(
         "STATUS: WARNING\nCURRENT_ACTION: Raise temperature.\nREQUESTED_SUPPORT: Resource hold the line.\nMESSAGE: Environment needs warmer grow lanes."
