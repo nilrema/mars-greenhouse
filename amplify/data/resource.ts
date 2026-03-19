@@ -39,6 +39,61 @@ const schema = a.schema({
     })
     .authorization((allow) => [allow.publicApiKey()]),
 
+  ModuleSummary: a
+    .model({
+      moduleId: a.string().required(),
+      name: a.string().required(),
+      location: a.string(),
+      status: a.enum(['NOMINAL', 'WATCH', 'ALERT']),
+      alert: a.string(),
+      harvestScore: a.integer(),
+      resourcePressure: a.integer(),
+      astroImpact: a.integer(),
+      activeScenario: a.string(),
+      orchestratorSummary: a.string(),
+      leadAgent: a.string(),
+      updatedAtLabel: a.string(),
+    })
+    .authorization((allow) => [allow.publicApiKey()]),
+
+  AgentSnapshot: a
+    .model({
+      moduleId: a.string().required(),
+      agentId: a.string().required(),
+      status: a.enum(['NOMINAL', 'WATCH', 'ALERT']),
+      headline: a.string(),
+      riskScore: a.integer(),
+      recommendations: a.json(),
+      affectedModules: a.json(),
+      timestamp: a.datetime(),
+    })
+    .authorization((allow) => [allow.publicApiKey()]),
+
+  ScenarioEvent: a
+    .model({
+      scenarioId: a.string().required(),
+      label: a.string().required(),
+      summary: a.string(),
+      leadAgent: a.string(),
+      affectedModules: a.json(),
+      severity: a.enum(['INFO', 'WARN', 'CRITICAL']),
+      triggeredAt: a.datetime(),
+    })
+    .authorization((allow) => [allow.publicApiKey()]),
+
+  ActionRequest: a
+    .model({
+      type: a.string().required(),
+      moduleId: a.string().required(),
+      sectionId: a.string(),
+      requestedBy: a.string(),
+      assignedAgent: a.string(),
+      status: a.enum(['QUEUED', 'IN_PROGRESS', 'COMPLETED', 'FAILED']),
+      summary: a.string(),
+      createdAtLabel: a.string(),
+    })
+    .authorization((allow) => [allow.publicApiKey()]),
+
   ActuatorCommand: a
     .model({
       commandId: a.string().required(),

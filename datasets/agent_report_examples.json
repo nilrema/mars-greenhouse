@@ -1,0 +1,32 @@
+[
+  {
+    "agent": "environment",
+    "status": "WATCH",
+    "headline": "Humidity drift in Elysium Pack is increasing disease-friendly conditions.",
+    "riskScore": 54
+  },
+  {
+    "agent": "crop",
+    "status": "ALERT",
+    "headline": "Noctis Stack bay 3 needs inspection before next harvest window.",
+    "riskScore": 71
+  },
+  {
+    "agent": "astro",
+    "status": "WATCH",
+    "headline": "Two astronaut dispatches are queued and EVA-equivalent workload is rising.",
+    "riskScore": 48
+  },
+  {
+    "agent": "resource",
+    "status": "ALERT",
+    "headline": "Water recycling reserve is below target and nutrient buffering is shrinking.",
+    "riskScore": 67
+  },
+  {
+    "agent": "orchestrator",
+    "status": "WATCH",
+    "headline": "Resource pressure leads the current cycle; crop impact is secondary but growing.",
+    "riskScore": 58
+  }
+]
