@@ -9,7 +9,7 @@ We are building a screenshot-accurate greenhouse operations console for the Syng
 The active frontend is a single-screen control room with:
 
 - a top-down greenhouse live view on the left
-- overview tabs for `Greenhouse` and `Astronauts` in the center
+- overview tabs for `Greenhouse`, `Technology`, and `Astronauts` in the center
 - an agent communication feed on the right
 - a simulation popup that drives mocked agent interaction
 
@@ -30,7 +30,7 @@ This is the active demo screen.
 It must show:
 
 - left greenhouse live view image panel
-- center overview tabs: `Greenhouse` and `Astronauts`
+- center overview tabs: `Greenhouse`, `Technology`, and `Astronauts`
 - right agent status row and conversation feed
 - top-right `Simulation` button opening a modal
 - bottom mission strip for nutrition, meal diversity, food security, and crew risk

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import type { AstronautRecord, MarsBase } from './types';
 import { AstronautPanel } from './AstronautPanel';
+import { TechnologyPanel } from './TechnologyPanel';
 
 export function GreenhouseOverview({
   base,
@@ -10,7 +11,7 @@ export function GreenhouseOverview({
   base: MarsBase;
   astronauts: AstronautRecord[];
 }) {
-  const [tab, setTab] = useState<'greenhouse' | 'astronauts'>('greenhouse');
+  const [tab, setTab] = useState<'greenhouse' | 'technology' | 'astronauts'>('greenhouse');
 
   const healthScore = Math.round(
     base.production * 0.4 +
@@ -29,6 +30,14 @@ export function GreenhouseOverview({
             }`}
           >
             🌱 Greenhouse
+          </button>
+          <button
+            onClick={() => setTab('technology')}
+            className={`px-2.5 py-1 rounded text-[10px] font-medium transition-colors ${
+              tab === 'technology' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            🛠 Technology
           </button>
           <button
             onClick={() => setTab('astronauts')}
@@ -126,6 +135,8 @@ export function GreenhouseOverview({
             ))}
           </div>
         </>
+      ) : tab === 'technology' ? (
+        <TechnologyPanel />
       ) : (
         <AstronautPanel astronauts={astronauts} />
       )}

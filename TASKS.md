@@ -39,3 +39,30 @@ Notes:
 - Added an explicit `Inspect area` mode so selection gestures do not conflict with panning.
 - Preserved a normalized inspection payload with viewport state for future crop-agent integration.
 - Added frontend smoke-level tests for zoom/mode flow and unit tests for selection normalization and payload shape.
+
+## 4. Technology Tab In Center Overview
+
+Marin needs to add a `Technology` tab to the center overview so operators can inspect the greenhouse devices that support crop monitoring and control. The goal is to make the core hardware visible alongside the crop and astronaut views, with the same concise control-room feel as the rest of the console.
+
+The tab should list the following devices:
+
+- Temperature Sensor
+- Humidity Sensor
+- Water Reservoir Level Sensor
+- Plant Camera
+- Ventilation
+
+Each device should expose these variables in the UI:
+
+- Status
+- Power
+- Connectivity
+- Component Health
+- Failure Risk
+
+Status: completed on `feature/technology-tab`
+
+Notes:
+- Added a dedicated `Technology` tab between `Greenhouse` and `Astronauts` in the center panel.
+- Rendered mocked operational cards for all five requested devices with the requested telemetry fields.
+- Added a frontend smoke test that verifies the tab switch and device field visibility.
