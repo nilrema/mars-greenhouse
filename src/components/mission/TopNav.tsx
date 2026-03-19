@@ -31,52 +31,57 @@ export function TopNav({ chaosActive, simParams, onSimChange }: TopNavProps) {
   }, []);
 
   return (
-    <header className="h-11 border-b border-border bg-card flex items-center justify-between px-5 shrink-0">
-      <div className="flex items-center gap-5">
-        <div className="flex items-center gap-2.5">
-          <div className="flex gap-0.5">
-            <div className="w-1.5 h-3.5 bg-syngenta-green rounded-sm" style={{ transform: 'rotate(-12deg)' }} />
-            <div className="w-1.5 h-3.5 bg-syngenta-blue rounded-sm" style={{ transform: 'rotate(12deg)' }} />
+    <header className="shrink-0 border-b border-slate-800/10 bg-slate-950 px-5 py-3.5 text-slate-50 shadow-[0_12px_32px_rgba(15,23,42,0.18)]">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-5">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-white/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+              <div className="flex gap-0.5">
+                <div className="h-3.5 w-1.5 rounded-sm bg-syngenta-green" style={{ transform: 'rotate(-12deg)' }} />
+                <div className="h-3.5 w-1.5 rounded-sm bg-syngenta-blue" style={{ transform: 'rotate(12deg)' }} />
+              </div>
+            </div>
+            <div>
+              <div className="text-[15px] font-bold tracking-[0.18em] text-white">SYNGENTA</div>
+              <div className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Mars Agricultural Control</div>
+            </div>
           </div>
-          <span className="text-[13px] font-semibold text-syngenta-green tracking-wide">Syngenta</span>
-          <span className="text-[11px] text-muted-foreground">Mars Agricultural Control</span>
+          <div className="h-4 w-px bg-white/12" />
+          <TelemetryItem label="Sol" value="428" />
+          <TelemetryItem label="MTC" value={solTime} />
+          <TelemetryItem label="Latency" value="14m 22s" />
         </div>
-        <div className="h-4 w-px bg-border" />
-        <TelemetryItem label="Sol" value="428" />
-        <TelemetryItem label="MTC" value={solTime} />
-        <TelemetryItem label="Latency" value="14m 22s" />
-      </div>
 
-      <div className="flex items-center gap-4">
-        <Dialog open={simOpen} onOpenChange={setSimOpen}>
-          <DialogTrigger asChild>
-            <motion.button
-              className="px-3 py-1 bg-primary text-primary-foreground text-[10px] font-medium rounded hover:bg-primary/90 flex items-center gap-1.5"
-              whileTap={{ scale: 0.95 }}
-            >
-              🔧 Simulation
-            </motion.button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[480px] bg-card border-border">
-            <DialogHeader>
-              <DialogTitle className="text-[14px]">Environment Simulation</DialogTitle>
-            </DialogHeader>
-            <SimulationPanel
-              params={simParams}
-              onConfirm={(params) => {
-                onSimChange(params);
-                setSimOpen(false);
-              }}
-            />
-          </DialogContent>
-        </Dialog>
-        <TelemetryItem label="Crew" value="6" />
-        <TelemetryItem label="O₂" value="21.3%" />
-        <div className="flex items-center gap-2">
-          <div className={`status-led ${chaosActive ? 'bg-destructive' : 'bg-success'}`} />
-          <span className={`text-[11px] font-medium ${chaosActive ? 'text-destructive' : 'text-success'}`}>
-            {chaosActive ? 'Alert Active' : 'Nominal'}
-          </span>
+        <div className="flex items-center gap-4">
+          <Dialog open={simOpen} onOpenChange={setSimOpen}>
+            <DialogTrigger asChild>
+              <motion.button
+                className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-foreground shadow-[0_12px_24px_rgba(34,92,63,0.18)] transition-colors hover:bg-primary/92"
+                whileTap={{ scale: 0.95 }}
+              >
+                Scenario Lab
+              </motion.button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[480px] bg-card border-border">
+              <DialogHeader>
+                <DialogTitle className="text-[14px]">Environment Simulation</DialogTitle>
+              </DialogHeader>
+              <SimulationPanel
+                params={simParams}
+                onConfirm={(params) => {
+                  onSimChange(params);
+                  setSimOpen(false);
+                }}
+              />
+            </DialogContent>
+          </Dialog>
+          <TelemetryItem label="O₂" value="21.3%" />
+          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+            <div className={`status-led ${chaosActive ? 'bg-destructive' : 'bg-success'}`} />
+            <span className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${chaosActive ? 'text-red-300' : 'text-emerald-300'}`}>
+              {chaosActive ? 'Alert Active' : 'Nominal'}
+            </span>
+          </div>
         </div>
       </div>
     </header>
@@ -85,9 +90,9 @@ export function TopNav({ chaosActive, simParams, onSimChange }: TopNavProps) {
 
 function TelemetryItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-[10px] text-muted-foreground">{label}</span>
-      <span className="text-[11px] font-mono text-foreground tabular-nums">{value}</span>
+    <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2">
+      <span className="text-[10px] uppercase tracking-[0.16em] text-slate-400">{label}</span>
+      <span className="text-[13px] font-mono font-semibold text-white tabular-nums">{value}</span>
     </div>
   );
 }

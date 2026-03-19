@@ -4,10 +4,10 @@ import { AgentChatPanel } from './AgentChatPanel';
 import type { AgentStatusCard, ChatMessage } from './types';
 
 const agents: AgentStatusCard[] = [
-  { id: 'environment', name: 'ENV_AGENT', role: 'Environment Control', icon: '🌡️', status: 'nominal', currentAction: 'Stable.' },
-  { id: 'crop', name: 'CROP_AGENT', role: 'Crop Management', icon: '🌱', status: 'nominal', currentAction: 'Stable.' },
-  { id: 'astro', name: 'ASTRO_AGENT', role: 'Astronaut Welfare', icon: '🧑‍🚀', status: 'nominal', currentAction: 'Stable.' },
-  { id: 'resource', name: 'RESOURCE_AGENT', role: 'Resource Management', icon: '⚡', status: 'nominal', currentAction: 'Stable.' },
+  { id: 'environment', name: 'ENV_AGENT', role: 'Environment Control', icon: 'ENV', status: 'nominal', currentAction: 'Stable.' },
+  { id: 'crop', name: 'CROP_AGENT', role: 'Crop Management', icon: 'CRP', status: 'nominal', currentAction: 'Stable.' },
+  { id: 'astro', name: 'ASTRO_AGENT', role: 'Astronaut Welfare', icon: 'CREW', status: 'nominal', currentAction: 'Stable.' },
+  { id: 'resource', name: 'RESOURCE_AGENT', role: 'Resource Management', icon: 'RSC', status: 'nominal', currentAction: 'Stable.' },
 ];
 
 const messages: ChatMessage[] = [
@@ -32,7 +32,7 @@ describe('AgentChatPanel', () => {
     expect(screen.getByText('How are the crops doing?')).toBeInTheDocument();
     expect(screen.getByText('Crop conditions are stable.')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByPlaceholderText(/Ask the greenhouse agents/i), {
+    fireEvent.change(screen.getByPlaceholderText(/greenhouse operations assessment/i), {
       target: { value: 'Power is dropping' },
     });
     fireEvent.click(screen.getByRole('button', { name: /Send/i }));

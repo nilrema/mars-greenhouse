@@ -12,14 +12,14 @@ const statusBg = {
 
 function messageBubbleClass(message: ChatMessage) {
   if (message.role === 'user') {
-    return 'ml-10 bg-primary text-primary-foreground border-primary/40';
+    return 'ml-10 bg-primary text-primary-foreground border-primary/35';
   }
 
   if (message.role === 'system') {
-    return 'mr-10 bg-muted/70 text-muted-foreground border-border';
+    return 'mr-10 bg-slate-900 text-slate-300 border-slate-800/30';
   }
 
-  return 'mr-6 bg-background/80 text-foreground border-border';
+  return 'mr-6 bg-slate-50/88 text-foreground border-border';
 }
 
 export function AgentChatPanel({
@@ -55,19 +55,24 @@ export function AgentChatPanel({
 
   return (
     <div className="panel h-full flex flex-col">
-      <div className="panel-header">Resilient Agent System</div>
+      <div className="mb-3">
+        <div className="panel-header mb-1">Agent Coordination</div>
+        <div className="text-[12px] text-muted-foreground">Operational briefings and specialist reasoning across the greenhouse stack.</div>
+      </div>
 
-      <div className="flex flex-wrap gap-1.5 mb-3">
+      <div className="mb-4 flex flex-wrap gap-2">
         {agents.map((agent) => (
-          <div key={agent.id} className="flex items-center gap-1.5 px-2 py-1 border border-border rounded bg-background/50 text-[10px]">
+          <div key={agent.id} className="flex items-center gap-2 rounded-full border border-slate-800/10 bg-slate-900 px-3 py-2 text-[11px] shadow-[0_10px_20px_rgba(15,23,42,0.12)]">
             <div className={`status-led ${statusBg[agent.status]}`} />
-            <span className="font-medium text-foreground">{agent.icon}</span>
-            <span className="text-muted-foreground">{agent.name}</span>
+            <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-white/10 px-1.5 font-mono text-[10px] font-semibold text-white">
+              {agent.icon}
+            </span>
+            <span className="text-slate-300">{agent.name}</span>
           </div>
         ))}
       </div>
 
-      <div className="panel-header">Agent Chat</div>
+      <div className="panel-header">Operations Feed</div>
       <div className="flex-1 overflow-hidden relative">
         <div ref={scrollRef} className="absolute inset-0 overflow-y-auto space-y-2 pr-1">
           <AnimatePresence>
@@ -80,14 +85,14 @@ export function AgentChatPanel({
                   initial={{ opacity: 0, y: 10, scale: 0.97 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
-                  className={`max-w-[85%] rounded-md border px-3 py-2 ${messageBubbleClass(message)}`}
+                  className={`max-w-[85%] rounded-2xl border px-3.5 py-3 shadow-[0_10px_24px_rgba(38,60,45,0.05)] ${messageBubbleClass(message)}`}
                 >
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">
+                  <div className="mb-1 flex items-center gap-1.5">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.16em]">
                       {message.author}
                     </span>
                   </div>
-                  <div className="text-[11px] leading-relaxed whitespace-pre-wrap">{message.message}</div>
+                  <div className="text-[13px] leading-relaxed whitespace-pre-wrap">{message.message}</div>
                 </motion.div>
               </div>
             ))}
@@ -98,7 +103,7 @@ export function AgentChatPanel({
                 animate={{ opacity: 1, y: 0 }}
                 className="flex justify-start"
               >
-                <div className="mr-10 rounded-md border border-border bg-muted/70 px-3 py-2 text-[11px] text-muted-foreground">
+                <div className="mr-10 rounded-2xl border border-slate-800/30 bg-slate-900 px-3.5 py-3 text-[13px] text-slate-300">
                   Orchestrator is thinking...
                 </div>
               </motion.div>
@@ -111,10 +116,10 @@ export function AgentChatPanel({
         <Input
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          placeholder="Ask the greenhouse agents..."
-          className="h-9 text-xs"
+          placeholder="Ask for a greenhouse operations assessment..."
+          className="h-12 rounded-full border-slate-300/80 bg-slate-50/85 px-4 text-[13px]"
         />
-        <Button type="submit" size="sm" className="h-9 px-3 text-xs" disabled={isLoading || !draft.trim()}>
+        <Button type="submit" size="sm" className="h-12 rounded-full px-4 text-[11px] font-semibold uppercase tracking-[0.14em]" disabled={isLoading || !draft.trim()}>
           Send
         </Button>
       </form>

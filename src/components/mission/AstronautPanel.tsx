@@ -30,13 +30,13 @@ export function AstronautPanel({ astronauts }: { astronauts: AstronautRecord[] }
 
   return (
     <div className="flex-1 min-h-0 overflow-y-auto space-y-2 mt-2">
-      <div className="border border-border bg-card rounded-lg p-3">
+      <div className="rounded-2xl border border-border bg-background/55 p-4">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <div className="text-[11px] font-semibold text-foreground">Crew Overview</div>
-            <div className="text-[9px] text-muted-foreground">Average nutrition and hydration posture across the active crew.</div>
+            <div className="text-[13px] font-semibold text-foreground">Crew Overview</div>
+            <div className="text-[11px] text-muted-foreground">Average nutrition and hydration posture across the active crew.</div>
           </div>
-          <div className="text-[9px] font-mono text-muted-foreground">{astronauts.length} active crew</div>
+          <div className="rounded-full border border-border/80 bg-secondary/75 px-3 py-1.5 text-[10px] font-mono text-muted-foreground">{astronauts.length} active crew</div>
         </div>
 
         <div className="grid grid-cols-4 gap-2">
@@ -51,18 +51,20 @@ export function AstronautPanel({ astronauts }: { astronauts: AstronautRecord[] }
         {astronauts.map((astronaut, index) => (
           <motion.div
             key={astronaut.name}
-            className={`border ${healthBorder[astronaut.health]} bg-card rounded-lg p-3`}
+            className={`rounded-2xl border ${healthBorder[astronaut.health]} bg-background/55 p-3.5`}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.06 }}
           >
             <div className="flex items-center gap-2.5 mb-2.5">
-              <div className="text-[22px] leading-none">{astronaut.avatar}</div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[12px] font-semibold text-foreground truncate">{astronaut.name}</div>
-                <div className="text-[9px] text-muted-foreground truncate">{astronaut.role}</div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-border/70 bg-secondary/80 text-[12px] font-semibold uppercase tracking-[0.14em] text-foreground">
+                {astronaut.avatar}
               </div>
-              <span className={`text-[9px] font-semibold ${healthColor[astronaut.health]}`}>
+              <div className="flex-1 min-w-0">
+                <div className="text-[14px] font-semibold text-foreground truncate">{astronaut.name}</div>
+                <div className="text-[11px] text-muted-foreground truncate">{astronaut.role}</div>
+              </div>
+              <span className={`text-[10px] font-semibold ${healthColor[astronaut.health]}`}>
                 {astronaut.health.toUpperCase()}
               </span>
             </div>
@@ -115,11 +117,11 @@ function CrewMetric({
   const barTone = metricBarTone(pct);
 
   return (
-    <div className="bg-muted/50 rounded p-2">
-      <div className="text-[8px] text-muted-foreground mb-1">{label}</div>
-      <div className={`text-[13px] font-mono font-semibold ${tone}`}>
+    <div className="rounded-xl bg-muted/50 p-2.5">
+      <div className="mb-1 text-[9px] text-muted-foreground">{label}</div>
+      <div className={`text-[15px] font-mono font-semibold ${tone}`}>
         {current}
-        <span className="text-[9px] text-muted-foreground font-normal">/{target}{unit}</span>
+        <span className="text-[10px] text-muted-foreground font-normal">/{target}{unit}</span>
       </div>
       <div className="w-full h-1 bg-muted rounded-full mt-1">
         <div className={`h-full rounded-full transition-all ${barTone}`} style={{ width: `${pct}%` }} />
@@ -144,9 +146,9 @@ function ScoreMetric({
   const barTone = metricBarTone(pct);
 
   return (
-    <div className="bg-muted/50 rounded p-2">
-      <div className="text-[8px] text-muted-foreground mb-1">{label}</div>
-      <div className={`text-[13px] font-mono font-semibold ${tone}`}>{display}</div>
+    <div className="rounded-xl bg-muted/50 p-2.5">
+      <div className="mb-1 text-[9px] text-muted-foreground">{label}</div>
+      <div className={`text-[15px] font-mono font-semibold ${tone}`}>{display}</div>
       <div className="w-full h-1 bg-muted rounded-full mt-1">
         <div className={`h-full rounded-full transition-all ${barTone}`} style={{ width: `${pct}%` }} />
       </div>
@@ -168,21 +170,21 @@ function OverviewGauge({
   const angle = pct * 3.6;
 
   return (
-    <div className="rounded bg-muted/40 p-2 flex flex-col items-center justify-center">
+    <div className="rounded-2xl bg-muted/35 p-2.5 flex flex-col items-center justify-center">
       <div
-        className="relative h-14 w-14 rounded-full"
+        className="relative h-16 w-16 rounded-full"
         style={{
           background: `conic-gradient(${accent} 0deg ${angle}deg, hsl(var(--muted)) ${angle}deg 360deg)`,
         }}
       >
         <div className="absolute inset-[5px] rounded-full bg-card flex items-center justify-center">
-          <div className={`font-mono text-[11px] font-semibold ${metricTone(pct)}`}>
+          <div className={`font-mono text-[13px] font-semibold ${metricTone(pct)}`}>
             {pct}
             {suffix}
           </div>
         </div>
       </div>
-      <div className="text-[8px] text-muted-foreground mt-2 text-center leading-tight">{label}</div>
+      <div className="mt-2 text-center text-[9px] text-muted-foreground leading-tight">{label}</div>
     </div>
   );
 }

@@ -80,7 +80,7 @@ export function TechnologyPanel() {
       {technologyDevices.map((device, index) => (
         <motion.div
           key={device.name}
-          className="border border-border bg-card rounded-lg p-3"
+          className="rounded-2xl border border-border bg-background/55 p-3"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.06 }}
@@ -90,13 +90,13 @@ export function TechnologyPanel() {
               <div className="text-[12px] font-semibold text-foreground">{device.name}</div>
               <div className="text-[9px] text-muted-foreground">{device.category}</div>
             </div>
-            <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] ${deviceStatusTone[device.status]}`}>
+            <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] ${deviceStatusTone[device.status]}`}>
               {device.status}
             </span>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <div className="rounded bg-muted/50 p-2">
+            <div className="rounded-2xl bg-muted/50 p-2">
               <div className="text-[8px] text-muted-foreground mb-1">Status</div>
               <div className="flex items-center gap-2">
                 <div className={`status-led ${device.status === 'online' ? 'bg-success' : device.status === 'standby' ? 'bg-warning' : 'bg-destructive'}`} />
@@ -126,7 +126,7 @@ function GaugeMetric({
   inverse?: boolean;
 }) {
   return (
-    <div className="bg-muted/50 rounded p-2">
+    <div className="rounded-2xl bg-muted/50 p-2">
       <div className="text-[8px] text-muted-foreground mb-1">{label}</div>
       <div className={`text-[13px] font-mono font-semibold ${metricTone(value, inverse)}`}>
         {value}
@@ -144,7 +144,7 @@ function GaugeMetric({
 
 function TextMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-muted/50 rounded p-2">
+    <div className="rounded-2xl bg-muted/50 p-2">
       <div className="text-[8px] text-muted-foreground mb-1">{label}</div>
       <div className="text-[13px] font-mono font-semibold text-foreground">{value}</div>
     </div>

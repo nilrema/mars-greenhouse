@@ -33,7 +33,7 @@ const initialBase: MarsBase = {
 const initialAstronauts: AstronautRecord[] = [
   {
     name: 'Cmdr. Vasquez',
-    avatar: '👩‍🚀',
+    avatar: 'CV',
     role: 'Mission Commander',
     calories: { current: 1820, target: 2200 },
     protein: { current: 72, target: 90 },
@@ -43,7 +43,7 @@ const initialAstronauts: AstronautRecord[] = [
   },
   {
     name: 'Dr. Okafor',
-    avatar: '👨‍🔬',
+    avatar: 'DO',
     role: 'Botanist',
     calories: { current: 1950, target: 2100 },
     protein: { current: 85, target: 85 },
@@ -53,7 +53,7 @@ const initialAstronauts: AstronautRecord[] = [
   },
   {
     name: 'Lt. Park',
-    avatar: '🧑‍🚀',
+    avatar: 'LP',
     role: 'Systems Engineer',
     calories: { current: 1600, target: 2300 },
     protein: { current: 58, target: 95 },
@@ -63,7 +63,7 @@ const initialAstronauts: AstronautRecord[] = [
   },
   {
     name: 'Sgt. Ivanova',
-    avatar: '👩‍🔧',
+    avatar: 'SI',
     role: 'Mechanical Specialist',
     calories: { current: 2100, target: 2400 },
     protein: { current: 91, target: 100 },
@@ -74,10 +74,10 @@ const initialAstronauts: AstronautRecord[] = [
 ];
 
 const initialAgents: AgentStatusCard[] = [
-  { id: 'environment', name: 'ENV_AGENT', role: 'Environment Control', icon: '🌡️', status: 'nominal', currentAction: 'Climate stable. Temperature 24°C, humidity 68%.' },
-  { id: 'crop', name: 'CROP_AGENT', role: 'Crop Management', icon: '🌱', status: 'nominal', currentAction: 'Harvest windows remain on schedule.' },
-  { id: 'astro', name: 'ASTRO_AGENT', role: 'Astronaut Welfare', icon: '🧑‍🚀', status: 'nominal', currentAction: 'Crew nutrition and workload nominal.' },
-  { id: 'resource', name: 'RESOURCE_AGENT', role: 'Resource Management', icon: '⚡', status: 'nominal', currentAction: 'Water and power reserves sufficient.' },
+  { id: 'environment', name: 'ENV_AGENT', role: 'Environment Control', icon: 'ENV', status: 'nominal', currentAction: 'Climate stable. Temperature 24°C, humidity 68%.' },
+  { id: 'crop', name: 'CROP_AGENT', role: 'Crop Management', icon: 'CRP', status: 'nominal', currentAction: 'Harvest windows remain on schedule.' },
+  { id: 'astro', name: 'ASTRO_AGENT', role: 'Astronaut Welfare', icon: 'CREW', status: 'nominal', currentAction: 'Crew nutrition and workload nominal.' },
+  { id: 'resource', name: 'RESOURCE_AGENT', role: 'Resource Management', icon: 'RSC', status: 'nominal', currentAction: 'Water and power reserves sufficient.' },
 ];
 
 const initialMetrics: HumanMetrics = {
@@ -269,7 +269,7 @@ function computeAgents(params: SimulationParams, stress: number): AgentStatusCar
       id: 'environment',
       name: 'ENV_AGENT',
       role: 'Environment Control',
-      icon: '🌡️',
+      icon: 'ENV',
       status: params.temperatureDrift < -5 || params.powerAvailability < 40 ? 'warning' : 'nominal',
       currentAction: params.temperatureDrift < -2 ? `Counteracting temperature drift at ${effectiveTemp}°C.` : 'CO₂ and climate conditions stable.',
     },
@@ -277,7 +277,7 @@ function computeAgents(params: SimulationParams, stress: number): AgentStatusCar
       id: 'crop',
       name: 'CROP_AGENT',
       role: 'Crop Management',
-      icon: '🌱',
+      icon: 'CRP',
       status: stress > 45 ? 'warning' : 'nominal',
       currentAction: stress > 30 ? 'Reducing crop stress and protecting harvest yield.' : 'Optimizing harvest rotation for the next sol.',
     },
@@ -285,7 +285,7 @@ function computeAgents(params: SimulationParams, stress: number): AgentStatusCar
       id: 'astro',
       name: 'ASTRO_AGENT',
       role: 'Astronaut Welfare',
-      icon: '🧑‍🚀',
+      icon: 'CREW',
       status: stress > 50 ? 'warning' : 'nominal',
       currentAction: stress > 40 ? 'Monitoring crew workload and nutrition impact.' : 'Crew nutrition nominal. Meal plan updated.',
     },
@@ -293,7 +293,7 @@ function computeAgents(params: SimulationParams, stress: number): AgentStatusCar
       id: 'resource',
       name: 'RESOURCE_AGENT',
       role: 'Resource Management',
-      icon: '⚡',
+      icon: 'RSC',
       status: params.waterRecycling < 60 || params.powerAvailability < 50 ? 'warning' : 'nominal',
       currentAction:
         params.waterRecycling < 70

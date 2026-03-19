@@ -21,84 +21,94 @@ export function GreenhouseOverview({
 
   return (
     <div className="panel h-full flex flex-col overflow-hidden">
-      <div className="panel-header flex items-center justify-between mb-0">
-        <div className="flex items-center gap-1 bg-muted rounded p-0.5">
+      <div className="mb-3 flex items-center justify-between">
+        <div>
+          <div className="panel-header mb-1">Mission Overview</div>
+          <div className="text-[12px] text-muted-foreground">Greenhouse performance, hardware readiness, and crew posture.</div>
+        </div>
+        <span
+          className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] ${
+            base.status === 'nominal'
+              ? 'border-success/30 bg-success/10 text-success'
+              : base.status === 'warning'
+                ? 'border-warning/30 bg-warning/10 text-warning'
+                : 'border-destructive/30 bg-destructive/10 text-destructive'
+          }`}
+        >
+          {base.status}
+        </span>
+      </div>
+
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-1 rounded-full border border-slate-800/10 bg-slate-800 p-1 shadow-[0_12px_24px_rgba(15,23,42,0.12)]">
           <button
             onClick={() => setTab('greenhouse')}
-            className={`px-2.5 py-1 rounded text-[10px] font-medium transition-colors ${
-              tab === 'greenhouse' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            className={`rounded-full px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] transition-colors ${
+              tab === 'greenhouse' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'
             }`}
           >
-            🌱 Greenhouse
+            Greenhouse
           </button>
           <button
             onClick={() => setTab('technology')}
-            className={`px-2.5 py-1 rounded text-[10px] font-medium transition-colors ${
-              tab === 'technology' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            className={`rounded-full px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] transition-colors ${
+              tab === 'technology' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'
             }`}
           >
-            🛠 Technology
+            Technology
           </button>
           <button
             onClick={() => setTab('astronauts')}
-            className={`px-2.5 py-1 rounded text-[10px] font-medium transition-colors ${
-              tab === 'astronauts' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            className={`rounded-full px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] transition-colors ${
+              tab === 'astronauts' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-white'
             }`}
           >
-            🧑‍🚀 Astronauts
+            Crew
           </button>
         </div>
-        <span
-          className={`text-[10px] font-medium ${
-            base.status === 'nominal'
-              ? 'text-success'
-              : base.status === 'warning'
-                ? 'text-warning'
-                : 'text-destructive'
-          }`}
-        >
-          {base.status.toUpperCase()}
-        </span>
+        <span className="rounded-full border border-slate-800/10 bg-slate-900 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-200 shadow-[0_12px_24px_rgba(15,23,42,0.12)]">{base.label}</span>
       </div>
 
       {tab === 'greenhouse' ? (
         <>
-          <div className="grid grid-cols-5 gap-1.5 mb-3 mt-2">
-            <MetricCard label="Temperature" value={`${base.environment.temperature}°C`} critical={base.environment.temperature < 15} icon="🌡️" />
-            <MetricCard label="Humidity" value={`${base.environment.humidity}%`} critical={base.environment.humidity < 40} icon="💧" />
-            <MetricCard label="Water / Recycling" value={`${base.environment.water}%`} critical={base.environment.water < 40} icon="♻️" />
-            <MetricCard label="Power" value={`${base.environment.light}%`} critical={base.environment.light < 50} icon="⚡" />
-            <MetricCard label="Health Score" value={`${healthScore}`} critical={healthScore < 60} icon="💚" />
+          <div className="mb-4 grid grid-cols-5 gap-3">
+            <MetricCard label="Temperature" value={`${base.environment.temperature}°C`} critical={base.environment.temperature < 15} icon="TMP" />
+            <MetricCard label="Humidity" value={`${base.environment.humidity}%`} critical={base.environment.humidity < 40} icon="H2O" />
+            <MetricCard label="Water / Recycling" value={`${base.environment.water}%`} critical={base.environment.water < 40} icon="WTR" />
+            <MetricCard label="Power" value={`${base.environment.light}%`} critical={base.environment.light < 50} icon="PWR" />
+            <MetricCard label="Health Score" value={`${healthScore}`} critical={healthScore < 60} icon="BIO" />
           </div>
 
           <div className="panel-header">Crop Status</div>
-          <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5">
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-2">
             {base.crops.map((crop, index) => (
               <motion.div
                 key={crop.name}
-                className={`border ${crop.anomaly ? 'border-destructive bg-destructive/5' : 'border-border'} bg-card rounded p-2 relative`}
+                className={`relative rounded-2xl border p-3 ${
+                  crop.anomaly ? 'border-destructive/35 bg-destructive/5' : 'border-border bg-slate-50/78'
+                }`}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: index * 0.05 }}
               >
                 {crop.anomaly && (
                   <motion.div
-                    className="absolute top-1.5 right-1.5 text-[9px] text-destructive font-semibold"
+                    className="absolute right-3 top-3 rounded-full border border-destructive/25 bg-destructive/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-destructive"
                     animate={{ opacity: [1, 0.3, 1] }}
                     transition={{ duration: 1, repeat: Infinity }}
                   >
-                    ⚠ {crop.stressStatus.toUpperCase()}
+                    {crop.stressStatus}
                   </motion.div>
                 )}
 
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] font-medium text-foreground">{crop.name}</span>
-                  <span className={`text-[10px] font-mono ${crop.health < 70 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  <span className="text-[13px] font-semibold text-foreground">{crop.name}</span>
+                  <span className={`text-[12px] font-mono font-semibold ${crop.health < 70 ? 'text-destructive' : 'text-muted-foreground'}`}>
                     HP {crop.health}%
                   </span>
                 </div>
 
-                <div className="w-full h-1.5 bg-muted rounded-full mb-1">
+                <div className="mb-1 h-1.5 w-full rounded-full bg-muted">
                   <motion.div
                     className={`h-full rounded-full ${
                       crop.anomaly
@@ -115,14 +125,14 @@ export function GreenhouseOverview({
                   />
                 </div>
 
-                <div className="flex justify-between text-[9px] text-muted-foreground">
+                <div className="flex justify-between text-[10px] text-muted-foreground">
                   <span>
                     Growth {crop.growthStage}% · {crop.daysToHarvest}d to harvest
                   </span>
                   <span>{crop.projectedYield.toLocaleString()} kcal</span>
                 </div>
 
-                <div className="flex justify-between text-[9px] mt-0.5">
+                <div className="mt-0.5 flex justify-between text-[10px]">
                   <span
                     className={`${
                       crop.health >= 80 ? 'text-success' : crop.health >= 50 ? 'text-warning' : 'text-destructive'
@@ -157,15 +167,19 @@ function MetricCard({
 }) {
   return (
     <motion.div
-      className={`border ${critical ? 'border-destructive bg-destructive/5' : 'border-border'} bg-card rounded p-2 text-center`}
+      className={`rounded-2xl border p-3 text-left ${
+        critical ? 'border-destructive/35 bg-destructive/5' : 'border-border bg-slate-50/82'
+      }`}
       animate={critical ? { borderColor: ['hsl(0,65%,50%)', 'hsl(0,65%,70%)', 'hsl(0,65%,50%)'] } : {}}
       transition={critical ? { duration: 1.5, repeat: Infinity } : {}}
     >
-      <div className="text-[14px] mb-0.5">{icon}</div>
-      <div className={`font-mono text-[14px] font-semibold ${critical ? 'text-destructive' : 'text-foreground'}`}>
+      <div className="mb-3 inline-flex rounded-full border border-slate-300/80 bg-slate-100 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+        {icon}
+      </div>
+      <div className={`font-mono text-[21px] font-semibold leading-none ${critical ? 'text-destructive' : 'text-foreground'}`}>
         {value}
       </div>
-      <div className="text-[9px] text-muted-foreground">{label}</div>
+      <div className="mt-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
     </motion.div>
   );
 }

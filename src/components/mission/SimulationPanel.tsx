@@ -61,15 +61,15 @@ export function SimulationPanel({ params, onConfirm }: Props) {
         </div>
         <div className="flex flex-wrap gap-1.5">
           {[
-            { label: '🌪 Dust Storm', values: { temperatureDrift: -8, waterRecycling: 60, powerAvailability: 30 } },
-            { label: '☀ Solar Flare', values: { temperatureDrift: 2, waterRecycling: 100, powerAvailability: 20 } },
-            { label: '🧊 Antarctica', values: { temperatureDrift: -18, waterRecycling: 30, powerAvailability: 50 } },
-            { label: '✅ Nominal', values: { temperatureDrift: 0, waterRecycling: 100, powerAvailability: 100 } },
+            { label: 'Dust Storm', values: { temperatureDrift: -8, waterRecycling: 60, powerAvailability: 30 } },
+            { label: 'Solar Flare', values: { temperatureDrift: 2, waterRecycling: 100, powerAvailability: 20 } },
+            { label: 'Deep Cold', values: { temperatureDrift: -18, waterRecycling: 30, powerAvailability: 50 } },
+            { label: 'Nominal', values: { temperatureDrift: 0, waterRecycling: 100, powerAvailability: 100 } },
           ].map((preset) => (
             <motion.button
               key={preset.label}
               onClick={() => applyPreset(preset.values)}
-              className="px-2 py-1 border border-border rounded text-[10px] text-foreground bg-background hover:bg-accent transition-colors"
+              className="rounded-full border border-border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground bg-background hover:bg-accent transition-colors"
               whileTap={{ scale: 0.95 }}
             >
               {preset.label}
@@ -80,7 +80,7 @@ export function SimulationPanel({ params, onConfirm }: Props) {
 
       <motion.button
         onClick={() => onConfirm(staged)}
-        className="w-full py-2 bg-primary text-primary-foreground text-[12px] font-semibold rounded hover:bg-primary/90 transition-colors"
+        className="w-full rounded-full bg-primary py-3 text-[12px] font-semibold uppercase tracking-[0.14em] text-primary-foreground hover:bg-primary/90 transition-colors"
         whileTap={{ scale: 0.97 }}
       >
         Start Simulation

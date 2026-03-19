@@ -310,15 +310,15 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
 
   return (
     <div className="panel h-full flex flex-col overflow-hidden p-0">
-      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border bg-card">
+      <div className="flex items-center justify-between gap-2 border-b border-border/80 bg-card/85 px-4 py-3">
         <div className="flex items-center gap-2">
           <motion.div
             className="w-2 h-2 rounded-full bg-destructive"
             animate={{ opacity: [1, 0.3, 1] }}
             transition={{ duration: 1.2, repeat: Infinity }}
           />
-          <span className="text-[10px] font-mono text-destructive font-medium tracking-wider">REC</span>
-          <span className="text-[9px] text-muted-foreground font-mono ml-1">
+          <span className="text-[10px] font-mono text-destructive font-medium tracking-wider">LIVE</span>
+          <span className="ml-2 rounded-full border border-border/80 bg-secondary/65 px-2 py-1 text-[9px] text-muted-foreground font-mono">
             {CAMERA_ID} · {viewportState.zoom.toFixed(2)}x
           </span>
         </div>
@@ -326,7 +326,7 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
           <button
             type="button"
             onClick={() => setCameraMode('pan')}
-            className={`rounded px-2 py-1 text-[9px] font-medium transition-colors ${
+            className={`rounded-full px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.14em] transition-colors ${
               cameraMode === 'pan' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -335,7 +335,7 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
           <button
             type="button"
             onClick={() => setCameraMode('select')}
-            className={`rounded px-2 py-1 text-[9px] font-medium transition-colors ${
+            className={`rounded-full px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.14em] transition-colors ${
               cameraMode === 'select' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -344,7 +344,7 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
         </div>
       </div>
 
-      <div className="flex-1 relative overflow-hidden bg-black">
+      <div className="relative flex-1 overflow-hidden bg-[#14231c]">
         <div
           ref={viewportRef}
           className={`absolute inset-0 overflow-hidden ${cameraMode === 'select' ? 'cursor-crosshair' : viewportState.zoom > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
@@ -382,7 +382,7 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
               type="button"
               onClick={() => setInspectionDialogOpen(true)}
               data-camera-action="true"
-              className="absolute border border-cyan-200 bg-cyan-400/18 shadow-[0_0_0_1px_rgba(103,232,249,0.55)] transition-colors hover:bg-cyan-300/24 focus:outline-none focus:ring-2 focus:ring-cyan-200/70"
+              className="absolute border border-emerald-200/85 bg-emerald-300/14 shadow-[0_0_0_1px_rgba(167,243,208,0.45)] transition-colors hover:bg-emerald-300/20 focus:outline-none focus:ring-2 focus:ring-emerald-200/70"
               style={{
                 left: selectionViewportRect.left,
                 top: selectionViewportRect.top,
@@ -392,7 +392,7 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
               aria-label="Open inspection target"
               data-testid="inspection-selection"
             >
-              <div className="absolute -top-5 left-0 rounded bg-cyan-400/85 px-1.5 py-0.5 text-[8px] font-mono font-medium tracking-wide text-slate-950">
+              <div className="absolute -top-6 left-0 rounded-full bg-emerald-200 px-2 py-1 text-[8px] font-mono font-medium tracking-wide text-slate-950">
                 INSPECTION TARGET
               </div>
             </button>
@@ -400,7 +400,7 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
 
           {selectionOverlay && (
             <div
-              className="absolute border border-dashed border-cyan-200 bg-cyan-300/15"
+              className="absolute border border-dashed border-emerald-200/85 bg-emerald-300/12"
               style={{
                 left: selectionOverlay.x,
                 top: selectionOverlay.y,
@@ -411,18 +411,18 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
             />
           )}
 
-          <div className="pointer-events-none absolute left-2 top-2 rounded bg-slate-950/55 px-2 py-1 text-[9px] font-mono text-white/80">
-            Wheel to zoom. Drag to pan. Use Inspect area to box the crop region.
+          <div className="pointer-events-none absolute left-3 top-3 rounded-full border border-white/10 bg-slate-950/55 px-3 py-1.5 text-[9px] font-mono text-white/82">
+            Wheel to zoom. Drag to pan. Use Inspect area to define the analysis frame.
           </div>
 
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent p-2 pt-10">
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#08110d]/90 via-[#08110d]/25 to-transparent p-3 pt-12">
             <div className="flex items-end justify-between gap-3">
               <div className="flex gap-3">
                 {[
                   { label: 'TEMP', value: `${base.environment.temperature}°C`, critical: base.environment.temperature < 15 },
                   { label: 'CO₂', value: `${base.environment.co2}`, critical: false },
                 ].map((item) => (
-                  <div key={item.label}>
+                  <div key={item.label} className="rounded-2xl border border-white/10 bg-black/25 px-3 py-2">
                     <div className="text-[8px] font-mono text-white/35 tracking-widest">{item.label}</div>
                     <div className={`text-[12px] font-mono font-medium ${item.critical ? 'text-red-400' : 'text-white/70'}`}>
                       {item.value}
@@ -436,7 +436,7 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
                   type="button"
                   onClick={resetView}
                   data-camera-action="true"
-                  className="rounded border border-white/15 bg-black/35 px-2 py-1 text-[9px] font-medium text-white/85 transition-colors hover:bg-black/55"
+                  className="rounded-full border border-white/15 bg-black/35 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-white/85 transition-colors hover:bg-black/55"
                 >
                   Reset view
                 </button>
@@ -444,7 +444,7 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
                   type="button"
                   onClick={clearSelection}
                   data-camera-action="true"
-                  className="rounded border border-white/15 bg-black/35 px-2 py-1 text-[9px] font-medium text-white/85 transition-colors hover:bg-black/55"
+                  className="rounded-full border border-white/15 bg-black/35 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-white/85 transition-colors hover:bg-black/55"
                   disabled={!selection}
                 >
                   Clear target
@@ -452,12 +452,12 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
               </div>
             </div>
 
-            <div className="mt-2 rounded border border-white/15 bg-black/65 p-2 text-[9px] text-white/88">
+            <div className="mt-3 rounded-2xl border border-white/12 bg-black/62 p-3 text-[9px] text-white/88">
               <div className="flex items-center justify-between gap-3">
                 <span className="font-mono tracking-wide text-white/70">SELECTION PAYLOAD</span>
                 <span className="font-mono text-white/72">{selection ? 'READY FOR CROP AGENT HANDOFF' : 'NO AREA SELECTED'}</span>
               </div>
-              <pre className="mt-1 overflow-hidden text-[8px] leading-4 text-cyan-50" data-testid="inspection-selection-json">
+              <pre className="mt-1 overflow-hidden text-[8px] leading-4 text-emerald-50" data-testid="inspection-selection-json">
                 {selection
                   ? JSON.stringify(selection, null, 2)
                   : JSON.stringify(
@@ -482,18 +482,20 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
       </div>
 
       <Dialog open={inspectionDialogOpen} onOpenChange={setInspectionDialogOpen}>
-        <DialogContent className="w-[min(92vw,760px)] max-w-[760px] border-border bg-slate-950 p-0 text-white">
-          <DialogHeader className="border-b border-white/10 px-5 py-4">
-            <DialogTitle className="text-[14px] font-medium text-white">Inspection Target Preview</DialogTitle>
-            <DialogDescription className="text-[11px] text-white/65">
-              Zoomed camera crop centered on the current inspection target.
-            </DialogDescription>
+        <DialogContent className="w-[min(92vw,760px)] max-w-[760px] overflow-hidden border-border/80 bg-card p-0 text-foreground shadow-[0_24px_72px_rgba(15,23,42,0.18)]">
+          <DialogHeader className="border-b border-border/80 bg-card px-6 py-5 text-left">
+            <div className="pr-8">
+              <DialogTitle className="text-[20px] font-semibold tracking-tight text-foreground">Inspection Target Preview</DialogTitle>
+              <DialogDescription className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+                Zoomed camera crop centered on the current inspection target.
+              </DialogDescription>
+            </div>
           </DialogHeader>
 
           {selection && (
-            <div className="p-5 pt-0">
+            <div className="p-6 pt-5">
               <div
-                className="relative mt-5 h-[min(62vh,480px)] w-full overflow-hidden rounded-md border border-cyan-200/15 bg-black"
+                className="relative h-[min(62vh,480px)] w-full overflow-hidden rounded-[26px] border border-border/80 bg-[#08110d] shadow-[0_20px_42px_rgba(15,23,42,0.18)]"
                 data-testid="inspection-preview-frame"
               >
                 {inspectionPreviewUrl ? (
@@ -507,10 +509,11 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
                 ) : (
                   <div className="absolute inset-0 animate-pulse bg-slate-900/80" data-testid="inspection-preview-loading" />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/55 via-transparent to-transparent" />
-                <div className="absolute inset-0 border border-cyan-200/65 shadow-[0_0_0_1px_rgba(125,211,252,0.45)]" />
-                <div className="absolute bottom-3 left-3 rounded bg-slate-950/80 px-2 py-1 text-[9px] font-mono text-cyan-50">
-                  {selection.normalizedBounds.width.toFixed(4)}w · {selection.normalizedBounds.height.toFixed(4)}h
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_42%)]" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
+                <div className="absolute inset-0 border border-emerald-200/50 shadow-[0_0_0_1px_rgba(167,243,208,0.24)]" />
+                <div className="absolute bottom-4 left-4 rounded-full border border-white/10 bg-slate-950/80 px-3 py-1.5 text-[10px] font-mono text-emerald-50">
+                  {selection.normalizedBounds.width.toFixed(4)}w x {selection.normalizedBounds.height.toFixed(4)}h
                 </div>
               </div>
             </div>

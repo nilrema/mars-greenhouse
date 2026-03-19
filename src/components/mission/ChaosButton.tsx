@@ -35,11 +35,11 @@ export function ChaosButton({ onTrigger, disabled }: { onTrigger: () => void; di
       <AnimatePresence mode="wait">
         {confirming ? (
           <motion.span key="confirm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            ⚠ Confirm Chaos
+            Confirm Override
           </motion.span>
         ) : (
           <motion.span key="trigger" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            ⚠ Activate Chaos
+            Trigger Override
           </motion.span>
         )}
       </AnimatePresence>
