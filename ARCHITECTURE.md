@@ -28,7 +28,9 @@ Responsibilities:
 - support crop inspection image flow
 
 Key current path:
-- [src/pages/Dashboard.jsx](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/src/pages/Dashboard.jsx)
+- [src/App.jsx](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/src/App.jsx)
+- [src/pages/MarsOverview.jsx](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/src/pages/MarsOverview.jsx)
+- [src/pages/GreenhouseDetail.jsx](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/src/pages/GreenhouseDetail.jsx)
 
 ### Backend
 

@@ -46,6 +46,10 @@ Create the product foundation for the two-screen experience and align the backen
 - Andrija can complete schema, simulation, and seed work without waiting for final UI styling
 - Marin can build the layout and mock-driven flows before live integration is ready
 
+### Milestone 1 Progress Notes
+
+- 2026-03-19: Added explicit top-level view state for `Mars Overview` and `Greenhouse Detail`, preserving selected greenhouse context between the two screens.
+
 ## Milestone 2: Mars Overview End-to-End
 
 ### Goal
