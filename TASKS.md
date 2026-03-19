@@ -10,6 +10,16 @@ Andrija needs to connect the backend to the frontend chat interface so the chat 
 
 This task should define the API contract between frontend and backend, wire the request and response lifecycle, and make sure the chat can handle loading, success, and failure states. Once this is in place, the chat becomes the real entry point for interacting with the system instead of a placeholder.
 
+Notes:
+- Added a minimal Strands Agents backend in `agents/` using the Agents-as-Tools pattern.
+- Exposed `agents.handle_chat(query: str) -> str` and `agents.run_orchestrator(query: str) -> str` for chat integration.
+- Added greenhouse specialist tools for environment, crop, astro, and resource responses, each with Mars knowledge base MCP access.
+- Added an AppSync greenhouse data helper so specialist agents can read live `SensorReading`, `CropRecord`, `ModuleSummary`, `AgentSnapshot`, `ActionRequest`, and `ActuatorCommand` data from `amplify_outputs.json`.
+- Wired the frontend chat panel to a lightweight `/api/chat` bridge that invokes `handle_chat(query)` through a small Python JSON wrapper.
+- Added basic chat rendering for user turns, visible agent-routing steps, loading state, and final agent responses.
+- Wired the simulation modal submit action into the backend agent flow so starting a scenario also triggers orchestrator analysis in the chat feed.
+- Added focused pytest coverage for the orchestrator wiring and graceful error handling.
+
 ## 2. Dataset Creation For Frontend Integration
 
 Luka needs to create the dataset that will be integrated into the frontend. The goal is to prepare data that matches the product model we want to show in the UI, so the frontend can display meaningful greenhouse state, inspection context, and any other product-relevant information without relying on invented placeholder values.

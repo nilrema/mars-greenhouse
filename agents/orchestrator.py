@@ -1,74 +1,120 @@
-"""
-CLI wrapper for the Orchestrator Agent.
-"""
+"""Minimal orchestrator for the frontend chat flow."""
 
 from __future__ import annotations
 
-import json
-import sys
-from pathlib import Path
+import os
+from typing import Any
 
-if __package__ in (None, ""):
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-    from agents.mission_orchestrator import run_mission_orchestrator
-else:
-    from agents.mission_orchestrator import run_mission_orchestrator
+from strands import Agent
+
+from .bedrock_config import resolve_bedrock_model
+from .mcp import build_mars_kb_tools
+from .specialized_agents import (
+    astro_agent,
+    crop_agent,
+    environment_agent,
+    resource_agent,
+)
+
+ORCHESTRATOR_SYSTEM_PROMPT = """
+You are the orchestrator for a Mars greenhouse control-room chat built with Strands.
+
+Routing rules:
+- Climate instability, environmental controls, or power stress -> use environment_agent.
+- Crop health, harvest timing, yield, or production impact -> use crop_agent.
+- Crew workload, astronaut nutrition, or human impact -> use astro_agent.
+- Water recycling, reserves, power allocation, or mitigation tradeoffs -> use resource_agent.
+- Queries that touch several concerns can call multiple specialist tools and then combine their results.
+- Very simple conversational queries can be answered directly without calling a specialist.
+
+When Mars greenhouse context helps, you may also use the Mars knowledge base MCP tools.
+Keep the final answer clean, direct, and user-facing.
+Do not mention internal routing unless it adds value.
+""".strip()
+
+VISIBLE_AGENT_STEPS = {
+    "environment": "Using environment_agent to evaluate climate and power stress.",
+    "crop": "Using crop_agent to assess crop stress and harvest impact.",
+    "astro": "Using astro_agent to assess crew and nutrition impact.",
+    "resource": "Using resource_agent to evaluate water and power constraints.",
+}
+
+ROUTING_KEYWORDS = {
+    "environment": ("temperature", "climate", "humidity", "cooling", "heating", "power stress", "environment"),
+    "crop": ("crop", "harvest", "yield", "plant", "production", "growth", "disease"),
+    "astro": ("crew", "astronaut", "nutrition", "workload", "health", "meal", "food"),
+    "resource": ("water", "recycling", "power", "resource", "battery", "reserve", "constraint"),
+}
 
 
-def _trim(text: str | None, limit: int = 140) -> str:
-    if not text:
-        return "-"
-    clean = " ".join(str(text).split())
-    return clean if len(clean) <= limit else clean[: limit - 3] + "..."
+def create_orchestrator_agent() -> Agent:
+    """Build the orchestrator agent with specialist tools and Mars MCP access."""
+    return Agent(
+        model=resolve_bedrock_model(),
+        name="chat_orchestrator",
+        system_prompt=ORCHESTRATOR_SYSTEM_PROMPT,
+        tools=[
+            environment_agent,
+            crop_agent,
+            astro_agent,
+            resource_agent,
+            *build_mars_kb_tools(),
+        ],
+    )
 
 
-def format_orchestration_trace(result: dict) -> str:
-    decision = result.get("decision", {})
-    reports = result.get("reports", {})
-    lines = [
-        "ORCHESTRATOR TRACE",
-        f"module: {result.get('selectedModuleId', '-')}",
-        f"scenario: {result.get('scenario', '-')}",
-        f"prompt: {_trim(result.get('prompt') or 'automatic cycle')}",
-        "",
+def handle_chat(query: str) -> str:
+    """Handle one frontend chat turn and return a plain-text response."""
+    cleaned_query = query.strip()
+    if not cleaned_query:
+        return "Please enter a question for the agent system."
+
+    try:
+        return str(create_orchestrator_agent()(cleaned_query)).strip()
+    except Exception as exc:
+        return f"Sorry, the agent orchestrator is unavailable right now: {exc}"
+
+
+def preview_agent_usage(query: str) -> list[str]:
+    """Return a lightweight list of likely specialist agents for UI step rendering."""
+    lowered_query = query.lower()
+    matched_agents = [
+        agent_id
+        for agent_id, keywords in ROUTING_KEYWORDS.items()
+        if any(keyword in lowered_query for keyword in keywords)
     ]
+    return matched_agents or ["environment"]
 
-    for index, name in enumerate(["environment", "crop", "astro", "resource"], start=1):
-        report = reports.get(name, {})
-        lines.extend(
-            [
-                f"{index}. Orchestrator -> {name.title()} Agent",
-                f"status: {report.get('status', '-')}",
-                f"headline: {_trim(report.get('headline'))}",
-                f"riskScore: {report.get('riskScore', '-')}",
-                "",
-            ]
+
+def handle_chat_turn(query: str) -> dict[str, Any]:
+    """Return a simple chat payload with visible routing steps and the final response."""
+    cleaned_query = query.strip()
+    if not cleaned_query:
+        return {
+            "steps": [],
+            "response": "Please enter a question for the agent system.",
+        }
+
+    steps = [
+        {
+            "agent": "orchestrator",
+            "message": "Routing your question through the Mars greenhouse agent system.",
+        }
+    ]
+    for agent_id in preview_agent_usage(cleaned_query):
+        steps.append(
+            {
+                "agent": agent_id,
+                "message": VISIBLE_AGENT_STEPS[agent_id],
+            }
         )
 
-    lines.extend(
-        [
-            "5. Specialists -> Orchestrator",
-            f"leadAgent: {decision.get('leadAgent', '-')}",
-            f"summary: {_trim(decision.get('operatorSummary'), 220)}",
-        ]
-    )
-    return "\n".join(lines)
+    return {
+        "steps": steps,
+        "response": handle_chat(cleaned_query),
+    }
 
 
-def run_orchestrator(prompt: str | None = None) -> str:
-    return run_mission_orchestrator(prompt=prompt)
-
-
-if __name__ == "__main__":
-    args = sys.argv[1:]
-    emit_json = False
-    if "--json" in args:
-        emit_json = True
-        args = [arg for arg in args if arg != "--json"]
-
-    prompt = " ".join(args) if args else None
-    raw = run_orchestrator(prompt)
-    if emit_json:
-        print(raw)
-    else:
-        print(format_orchestration_trace(json.loads(raw)))
+def run_orchestrator(query: str) -> str:
+    """Compatibility wrapper used by the older integration test scaffolding."""
+    return handle_chat(query)

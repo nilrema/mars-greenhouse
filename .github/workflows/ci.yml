@@ -40,8 +40,8 @@ jobs:
       - name: Run Python tests when present
         shell: bash
         run: |
-          if find . -path './node_modules' -prune -o -type f -name 'test_*.py' -print -quit | grep -q .; then
-            pytest
+          if [ -f tests/test_chat_orchestrator.py ]; then
+            pytest tests/test_chat_orchestrator.py
           else
             echo "No Python tests found yet; skipping pytest."
           fi

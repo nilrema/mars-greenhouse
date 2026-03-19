@@ -1,20 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { ActivityFeedItem, AgentStatusCard } from './types';
-
-const logBorderColor = {
-  info: 'border-l-primary',
-  warning: 'border-l-warning',
-  critical: 'border-l-destructive',
-  success: 'border-l-success',
-};
-
-const logBgColor = {
-  info: 'bg-primary/5',
-  warning: 'bg-warning/5',
-  critical: 'bg-destructive/5',
-  success: 'bg-success/5',
-};
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import type { AgentStatusCard, ChatMessage } from './types';
 
 const statusBg = {
   nominal: 'bg-success',
@@ -22,14 +10,48 @@ const statusBg = {
   critical: 'bg-destructive',
 };
 
-export function AgentChatPanel({ agents, logs }: { agents: AgentStatusCard[]; logs: ActivityFeedItem[] }) {
+function messageBubbleClass(message: ChatMessage) {
+  if (message.role === 'user') {
+    return 'ml-10 bg-primary text-primary-foreground border-primary/40';
+  }
+
+  if (message.role === 'system') {
+    return 'mr-10 bg-muted/70 text-muted-foreground border-border';
+  }
+
+  return 'mr-6 bg-background/80 text-foreground border-border';
+}
+
+export function AgentChatPanel({
+  agents,
+  messages,
+  isLoading,
+  onSendMessage,
+}: {
+  agents: AgentStatusCard[];
+  messages: ChatMessage[];
+  isLoading: boolean;
+  onSendMessage: (message: string) => Promise<void>;
+}) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [draft, setDraft] = useState('');
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [logs]);
+  }, [messages, isLoading]);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const nextMessage = draft.trim();
+    if (!nextMessage || isLoading) {
+      return;
+    }
+
+    setDraft('');
+    await onSendMessage(nextMessage);
+  }
 
   return (
     <div className="panel h-full flex flex-col">
@@ -45,49 +67,57 @@ export function AgentChatPanel({ agents, logs }: { agents: AgentStatusCard[]; lo
         ))}
       </div>
 
-      <div className="panel-header">Agent Communication Feed</div>
+      <div className="panel-header">Agent Chat</div>
       <div className="flex-1 overflow-hidden relative">
         <div ref={scrollRef} className="absolute inset-0 overflow-y-auto space-y-2 pr-1">
           <AnimatePresence>
-            {logs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center">
-                <div className="text-[28px] mb-2">🛡️</div>
-                <div className="text-[11px] text-muted-foreground mb-1">All systems nominal</div>
-                <div className="text-[10px] text-muted-foreground/50">
-                  Adjust simulation parameters to see agents respond
-                </div>
-              </div>
-            ) : (
-              logs.map((log, index) => (
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
                 <motion.div
-                  key={`${log.agent}-${index}`}
                   initial={{ opacity: 0, y: 10, scale: 0.97 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ duration: 0.25, ease: [0.2, 0, 0, 1] }}
-                  className={`border-l-3 ${logBorderColor[log.type]} ${logBgColor[log.type]} rounded-r-md p-2.5`}
-                  style={{ borderLeftWidth: '3px' }}
+                  className={`max-w-[85%] rounded-md border px-3 py-2 ${messageBubbleClass(message)}`}
                 >
                   <div className="flex items-center gap-1.5 mb-1">
-                    <span className="text-[10px] font-semibold text-primary">{log.agent.toUpperCase()}</span>
-                    <span className="text-[9px] text-muted-foreground/50">·</span>
-                    <span className="text-[9px] text-muted-foreground/50">
-                      {log.type === 'critical'
-                        ? '🔴'
-                        : log.type === 'warning'
-                          ? '🟡'
-                          : log.type === 'success'
-                            ? '🟢'
-                            : '🔵'}{' '}
-                      {log.type.toUpperCase()}
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.14em]">
+                      {message.author}
                     </span>
                   </div>
-                  <div className="text-[11px] text-foreground leading-relaxed">{log.message}</div>
+                  <div className="text-[11px] leading-relaxed whitespace-pre-wrap">{message.message}</div>
                 </motion.div>
-              ))
-            )}
+              </div>
+            ))}
+            {isLoading ? (
+              <motion.div
+                key="chat-loading"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex justify-start"
+              >
+                <div className="mr-10 rounded-md border border-border bg-muted/70 px-3 py-2 text-[11px] text-muted-foreground">
+                  Orchestrator is thinking...
+                </div>
+              </motion.div>
+            ) : null}
           </AnimatePresence>
         </div>
       </div>
+
+      <form onSubmit={handleSubmit} className="mt-3 flex items-center gap-2">
+        <Input
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder="Ask the greenhouse agents..."
+          className="h-9 text-xs"
+        />
+        <Button type="submit" size="sm" className="h-9 px-3 text-xs" disabled={isLoading || !draft.trim()}>
+          Send
+        </Button>
+      </form>
     </div>
   );
 }

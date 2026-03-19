@@ -75,6 +75,16 @@ export interface ActivityFeedItem {
   type: 'info' | 'warning' | 'critical' | 'success';
 }
 
+export type ChatMessageRole = 'user' | 'system' | 'agent';
+
+export interface ChatMessage {
+  id: string;
+  role: ChatMessageRole;
+  author: string;
+  message: string;
+  agent?: AgentId | 'system' | 'user';
+}
+
 export interface HumanMetrics {
   nutritionScore: number;
   mealDiversity: number;
