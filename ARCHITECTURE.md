@@ -2,172 +2,88 @@
 
 ## 1. Purpose
 
-This document describes the target system architecture for the Martian Greenhouse Command Center.
+This document describes the current frontend-focused architecture for the screenshot-style greenhouse console.
 
-It keeps the current stack and repo layout, but aligns the system around the actual product:
-- Mars Overview view
-- Greenhouse Detail view
-- agent reasoning and operator chat
-- chaos simulation
-- crew-health-aware greenhouse operations
+The repository keeps the existing stack, but the active frontend path is now:
+
+- `src/` as the primary frontend workspace
+- `agents/` as the future backend/runtime landing zone
+- mocked local state as the current frontend driver
 
 ## 2. System Layers
 
 ### Frontend
 
-React application that renders the two primary product views:
-- Mars Overview
-- Greenhouse Detail
+Primary path:
+
+- [src/App.tsx](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/src/App.tsx)
 
 Responsibilities:
-- render live greenhouse and crew data
-- maintain selected module and selected crop-section context
-- display agent reasoning
-- capture operator prompts
-- trigger chaos mode
-- support crop inspection image flow
 
-Key current path:
-- [src/App.jsx](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/src/App.jsx)
-- [src/pages/MarsOverview.jsx](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/src/pages/MarsOverview.jsx)
-- [src/pages/GreenhouseDetail.jsx](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/src/pages/GreenhouseDetail.jsx)
+- render the screenshot-style three-column greenhouse console
+- maintain local greenhouse, astronaut, agent, log, and slider state
+- drive a mocked simulation popup and conversation flow
+- keep the detail route as a future stub only
 
-### Backend
+### Backend / Data
 
-Amplify Gen 2 provides the application backend.
+Primary path:
 
-Responsibilities:
-- GraphQL models and API
-- subscriptions for real-time UI updates
-- Lambda-backed simulation and actions
-- persistence for greenhouse-module state, nutritional coverage, and resilience events
-- authentication via Cognito
-
-Key current paths:
 - [amplify/data/resource.ts](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/amplify/data/resource.ts)
-- [amplify/functions/sensorSimulator/handler.ts](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/amplify/functions/sensorSimulator/handler.ts)
-- [amplify/functions/actuatorControl/handler.ts](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/amplify/functions/actuatorControl/handler.ts)
+
+Responsibilities:
+
+- remain available for later integration
+- not block the current mocked frontend console
 
 ### Agents
 
-Python agents provide reasoning and control recommendations.
+Primary paths:
 
-Current implementation lives in `agents/`, but the target product is organized around these roles:
-- Mission Orchestrator
-- Greenhouse Operations Agent
-- Crop Health Agent
-- Crew Nutrition Agent
-- Incident / Chaos Agent
+- [agents/mission_orchestrator.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/mission_orchestrator.py)
+- [agents/environment_agent.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/environment_agent.py)
+- [agents/crop_agent.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/crop_agent.py)
+- [agents/astro_agent.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/astro_agent.py)
+- [agents/resource_agent.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/resource_agent.py)
 
 Responsibilities:
-- analyze greenhouse and crew state
-- explain reasoning in a way that can be shown in the UI
-- respond to operator prompts
-- evaluate anomalies
-- recommend greenhouse actions
-- reason about nutritional coverage, crop allocation, and failure containment
-- coordinate incident response during chaos mode
 
-Key current paths:
-- [agents/orchestrator.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/orchestrator.py)
-- [agents/environment_agent.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/environment_agent.py)
-- [agents/resource_agent.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/resource_agent.py)
-- [agents/stress_agent.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/stress_agent.py)
+- remain compatible with future integration plans
+- not define the active frontend interaction model yet
 
-### Data and External Services
+## 3. Active Frontend State
 
-- AppSync / GraphQL for application data access
-- DynamoDB for operational state and event records
-- Lambda for simulation and command execution
-- Bedrock for model inference
-- MCP gateway for knowledge-base access
-- S3 for crop images and optional generated artifacts
+### Main Console State
 
-## 3. Product-Level Data Flow
+- `greenhouse`
+- `astronauts`
+- `agents`
+- `logs`
+- `metrics`
+- `simParams`
 
-### Mars Overview flow
+## 4. Product Flow
 
-1. Sensor simulation updates greenhouse data.
-2. Backend persists new readings and derived status.
-3. Agents evaluate state and write reasoning / alerts.
-4. Frontend subscribes to updates and renders:
-   - three greenhouse modules in the mission network
-   - selected-module summary
-   - crew overview
-   - agent reasoning stream
+### Main Console
 
-### Greenhouse Detail flow
+1. Frontend loads mocked greenhouse and astronaut data.
+2. Operator opens the simulation modal.
+3. Operator adjusts temperature drift, water recycling, and power availability.
+4. Starting the simulation updates metrics and creates a staged agent conversation.
 
-1. Operator opens a greenhouse from the overview.
-2. Frontend loads greenhouse summary, map data, crop sections, and active anomalies.
-3. When a crop section is selected or zoomed, the UI fetches section-level analysis.
-4. Operator can request agent analysis or upload/capture an image.
-5. Agent returns diagnosis, risk, and recommended action.
+### Detail Route
 
-### Chaos flow
+1. Route remains reachable.
+2. Page only communicates that it is a future stub.
 
-1. Operator presses `Activate Chaos`.
-2. Backend generates abnormal conditions for two greenhouse modules.
-3. Agents re-evaluate the state.
-4. UI shows changed metrics, alerts, and updated reasoning.
+## 5. Boundaries
 
-## 4. Core Domain Objects
+- the active frontend should stay close to the screenshots
+- local mocked state is acceptable and preferred for now
+- specialist conversation is more important than backend integration in this pass
 
-The exact schema can evolve, but the architecture should support these product entities:
+## 6. Reversion Strategy
 
-- GreenhouseModule
-- GreenhouseModuleSummary
-- Greenhouse
-- GreenhouseSection
-- SensorReading
-- SectionAnalysis
-- AnomalyEvent
-- NutritionalCoverage
-- ResourceConstraintSnapshot
-- CrewMember
-- CrewMissionStatus
-- AgentMessage
-- AgentDecision
-- ActionRequest
-- ChaosScenario
-- CropInspection
-
-## 5. Target Frontend Composition
-
-### Mars Overview
-
-- 3D Mars scene
-- selected-module summary panel
-- chat / reasoning panel
-- crew overview strip
-- chaos activation control
-
-### Greenhouse Detail
-
-- bird's-eye greenhouse map
-- greenhouse summary panel
-- crop-section analysis panel
-- persistent chat panel
-- image inspection entry point
-- astronaut dispatch actions
-
-## 6. Boundaries
-
-- Frontend should not talk directly to Bedrock, DynamoDB, or Lambda outside the application APIs
-- Agent reasoning should be persisted so the UI can render it consistently
-- Chaos mode should be a first-class backend action, not only a local UI effect
-- Crew metrics must be connected to greenhouse output, not treated as isolated decoration
-- The system should model Mars agriculture as sealed hydroponic / soilless controlled-environment agriculture, not open-air or regolith-first farming
-- Multiple independently controlled modules should be treated as a resilience feature that limits disease spread and single-point failures
-
-## 7. CI Expectations
-
-The repository should include CI that runs on every pull request and mainline merge candidate.
-
-Minimum CI scope:
-- install dependencies
-- run frontend checks
-- run backend / agent tests
-- fail the pipeline if any test fails
-
-CI should protect the main branch and act as the baseline quality gate for both Andrija and Marin.
+- keep the current root frontend as the active demo baseline
+- keep the detail route as a future stub
+- avoid reintroducing multi-module command-center concepts into the active main screen

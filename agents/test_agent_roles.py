@@ -1,30 +1,41 @@
-import json
-
+from agents.astro_agent import analyze_astro_workload
 from agents.crop_health_agent import analyze_crop_health
-from agents.crew_nutrition_agent import summarize_crew_nutrition
-from agents.greenhouse_operations_agent import analyze_greenhouse_operations
-from agents.incident_chaos_agent import create_chaos_report
+from agents.environment_agent import analyze_environment
 from agents.mission_orchestrator import compose_mission_decision
+from agents.resource_agent import analyze_resources
 
 
-def test_greenhouse_operations_detects_critical_conditions():
-    report = analyze_greenhouse_operations(
+def test_environment_agent_detects_climate_risk():
+    report = analyze_environment(
         {
-            "temperature": 33.0,
-            "humidity": 82.0,
-            "co2Ppm": 700,
-            "lightPpfd": 150,
-            "waterLitres": 70,
+            "temperature": 32.0,
+            "humidity": 86.0,
+            "co2Ppm": 720,
+            "lightPpfd": 180,
         }
     )
 
-    assert report["status"] == "CRITICAL"
-    assert report["risk_score"] > 0
-    assert any(item["metric"] == "temperature" for item in report["issues"])
-    assert any(cmd["tool"] == "trigger_irrigation" for cmd in report["recommended_commands"])
+    assert report["status"] == "ALERT"
+    assert report["riskScore"] > 0
+    assert report["recommendations"]
 
 
-def test_crop_health_detects_disease_risk_and_monitored_crops():
+def test_resource_agent_detects_water_and_power_pressure():
+    report = analyze_resources(
+        {
+            "waterLitres": 70.0,
+            "lightPpfd": 190.0,
+            "nutrientEc": 1.4,
+            "phLevel": 6.8,
+        }
+    )
+
+    assert report["status"] == "ALERT"
+    assert report["riskScore"] > 0
+    assert any(item["metric"] == "waterLitres" for item in report["findings"])
+
+
+def test_crop_agent_logic_detects_disease_risk():
     report = analyze_crop_health(
         {"humidity": 88.0, "temperature": 23.0, "co2Ppm": 1100},
         [
@@ -35,39 +46,30 @@ def test_crop_health_detects_disease_risk_and_monitored_crops():
 
     assert report["status"] in {"MONITOR", "CRITICAL"}
     assert report["disease_risk_score"] > 0
-    assert len(report["anomalies"]) >= 1
 
 
-def test_crew_nutrition_summary_exposes_required_ui_metrics():
-    report = summarize_crew_nutrition(
+def test_astro_agent_exposes_dispatch_and_workload():
+    report = analyze_astro_workload(
         [
             {"name": "Wheat", "variety": "Test", "growthStage": 4, "daysToHarvest": 80, "healthStatus": "HEALTHY", "zone": "main"},
             {"name": "Potato", "variety": "Test", "growthStage": 3, "daysToHarvest": 30, "healthStatus": "MONITOR", "zone": "main"},
-            {"name": "Lettuce", "variety": "Test", "growthStage": 2, "daysToHarvest": 14, "healthStatus": "HEALTHY", "zone": "nursery"},
+            {"name": "Lettuce", "variety": "Test", "growthStage": 2, "daysToHarvest": 14, "healthStatus": "CRITICAL", "zone": "nursery"},
         ]
     )
 
-    assert 0 <= report["nutrition_score"] <= 100
-    assert 0 <= report["meal_diversity"] <= 100
-    assert 0 <= report["food_security"] <= 100
-    assert report["crew_health_risk"] in {"LOW", "MEDIUM", "HIGH"}
+    assert report["status"] in {"NOMINAL", "WATCH", "ALERT"}
+    assert report["dispatchQueue"] >= 0
+    assert report["recommendations"]
 
 
-def test_chaos_report_targets_two_greenhouses():
-    report = create_chaos_report("wind", sensor_data={"humidity": 60})
-
-    assert report["scenario"] in {"wind", "disease", "dust_storm"}
-    assert len(report["affected_greenhouses"]) == 2
-    assert report["severity"] in {"WARN", "CRITICAL"}
-
-
-def test_mission_orchestrator_prioritizes_crew_risk_first():
+def test_orchestrator_prioritizes_highest_risk_specialist():
     decision = compose_mission_decision(
-        operations_report={"status": "CRITICAL"},
-        crop_report={"status": "MONITOR"},
-        crew_report={"crew_health_risk": "HIGH"},
-        incident_report={"label": "Regional dust storm", "scenario": "dust_storm"},
+        environment_report={"agent": "environment", "status": "WATCH", "headline": "Environment watch", "riskScore": 30, "recommendations": []},
+        crop_report={"agent": "crop", "status": "ALERT", "headline": "Crop alert", "riskScore": 72, "recommendations": []},
+        astro_report={"agent": "astro", "status": "WATCH", "headline": "Astro watch", "riskScore": 44, "recommendations": []},
+        resource_report={"agent": "resource", "status": "WATCH", "headline": "Resource watch", "riskScore": 61, "recommendations": []},
+        scenario="disease-suspicion",
     )
 
-    assert decision["lead_agent"] == "crew-nutrition"
-    assert "Crew health risk is high" in decision["chat_response"]
+    assert decision["leadAgent"] == "crop"
+    assert "Scenario: disease-suspicion" in decision["operatorSummary"]

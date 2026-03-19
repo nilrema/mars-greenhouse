@@ -1,0 +1,37 @@
+[
+  {
+    "id": "nominal-day",
+    "label": "Nominal day",
+    "leadAgent": "orchestrator",
+    "summary": "All modules nominal with one resource watch item in Elysium Pack.",
+    "affectedModules": ["elysium-pack"]
+  },
+  {
+    "id": "water-pressure",
+    "label": "Water pressure",
+    "leadAgent": "resource",
+    "summary": "Water recovery falls below target in two modules and irrigation priority shifts.",
+    "affectedModules": ["ares-prime", "elysium-pack"]
+  },
+  {
+    "id": "disease-suspicion",
+    "label": "Disease suspicion",
+    "leadAgent": "crop",
+    "summary": "The crop agent flags a probable disease event in Noctis Stack bay 3.",
+    "affectedModules": ["noctis-stack"]
+  },
+  {
+    "id": "dust-storm",
+    "label": "Dust storm / power drop",
+    "leadAgent": "environment",
+    "summary": "Regional dust reduces light and power, forcing environmental and resource compensation.",
+    "affectedModules": ["ares-prime", "elysium-pack"]
+  },
+  {
+    "id": "harvest-rush",
+    "label": "Harvest rush",
+    "leadAgent": "astro",
+    "summary": "A tight harvest window increases astronaut workload and dispatch urgency.",
+    "affectedModules": ["ares-prime", "noctis-stack"]
+  }
+]

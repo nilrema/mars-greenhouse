@@ -82,23 +82,36 @@ def analyze_crop_health(
     elif anomalies:
         status = "MONITOR"
 
+    recommendations = [
+        "Inspect affected crop sections" if anomalies else "Continue normal crop monitoring",
+        "Capture a plant image for disease inspection" if anomalies else "No image inspection required",
+    ]
+    headline = (
+        "Crop health remains stable across monitored sections."
+        if not anomalies
+        else anomalies[0]["message"]
+    )
+    compatibility_status = "ALERT" if status == "CRITICAL" else "WATCH" if status == "MONITOR" else "NOMINAL"
+
     return {
-        "agent": "crop-health",
+        "agent": "crop",
         "greenhouse_id": greenhouse_id,
         "timestamp": utc_now_iso(),
         "status": status,
+        "headline": headline,
+        "riskScore": min(disease_risk_score, 100),
         "crop_count": len(crop_records),
         "crop_types": unique_crops,
         "anomalies": anomalies,
         "disease_risk_score": min(disease_risk_score, 100),
-        "recommended_actions": [
-            "Inspect affected crop sections"
-            if anomalies
-            else "Continue normal crop monitoring",
-            "Capture a plant image for disease inspection"
-            if anomalies
-            else "No image inspection required",
+        "recommended_actions": recommendations,
+        "recommendations": recommendations,
+        "commands": [
+            {"tool": "inspect_crop_section", "summary": recommendation}
+            for recommendation in recommendations[:2]
         ],
+        "affectedModules": [greenhouse_id],
+        "status_compat": compatibility_status,
     }
 
 

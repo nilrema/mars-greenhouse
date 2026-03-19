@@ -1,0 +1,32 @@
+[
+  {
+    "id": "ares-prime",
+    "name": "Ares Prime",
+    "location": "Valles Marineris Rim",
+    "status": "NOMINAL",
+    "alert": "Harvest cadence stable with minor irrigation watch",
+    "harvestScore": 91,
+    "resourcePressure": 34,
+    "astroImpact": 22
+  },
+  {
+    "id": "elysium-pack",
+    "name": "Elysium Pack",
+    "location": "Elysium Planitia",
+    "status": "WATCH",
+    "alert": "Water recovery trending below plan",
+    "harvestScore": 76,
+    "resourcePressure": 68,
+    "astroImpact": 38
+  },
+  {
+    "id": "noctis-stack",
+    "name": "Noctis Stack",
+    "location": "Noctis Labyrinthus",
+    "status": "ALERT",
+    "alert": "Disease suspicion in root vegetable lane",
+    "harvestScore": 64,
+    "resourcePressure": 55,
+    "astroImpact": 47
+  }
+]

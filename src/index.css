@@ -1,257 +1,126 @@
-/* Martian Greenhouse Dashboard Styles */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: #0d1117;
-  color: #e6edf3;
-}
+@layer base {
+  :root {
+    --background: 220 20% 97%;
+    --foreground: 220 20% 12%;
 
-#root {
-  min-height: 100vh;
-}
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 12%;
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
-}
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 12%;
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
+    --primary: 238 44% 38%;
+    --primary-foreground: 0 0% 100%;
 
-::-webkit-scrollbar-track {
-  background: #1e1e1e;
-}
+    --secondary: 220 16% 93%;
+    --secondary-foreground: 220 20% 12%;
 
-::-webkit-scrollbar-thumb {
-  background: #30363d;
-  border-radius: 4px;
-}
+    --muted: 220 14% 92%;
+    --muted-foreground: 215 10% 42%;
 
-::-webkit-scrollbar-thumb:hover {
-  background: #8b949e;
-}
+    --accent: 220 16% 93%;
+    --accent-foreground: 220 20% 12%;
 
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 0 0% 100%;
 
-@keyframes slideIn {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
+    --success: 143 100% 31%;
+    --success-foreground: 0 0% 100%;
 
-.fade-in {
-  animation: fadeIn 0.3s ease-in-out;
-}
+    --warning: 40 80% 50%;
+    --warning-foreground: 0 0% 0%;
 
-.slide-up {
-  animation: slideIn 0.3s ease-out;
-}
+    --border: 220 12% 85%;
+    --input: 220 12% 85%;
+    --ring: 238 44% 38%;
 
-/* Status colors */
-.status-healthy { color: #3fb950; }
-.status-warning { color: #d29922; }
-.status-critical { color: #f85149; }
-.status-unknown { color: #8b949e; }
+    --radius: 4px;
 
-/* Card hover effects */
-.card-hover {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
+    --sidebar-background: 220 20% 95%;
+    --sidebar-foreground: 220 20% 20%;
+    --sidebar-primary: 238 44% 38%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14% 92%;
+    --sidebar-accent-foreground: 220 20% 12%;
+    --sidebar-border: 220 12% 85%;
+    --sidebar-ring: 238 44% 38%;
 
-.card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
-}
+    --syngenta-blue: 238 44% 38%;
+    --syngenta-green: 143 100% 31%;
+    --syngenta-blue-light: 238 40% 52%;
+    --syngenta-green-light: 148 70% 40%;
 
-/* Loading animation */
-.loading {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 3px solid #30363d;
-  border-top: 3px solid #3fb950;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Responsive grid */
-.grid-responsive {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1rem;
-}
-
-/* Alert animations */
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-.alert-pulse {
-  animation: pulse 2s infinite;
-}
-
-/* Metric card styles */
-.metric-card {
-  background: linear-gradient(145deg, #161b22, #0d1117);
-  border: 1px solid #30363d;
-  transition: all 0.3s ease;
-}
-
-.metric-card:hover {
-  border-color: #3fb950;
-  box-shadow: 0 0 0 1px #3fb950;
-}
-
-/* Custom scrollbar for specific elements */
-.scrollable-content {
-  scrollbar-width: thin;
-  scrollbar-color: #30363d transparent;
-}
-
-.scrollable-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.scrollable-content::-webkit-scrollbar-thumb {
-  background-color: #30363d;
-  border-radius: 3px;
-}
-
-/* Status indicators */
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-  margin-right: 8px;
-}
-
-.status-online { background-color: #3fb950; }
-.status-warning { background-color: #d29922; }
-.status-offline { background-color: #f85149; }
-.status-unknown { background-color: #8b949e; }
-
-/* Tooltip styles */
-.tooltip {
-  position: relative;
-  display: inline-block;
-}
-
-.tooltip .tooltiptext {
-  visibility: hidden;
-  width: 200px;
-  background-color: #161b22;
-  color: #e6edf3;
-  text-align: center;
-  border-radius: 6px;
-  padding: 8px;
-  position: absolute;
-  z-index: 1;
-  bottom: 125%;
-  left: 50%;
-  margin-left: -100px;
-  opacity: 0;
-  transition: opacity 0.3s;
-  border: 1px solid #30363d;
-  font-size: 12px;
-  z-index: 1000;
-}
-
-.tooltip:hover .tooltiptext {
-  visibility: visible;
-  opacity: 1;
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-  .grid-responsive {
-    grid-template-columns: 1fr;
-  }
-
-  .metric-card {
-    margin-bottom: 1rem;
+    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --font-sans: 'IBM Plex Sans', -apple-system, sans-serif;
   }
 }
 
-@media (max-width: 1280px) {
-  .mars-overview-shell {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+@layer base {
+  * {
+    @apply border-border;
   }
 
-  .mars-overview-crew-grid {
-    grid-template-columns: 1fr !important;
-  }
-}
-
-@media (max-width: 920px) {
-  .mars-overview-shell,
-  .mars-overview-summary-grid,
-  .mars-overview-crew-grid {
-    grid-template-columns: 1fr !important;
-  }
-}
-
-/* Print styles */
-@media print {
-  .no-print {
-    display: none;
-  }
-}
-
-/* High contrast mode */
-@media (prefers-contrast: high) {
-  .metric-card {
-    border: 2px solid #e6edf3;
-  }
-}
-
-/* Dark mode (already dark, but for light mode preference) */
-@media (prefers-color-scheme: light) {
   body {
-    background-color: #f6f8fa;
-    color: #1f2328;
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 2px;
+  }
+}
+
+@layer components {
+  .font-mono {
+    font-family: var(--font-mono);
   }
   
-  .metric-card {
-    background: #ffffff;
-    border-color: #d0d7de;
+  .font-sans {
+    font-family: var(--font-sans);
   }
-}
 
-/* Animation for new data */
-@keyframes highlight {
-  0% { background-color: rgba(59, 130, 246, 0.1); }
-  100% { background-color: transparent; }
-}
+  .status-led {
+    @apply w-2 h-2 rounded-full;
+    box-shadow: 0 0 4px currentColor;
+  }
 
-.new-data {
-  animation: highlight 1s ease-out;
-}
+  .panel {
+    @apply border border-border bg-card p-3 rounded-md;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
 
-/* Smooth transitions */
-* {
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  .panel-header {
+    @apply text-[11px] font-sans font-medium uppercase tracking-wide text-muted-foreground mb-2;
+  }
+
+  .metric-value {
+    @apply text-2xl font-sans font-light tabular-nums tracking-tight;
+  }
+
+  .metric-label {
+    @apply text-[10px] font-sans uppercase tracking-wide text-muted-foreground;
+  }
+
+  .tactical-grid {
+    background-image: 
+      linear-gradient(hsl(var(--border) / 0.25) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--border) / 0.25) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
 }

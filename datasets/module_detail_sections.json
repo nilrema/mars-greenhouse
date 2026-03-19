@@ -1,0 +1,26 @@
+[
+  {
+    "moduleId": "ares-prime",
+    "sections": [
+      { "id": "bay-1", "crop": "Tomato", "status": "healthy", "diseaseRisk": 8 },
+      { "id": "bay-2", "crop": "Lettuce", "status": "healthy", "diseaseRisk": 5 },
+      { "id": "bay-3", "crop": "Potato", "status": "warning", "diseaseRisk": 28 }
+    ]
+  },
+  {
+    "moduleId": "elysium-pack",
+    "sections": [
+      { "id": "bay-1", "crop": "Spinach", "status": "healthy", "diseaseRisk": 6 },
+      { "id": "bay-2", "crop": "Pepper", "status": "healthy", "diseaseRisk": 11 },
+      { "id": "bay-3", "crop": "Rice", "status": "warning", "diseaseRisk": 21 }
+    ]
+  },
+  {
+    "moduleId": "noctis-stack",
+    "sections": [
+      { "id": "bay-1", "crop": "Microgreens", "status": "healthy", "diseaseRisk": 3 },
+      { "id": "bay-2", "crop": "Radish", "status": "healthy", "diseaseRisk": 9 },
+      { "id": "bay-3", "crop": "Bean Sprouts", "status": "critical", "diseaseRisk": 42 }
+    ]
+  }
+]
