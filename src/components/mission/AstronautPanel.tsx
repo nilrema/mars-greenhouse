@@ -44,23 +44,19 @@ export function AstronautPanel({ astronauts }: { astronauts: AstronautRecord[] }
             </div>
           </div>
 
-          {/* Metrics grid */}
-          <div className="grid grid-cols-3 gap-2">
-            {/* Calories */}
+          <div className="grid grid-cols-4 gap-2">
             <MiniMetric
               label="Calories"
               current={a.calories.current}
               target={a.calories.target}
               unit="kcal"
             />
-            {/* Protein */}
             <MiniMetric
               label="Protein"
               current={a.protein.current}
               target={a.protein.target}
               unit="g"
             />
-            {/* Micronutrient */}
             <div className="bg-muted/50 rounded p-2">
               <div className="text-[8px] text-muted-foreground mb-1">Micronutrients</div>
               <div className={`text-[13px] font-mono font-semibold ${a.micronutrientScore < 70 ? 'text-destructive' : 'text-foreground'}`}>
@@ -68,24 +64,22 @@ export function AstronautPanel({ astronauts }: { astronauts: AstronautRecord[] }
                 <span className="text-[9px] text-muted-foreground font-normal">/100</span>
               </div>
             </div>
-          </div>
-
-          {/* Hydration bar */}
-          <div className="mt-2 flex items-center gap-2">
-            <span className="text-[8px] text-muted-foreground w-14">Hydration</span>
-            <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-              <motion.div
-                className={`h-full rounded-full ${
-                  a.hydration === 'optimal' ? 'bg-success' : a.hydration === 'adequate' ? 'bg-warning' : 'bg-destructive'
-                }`}
-                initial={{ width: 0 }}
-                animate={{ width: a.hydration === 'optimal' ? '100%' : a.hydration === 'adequate' ? '65%' : '30%' }}
-                transition={{ duration: 0.5, delay: i * 0.06 }}
-              />
+            <div className="bg-muted/50 rounded p-2">
+              <div className="text-[8px] text-muted-foreground mb-1">Hydration</div>
+              <div className={`text-[13px] font-mono font-semibold ${hydrationColor[a.hydration]}`}>
+                {a.hydration.charAt(0).toUpperCase() + a.hydration.slice(1)}
+              </div>
+              <div className="w-full h-1 bg-muted rounded-full mt-1">
+                <motion.div
+                  className={`h-full rounded-full ${
+                    a.hydration === 'optimal' ? 'bg-success' : a.hydration === 'adequate' ? 'bg-warning' : 'bg-destructive'
+                  }`}
+                  initial={{ width: 0 }}
+                  animate={{ width: a.hydration === 'optimal' ? '100%' : a.hydration === 'adequate' ? '65%' : '30%' }}
+                  transition={{ duration: 0.5, delay: i * 0.06 }}
+                />
+              </div>
             </div>
-            <span className={`text-[9px] font-medium ${hydrationColor[a.hydration]}`}>
-              {a.hydration.charAt(0).toUpperCase() + a.hydration.slice(1)}
-            </span>
           </div>
         </motion.div>
       ))}
