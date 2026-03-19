@@ -88,6 +88,7 @@ describe('GreenhouseFeed', () => {
     fireEvent.click(screen.getByRole('button', { name: /Reset view/i }));
     expect(screen.getByText(/CAM-01 · 1.00x/i)).toBeInTheDocument();
     expect(screen.getByText(/NO AREA SELECTED/i)).toBeInTheDocument();
+    expect(viewport.className).not.toContain('cursor-crosshair');
 
     vi.useRealTimers();
   });
@@ -115,8 +116,49 @@ describe('GreenhouseFeed', () => {
     fireEvent.click(screen.getByTestId('inspection-selection'));
     expect(screen.getByText(/Inspection Target Preview/i)).toBeInTheDocument();
     expect(screen.getByTestId('inspection-preview-image')).toBeInTheDocument();
+    expect((screen.getByTestId('inspection-preview-image') as HTMLImageElement).src).toContain('data:image/png;base64,preview');
+    expect(screen.getByTestId('inspection-preview-image')).toHaveClass('object-contain');
+    expect(screen.getByTestId('inspection-preview-frame')).toHaveClass('h-[min(62vh,480px)]', 'w-full');
 
     fireEvent.click(screen.getByRole('button', { name: /Close/i }));
     expect(screen.queryByText(/Inspection Target Preview/i)).not.toBeInTheDocument();
+  });
+
+  it('lets reset and clear controls work while zoomed in', () => {
+    render(<GreenhouseFeed base={base} initialSelection={initialSelection} />);
+
+    const viewport = screen.getByTestId('greenhouse-camera-viewport');
+    Object.defineProperty(viewport, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        x: 0,
+        y: 0,
+        left: 0,
+        top: 0,
+        right: 200,
+        bottom: 120,
+        width: 200,
+        height: 120,
+        toJSON: () => ({}),
+      }),
+    });
+
+    const clearButton = screen.getByRole('button', { name: /Clear target/i });
+    fireEvent.pointerDown(clearButton, { pointerId: 2, clientX: 160, clientY: 104 });
+    fireEvent.pointerUp(clearButton, { pointerId: 2, clientX: 160, clientY: 104 });
+    fireEvent.click(clearButton);
+    expect(screen.queryByTestId('inspection-selection')).not.toBeInTheDocument();
+    expect(screen.getByText(/NO AREA SELECTED/i)).toBeInTheDocument();
+
+    fireEvent.wheel(viewport, { deltaY: -100, clientX: 100, clientY: 60 });
+    fireEvent.click(screen.getByRole('button', { name: /Inspect area/i }));
+
+    const resetButton = screen.getByRole('button', { name: /Reset view/i });
+    fireEvent.pointerDown(resetButton, { pointerId: 3, clientX: 120, clientY: 104 });
+    fireEvent.pointerUp(resetButton, { pointerId: 3, clientX: 120, clientY: 104 });
+    fireEvent.click(resetButton);
+
+    expect(screen.getByText(/CAM-01 · 1.00x/i)).toBeInTheDocument();
+    expect(viewport.className).not.toContain('cursor-crosshair');
   });
 });

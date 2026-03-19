@@ -21,7 +21,13 @@ export interface ScreenRect {
   height: number;
 }
 
+export interface ImageSize {
+  width: number;
+  height: number;
+}
+
 const roundTo = (value: number, precision = 4) => Number(value.toFixed(precision));
+const formatPercent = (value: number) => `${roundTo(value, 4)}%`;
 
 export function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -131,6 +137,85 @@ export function selectionToViewportRect(
     width: bounds.width * viewport.width * viewportState.zoom,
     height: bounds.height * viewport.height * viewportState.zoom,
   };
+}
+
+export function getObjectCoverRect(image: ImageSize, viewport: ViewportSize): ScreenRect {
+  const scale = Math.max(viewport.width / image.width, viewport.height / image.height);
+  const width = image.width * scale;
+  const height = image.height * scale;
+
+  return {
+    x: (viewport.width - width) / 2,
+    y: (viewport.height - height) / 2,
+    width,
+    height,
+  };
+}
+
+export function selectionToScreenRect(bounds: NormalizedInspectionBounds, viewport: ViewportSize): ScreenRect {
+  return {
+    x: bounds.x * viewport.width,
+    y: bounds.y * viewport.height,
+    width: bounds.width * viewport.width,
+    height: bounds.height * viewport.height,
+  };
+}
+
+export function createInspectionPreviewDataUrl({
+  image,
+  selection,
+  viewport,
+}: {
+  image: HTMLImageElement;
+  selection: InspectionSelection;
+  viewport: ViewportSize;
+}) {
+  const viewportCanvas = document.createElement('canvas');
+  viewportCanvas.width = Math.max(1, Math.round(viewport.width));
+  viewportCanvas.height = Math.max(1, Math.round(viewport.height));
+  const viewportContext = viewportCanvas.getContext('2d');
+
+  if (!viewportContext) {
+    return null;
+  }
+
+  const imageRect = getObjectCoverRect(
+    { width: image.naturalWidth || image.width, height: image.naturalHeight || image.height },
+    viewport
+  );
+  const centerX = viewport.width / 2;
+  const centerY = viewport.height / 2;
+
+  viewportContext.save();
+  viewportContext.translate(centerX + selection.viewport.panX, centerY + selection.viewport.panY);
+  viewportContext.scale(selection.viewport.zoom, selection.viewport.zoom);
+  viewportContext.translate(-centerX, -centerY);
+  viewportContext.drawImage(image, imageRect.x, imageRect.y, imageRect.width, imageRect.height);
+  viewportContext.restore();
+
+  const selectionRect = selectionToViewportRect(selection.normalizedBounds, selection.viewport, viewport);
+  const cropCanvas = document.createElement('canvas');
+  cropCanvas.width = Math.max(1, Math.round(selectionRect.width));
+  cropCanvas.height = Math.max(1, Math.round(selectionRect.height));
+  const cropContext = cropCanvas.getContext('2d');
+
+  if (!cropContext) {
+    return null;
+  }
+
+  cropContext.drawImage(
+    viewportCanvas,
+    selectionRect.x,
+    selectionRect.y,
+    selectionRect.width,
+    selectionRect.height,
+    0,
+    0,
+    cropCanvas.width,
+    cropCanvas.height
+  );
+
+  return cropCanvas.toDataURL('image/png');
 }
 
 export function createInspectionSelection({

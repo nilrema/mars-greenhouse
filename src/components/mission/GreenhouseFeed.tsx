@@ -1,10 +1,11 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import greenhouseImg from '@/assets/greenhouse-topdown.png';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   clamp,
   clampPan,
+  createInspectionPreviewDataUrl,
   createInspectionSelection,
   DEFAULT_CAMERA_ZOOM,
   MAX_CAMERA_ZOOM,
@@ -48,14 +49,20 @@ interface GreenhouseFeedProps {
   initialSelection?: InspectionSelection | null;
 }
 
+function isCameraActionTarget(target: EventTarget | null) {
+  return target instanceof HTMLElement && Boolean(target.closest('[data-camera-action="true"]'));
+}
+
 export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeedProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
   const [viewportState, setViewportState] = useState<CameraViewportState>(initialSelection?.viewport ?? defaultViewportState);
   const [cameraMode, setCameraMode] = useState<CameraMode>('pan');
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [selectionDraft, setSelectionDraft] = useState<SelectionDraft | null>(null);
   const [selection, setSelection] = useState<InspectionSelection | null>(initialSelection);
   const [inspectionDialogOpen, setInspectionDialogOpen] = useState(false);
+  const [inspectionPreviewUrl, setInspectionPreviewUrl] = useState<string | null>(null);
 
   const selectionOverlay = useMemo(() => {
     if (!selectionDraft) {
@@ -87,14 +94,6 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
       height: rect.height,
     };
   })();
-
-  const inspectionPreviewScale = useMemo(() => {
-    if (!selection) {
-      return 1;
-    }
-
-    return Math.min(8, Math.max(2.2, 1 / Math.max(selection.normalizedBounds.width, selection.normalizedBounds.height)));
-  }, [selection]);
 
   const handleWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -136,6 +135,10 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
   };
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (isCameraActionTarget(event.target)) {
+      return;
+    }
+
     const viewport = viewportRef.current;
     if (!viewport) {
       return;
@@ -274,6 +277,8 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
     setViewportState(defaultViewportState);
     setDragState(null);
     setSelectionDraft(null);
+    setCameraMode('pan');
+    setInspectionDialogOpen(false);
   };
 
   const clearSelection = () => {
@@ -281,7 +286,27 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
     setSelectionDraft(null);
     setCameraMode('pan');
     setInspectionDialogOpen(false);
+    setInspectionPreviewUrl(null);
   };
+
+  useEffect(() => {
+    if (!inspectionDialogOpen || !selection || !viewportRef.current || !imageRef.current) {
+      return;
+    }
+
+    const { width, height } = viewportRef.current.getBoundingClientRect();
+    if (!width || !height) {
+      return;
+    }
+
+    setInspectionPreviewUrl(
+      createInspectionPreviewDataUrl({
+        image: imageRef.current,
+        selection,
+        viewport: { width, height },
+      })
+    );
+  }, [inspectionDialogOpen, selection]);
 
   return (
     <div className="panel h-full flex flex-col overflow-hidden p-0">
@@ -340,6 +365,7 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
           data-testid="greenhouse-camera-viewport"
         >
           <img
+            ref={imageRef}
             src={greenhouseImg}
             alt="Greenhouse top-down view"
             className="absolute inset-0 h-full w-full object-cover select-none"
@@ -355,6 +381,7 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
             <button
               type="button"
               onClick={() => setInspectionDialogOpen(true)}
+              data-camera-action="true"
               className="absolute border border-cyan-200 bg-cyan-400/18 shadow-[0_0_0_1px_rgba(103,232,249,0.55)] transition-colors hover:bg-cyan-300/24 focus:outline-none focus:ring-2 focus:ring-cyan-200/70"
               style={{
                 left: selectionViewportRect.left,
@@ -408,6 +435,7 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
                 <button
                   type="button"
                   onClick={resetView}
+                  data-camera-action="true"
                   className="rounded border border-white/15 bg-black/35 px-2 py-1 text-[9px] font-medium text-white/85 transition-colors hover:bg-black/55"
                 >
                   Reset view
@@ -415,6 +443,7 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
                 <button
                   type="button"
                   onClick={clearSelection}
+                  data-camera-action="true"
                   className="rounded border border-white/15 bg-black/35 px-2 py-1 text-[9px] font-medium text-white/85 transition-colors hover:bg-black/55"
                   disabled={!selection}
                 >
@@ -453,7 +482,7 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
       </div>
 
       <Dialog open={inspectionDialogOpen} onOpenChange={setInspectionDialogOpen}>
-        <DialogContent className="sm:max-w-[760px] border-border bg-slate-950 p-0 text-white">
+        <DialogContent className="w-[min(92vw,760px)] max-w-[760px] border-border bg-slate-950 p-0 text-white">
           <DialogHeader className="border-b border-white/10 px-5 py-4">
             <DialogTitle className="text-[14px] font-medium text-white">Inspection Target Preview</DialogTitle>
             <DialogDescription className="text-[11px] text-white/65">
@@ -463,18 +492,23 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
 
           {selection && (
             <div className="p-5 pt-0">
-              <div className="relative mt-5 aspect-[4/3] overflow-hidden rounded-md border border-cyan-200/15 bg-black">
-                <div
-                  className="absolute inset-0 bg-cover bg-no-repeat"
-                  style={{
-                    backgroundImage: `url(${greenhouseImg})`,
-                    backgroundSize: `${inspectionPreviewScale * 100}% ${inspectionPreviewScale * 100}%`,
-                    backgroundPosition: `${selection.normalizedBounds.centerX * 100}% ${selection.normalizedBounds.centerY * 100}%`,
-                  }}
-                  data-testid="inspection-preview-image"
-                />
+              <div
+                className="relative mt-5 h-[min(62vh,480px)] w-full overflow-hidden rounded-md border border-cyan-200/15 bg-black"
+                data-testid="inspection-preview-frame"
+              >
+                {inspectionPreviewUrl ? (
+                  <img
+                    src={inspectionPreviewUrl}
+                    alt="Selected inspection crop"
+                    className="absolute inset-0 h-full w-full object-contain select-none"
+                    data-testid="inspection-preview-image"
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="absolute inset-0 animate-pulse bg-slate-900/80" data-testid="inspection-preview-loading" />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/55 via-transparent to-transparent" />
-                <div className="absolute inset-[12%] border border-cyan-200/65 shadow-[0_0_0_1px_rgba(125,211,252,0.45)]" />
+                <div className="absolute inset-0 border border-cyan-200/65 shadow-[0_0_0_1px_rgba(125,211,252,0.45)]" />
                 <div className="absolute bottom-3 left-3 rounded bg-slate-950/80 px-2 py-1 text-[9px] font-mono text-cyan-50">
                   {selection.normalizedBounds.width.toFixed(4)}w · {selection.normalizedBounds.height.toFixed(4)}h
                 </div>
