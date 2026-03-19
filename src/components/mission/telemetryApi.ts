@@ -1,6 +1,18 @@
-import amplifyOutputs from '../../../amplify_outputs.json';
+interface DataApiConfig {
+  url?: string;
+  api_key?: string;
+}
 
-const dataConfig = (amplifyOutputs as { data?: { url?: string; api_key?: string } }).data ?? {};
+export function resolveDataApiConfig(modules: Record<string, unknown>): DataApiConfig {
+  const amplifyOutputs = Object.values(modules)[0] as { data?: DataApiConfig } | undefined;
+  return amplifyOutputs?.data ?? {};
+}
+
+const amplifyOutputsModules = import.meta.glob('../../../amplify_outputs.json', {
+  eager: true,
+  import: 'default',
+});
+const dataConfig = resolveDataApiConfig(amplifyOutputsModules);
 const graphQlEndpoint = dataConfig.url;
 const apiKey = dataConfig.api_key;
 
