@@ -3,8 +3,10 @@
 ## Delivery Rules
 
 - Split work into 4 milestones
-- Andrija focuses on backend, data, agent integration, and CI
+- Andrija and Marin own the full engineering delivery
+- Andrija focuses on backend, data, agent integration, simulation, and CI
 - Marin focuses on frontend, UX, visualization, and interaction flows
+- Luka and Vedran are research leads supporting the engineering team with validation, datasets, business framing, user journey work, and presentation preparation
 - Tasks inside a milestone should be independently executable where possible
 - Each milestone should end in a demoable increment
 
@@ -30,6 +32,14 @@ Create the product foundation for the two-screen experience and align the backen
 - Add placeholder UI regions for the 3D Mars panel, module overview panel, chat panel, and crew strip
 - Add the `Activate Chaos` control in the overview layout
 - Create the high-level shell for the Greenhouse Detail screen
+
+### Luka and Vedran
+
+- Define the initial research plan for validating the concept with mentors, colleagues, and other hackathon teams
+- Create the first version of the dataset plan: what simulated agronomy, nutrition, crew, and chaos data the engineering team needs
+- Collect and summarize scientific assumptions that must stay realistic for Mars greenhouse operations
+- Start the business framing: target audience, problem statement, and why this system matters beyond the demo
+- Draft the first user journey from operator perspective for the two primary views
 
 ### Independent Delivery Notes
 
@@ -58,6 +68,14 @@ Make the first screen functional with selectable greenhouse modules, crew metric
 - Implement the bottom crew overview with nutrition score, meal diversity, food security, health risk, and nutritional coverage
 - Add clear visual feedback for chaos mode impacts on affected modules
 
+### Luka and Vedran
+
+- Validate the product story with mentors and colleagues and capture feedback on clarity, usefulness, and realism
+- Refine the dataset assumptions with Andrija so the simulated values support both engineering and demo storytelling
+- Expand the business section: value proposition, demo positioning, and hackathon judging angle
+- Refine the user journey so the first-view flow clearly communicates the operator decision loop
+- Start the presentation outline and narrative structure for the final pitch
+
 ### Independent Delivery Notes
 
 - Module-selection UI can be built against mock contracts while backend endpoints are finalized
@@ -84,6 +102,14 @@ Deliver the second screen with greenhouse map exploration, section analysis, and
 - Implement the left summary panel with status, alert, risk, production, operational metrics, crop portfolio, and nutritional coverage
 - Implement the right analysis panel for section-level analysis, sensor data, and anomaly display
 - Build the image capture / upload interaction and hook it into the agent-chat workflow
+
+### Luka and Vedran
+
+- Create or curate the supporting dataset examples the detailed greenhouse view needs for realistic analysis and anomaly scenarios
+- Validate the disease-inspection and astronaut-action flows with mentors and peer teams for usability and credibility
+- Develop the business and user-story material around why detailed inspection, intervention, and crew-impact views matter
+- Draft the visual and verbal explanation of the end-to-end user journey from overview to intervention
+- Begin preparing the core presentation assets: storyline, supporting evidence, and backup slides
 
 ### Independent Delivery Notes
 
@@ -114,6 +140,14 @@ Stabilize the full experience, align the agent model with the product, and enfor
 - Validate the UX for chaos mode, crop inspection, and astronaut action requests
 - Support final integration testing with realistic demo scenarios
 
+### Luka and Vedran
+
+- Finish validation of the idea with mentors, colleagues, and selected other teams and summarize what changed because of that feedback
+- Finalize the dataset documentation and assumptions used in the demo so the team can defend the realism of the simulation
+- Complete the business section and user journey narrative for judging
+- Prepare the final presentation and pitch deck, including storyline, timing, speaker roles, and expected questions
+- Support demo rehearsal by pressure-testing the narrative, the scientific assumptions, and the business framing
+
 ### Independent Delivery Notes
 
 - CI and agent-role refactoring can proceed without blocking final frontend polish
@@ -124,5 +158,6 @@ Stabilize the full experience, align the agent model with the product, and enfor
 - Every milestone has at least one demoable walkthrough
 - New backend behavior is covered by tests
 - New frontend behavior has at least smoke-level verification
+- Research outputs are turned into usable inputs for engineering, product decisions, and the final pitch
 - No work is merged without passing CI
 - Documentation stays aligned with the real product
