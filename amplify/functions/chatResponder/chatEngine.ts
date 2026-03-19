@@ -339,7 +339,7 @@ function messageForAgent(
 
 export function buildChatResponse(input: SubmitChatMessageRequest): SubmitChatMessageResponse {
   const request = submitChatMessageRequestSchema.parse(input);
-  const timestamp = Date.now();
+  const timestamp = Math.floor(Date.now() / 1000);
   const requestId = `req-${timestamp}`;
   const conversationId = request.conversationId ?? `conv-${timestamp}`;
   const focus = inferFocus(request.message);
