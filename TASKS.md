@@ -95,8 +95,8 @@ Concise breakdown:
 Status: completed on `feature/chat-backend-integration`
 
 Notes:
-- Narrowed the active `agents/` runtime to `environment_agent.py`, `crop_agent.py`, `astro_agent.py`, `resource_agent.py`, `mission_orchestrator.py`, and the new `chat_runtime.py` bridge.
-- Archived older experimental entry points under `agents/archive/` so the product path no longer has parallel specialist or orchestrator aliases.
-- Replaced the TypeScript-only chat coordination shim with a deployed Python Lambda that runs Strands-based orchestration and specialist agents.
-- Standardized Mars crop knowledge base access through `agents/mcp_support.py`, with `agents/tools/kb_tools.py` now wrapping the shared helper instead of owning separate MCP logic.
-- Added smoke and regression coverage for retained-agent execution, orchestrator output, chat runtime flow, and MCP error handling.
+- Rebuilt `agents/` around a single Strands runtime with only the retained Environment, Crop, Astro, Resource, and Orchestrator roles.
+- Removed legacy experimental entry points, simulation helpers, AppSync utility code, and old tool wrappers so the product path no longer has competing agent systems.
+- Kept the backend chat contract stable by routing the Lambda through `agents/chat_runtime.py` while the internal orchestration now lives in `agents/mission_orchestrator.py`.
+- Standardized Mars crop knowledge access through `agents/mcp_support.py`, using a local Strands wrapper tool around the MCP client instead of exposing raw remote tool calls to the model.
+- Added an AgentCore-ready entrypoint in `agents/agentcore_app.py` so the same runtime can be deployed with Bedrock AgentCore.

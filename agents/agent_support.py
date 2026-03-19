@@ -1,119 +1,177 @@
 """
-Shared helpers for the functional Mars agent roles.
+Shared helpers for the retained Mars greenhouse agent runtime.
 """
 
 from __future__ import annotations
 
-import json
-import logging
-import uuid
-from datetime import datetime, timezone
 from typing import Any
 
-from agents.appsync_client import execute_graphql
-
-logger = logging.getLogger(__name__)
-
 DEFAULT_GREENHOUSE_ID = "mars-greenhouse-1"
-DEFAULT_CHAOS_TARGETS = ["mars-greenhouse-1", "mars-greenhouse-2"]
+DEFAULT_MODEL_ID = "us.amazon.nova-pro-v1:0"
 
-LIST_SENSOR_READINGS = """
-query ListSensorReadings($filter: ModelSensorReadingFilterInput, $limit: Int) {
-  listSensorReadings(filter: $filter, limit: $limit) {
-    items {
-      id
-      greenhouseId
-      timestamp
-      temperature
-      humidity
-      co2Ppm
-      lightPpfd
-      phLevel
-      nutrientEc
-      waterLitres
-      radiationMsv
-      createdAt
-      updatedAt
-    }
-  }
+AGENT_ORDER = ["environment", "crop", "astro", "resource", "orchestrator"]
+AGENT_METADATA = {
+    "environment": {
+        "name": "ENV_AGENT",
+        "role": "Environment Control",
+        "icon": "🌡️",
+        "standby": "Holding climate watch until the orchestrator requests a review.",
+    },
+    "crop": {
+        "name": "CROP_AGENT",
+        "role": "Crop Management",
+        "icon": "🌱",
+        "standby": "Standing by for crop stress or harvest-risk escalation.",
+    },
+    "astro": {
+        "name": "ASTRO_AGENT",
+        "role": "Astronaut Welfare",
+        "icon": "🧑‍🚀",
+        "standby": "Standing by for crew-impact or workload review.",
+    },
+    "resource": {
+        "name": "RESOURCE_AGENT",
+        "role": "Resource Management",
+        "icon": "⚡",
+        "standby": "Holding resource reserves until the orchestrator requests support.",
+    },
+    "orchestrator": {
+        "name": "ORCH_AGENT",
+        "role": "Mission Orchestration",
+        "icon": "🧭",
+        "standby": "Reviewing the operator request and deciding whether specialist escalation is needed.",
+    },
 }
-"""
 
-LIST_CROP_RECORDS = """
-query ListCropRecords($limit: Int) {
-  listCropRecords(limit: $limit) {
-    items {
-      id
-      cropId
-      name
-      variety
-      plantedAt
-      growthStage
-      daysToHarvest
-      healthStatus
-      zone
-      createdAt
-      updatedAt
-    }
-  }
+SPECIALIST_RESPONSE_KEYS = {
+    "STATUS",
+    "CURRENT_ACTION",
+    "REQUESTED_SUPPORT",
+    "MESSAGE",
 }
-"""
 
-CREATE_AGENT_EVENT = """
-mutation CreateAgentEvent($input: CreateAgentEventInput!) {
-  createAgentEvent(input: $input) {
-    id
-  }
+ORCHESTRATOR_RESPONSE_KEYS = {
+    "LEAD_AGENT",
+    "SUMMARY",
+    "NEXT_ACTIONS",
+    "SUCCESS_CONDITION",
+    "FINAL_MESSAGE",
 }
-"""
 
 
-def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+def agent_name(agent_id: str) -> str:
+    return AGENT_METADATA[agent_id]["name"]
 
 
-def safe_load_json(raw: str | dict[str, Any] | list[Any] | None) -> Any:
-    if raw is None:
-        return None
-    if isinstance(raw, (dict, list)):
-        return raw
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError:
-        return {"raw": raw}
+def agent_role(agent_id: str) -> str:
+    return AGENT_METADATA[agent_id]["role"]
 
 
-def list_sensor_readings(greenhouse_id: str, limit: int = 100) -> list[dict[str, Any]]:
-    data = execute_graphql(
-        LIST_SENSOR_READINGS,
-        {"filter": {"greenhouseId": {"eq": greenhouse_id}}, "limit": limit},
-    )
-    items = data.get("listSensorReadings", {}).get("items", [])
-    return [item for item in items if item]
+def agent_icon(agent_id: str) -> str:
+    return AGENT_METADATA[agent_id]["icon"]
 
 
-def get_latest_sensor_snapshot(greenhouse_id: str) -> dict[str, Any]:
-    items = list_sensor_readings(greenhouse_id, limit=100)
-    if not items:
-        raise RuntimeError(f"No sensor readings found for greenhouse {greenhouse_id}")
-    return max(items, key=lambda item: item.get("timestamp") or item.get("createdAt") or "")
+def standby_action(agent_id: str) -> str:
+    return AGENT_METADATA[agent_id]["standby"]
 
 
-def list_crop_records(limit: int = 200) -> list[dict[str, Any]]:
-    data = execute_graphql(LIST_CROP_RECORDS, {"limit": limit})
-    items = data.get("listCropRecords", {}).get("items", [])
-    return [item for item in items if item]
+def response_text(response: Any) -> str:
+    if isinstance(response, str):
+        return response.strip()
+
+    message = getattr(response, "message", None)
+    if isinstance(message, dict):
+        blocks = message.get("content", [])
+        parts = [
+            str(block.get("text", "")).strip()
+            for block in blocks
+            if isinstance(block, dict) and block.get("text")
+        ]
+        text = "\n".join(part for part in parts if part).strip()
+        if text:
+            return text
+
+    if hasattr(response, "text") and isinstance(response.text, str):
+        return response.text.strip()
+
+    return str(response).strip()
 
 
-def write_agent_event(agent_id: str, severity: str, message: str, action_taken: str) -> dict[str, Any]:
-    item = {
-        "id": str(uuid.uuid4()),
-        "agentId": agent_id,
-        "timestamp": utc_now_iso(),
-        "severity": severity.upper(),
-        "message": message,
-        "actionTaken": action_taken,
-    }
-    execute_graphql(CREATE_AGENT_EVENT, {"input": item})
-    logger.info("Agent event persisted for %s: %s", agent_id, message)
-    return {"status": "ok", "id": item["id"]}
+def parse_keyed_block(text: str, allowed_keys: set[str]) -> dict[str, str]:
+    parsed: dict[str, str] = {}
+    current_key: str | None = None
+    buffer: list[str] = []
+
+    def flush() -> None:
+        nonlocal current_key, buffer
+        if current_key is not None:
+            parsed[current_key] = "\n".join(buffer).strip()
+        current_key = None
+        buffer = []
+
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            if current_key is not None:
+                buffer.append("")
+            continue
+        if ":" in line:
+            candidate_key, value = line.split(":", 1)
+            normalized = candidate_key.strip().upper().replace(" ", "_")
+            if normalized in allowed_keys:
+                flush()
+                current_key = normalized
+                buffer = [value.strip()]
+                continue
+        if current_key is None:
+            current_key = "MESSAGE"
+        buffer.append(line)
+
+    flush()
+    return parsed
+
+
+def parse_bullets(raw: str) -> list[str]:
+    items: list[str] = []
+    for line in raw.splitlines():
+        entry = line.strip()
+        if not entry:
+            continue
+        items.append(entry[2:].strip() if entry.startswith("- ") else entry)
+    return items
+
+
+def normalize_status(raw_status: str | None) -> str:
+    normalized = str(raw_status or "").strip().upper()
+    if normalized in {"CRITICAL", "ALERT"}:
+        return "CRITICAL"
+    if normalized in {"WARNING", "WARN", "WATCH"}:
+        return "WARNING"
+    return "NOMINAL"
+
+
+def status_to_ui(status: str) -> str:
+    normalized = normalize_status(status)
+    if normalized == "CRITICAL":
+        return "critical"
+    if normalized == "WARNING":
+        return "warning"
+    return "nominal"
+
+
+def severity_from_status(status: str) -> str:
+    normalized = normalize_status(status)
+    if normalized == "CRITICAL":
+        return "critical"
+    if normalized == "WARNING":
+        return "warning"
+    return "success"
+
+
+def join_agent_names(agent_ids: list[str]) -> str:
+    names = [agent_name(agent_id) for agent_id in agent_ids]
+    if not names:
+        return ""
+    if len(names) == 1:
+        return names[0]
+    return ", ".join(names[:-1]) + f", and {names[-1]}"

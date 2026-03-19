@@ -1,6 +1,5 @@
 """
-Backend chat runtime that bridges the UI request contract to the retained agent
-orchestration flow.
+Request-to-response bridge for the retained Strands runtime.
 """
 
 from __future__ import annotations
@@ -11,12 +10,12 @@ import time
 from typing import Any
 
 from agents.agent_support import DEFAULT_GREENHOUSE_ID
-from agents.strands_runtime import StrandsMissionRuntime
+from agents.mission_orchestrator import run_mission_orchestrator
 
 BASELINE_TEMP = 24.0
 
 
-def _build_sensor_snapshot(context: dict[str, Any] | None) -> dict[str, Any]:
+def _build_sensor_snapshot(context: dict[str, Any] | None) -> dict[str, float]:
     if not context:
         return {
             "temperature": 24.0,
@@ -26,12 +25,13 @@ def _build_sensor_snapshot(context: dict[str, Any] | None) -> dict[str, Any]:
             "phLevel": 6.1,
             "nutrientEc": 1.9,
             "waterLitres": 180.0,
-            "radiationMsv": 0.3,
+            "powerAvailability": 100.0,
+            "waterRecycling": 100.0,
         }
 
-    effective_temp = BASELINE_TEMP + float(context.get("temperatureDrift") or 0)
-    water_recycling = float(context.get("waterRecycling") or 100)
-    power_availability = float(context.get("powerAvailability") or 100)
+    effective_temp = BASELINE_TEMP + float(context.get("temperatureDrift") or 0.0)
+    water_recycling = float(context.get("waterRecycling") or 100.0)
+    power_availability = float(context.get("powerAvailability") or 100.0)
     humidity = max(
         22.0,
         68.0 - max(0.0, (15.0 - effective_temp) * 0.5) + (100.0 - water_recycling) * 0.1,
@@ -44,21 +44,24 @@ def _build_sensor_snapshot(context: dict[str, Any] | None) -> dict[str, Any]:
         "phLevel": 6.1 if water_recycling >= 65 else 6.6,
         "nutrientEc": 1.9 if water_recycling >= 65 else 1.5,
         "waterLitres": round(max(55.0, 1.8 * water_recycling), 1),
-        "radiationMsv": 0.3,
+        "powerAvailability": round(power_availability, 1),
+        "waterRecycling": round(water_recycling, 1),
     }
 
 
 def _context_summary(context: dict[str, Any] | None) -> str:
-    sensor_data = _build_sensor_snapshot(context)
+    sensor = _build_sensor_snapshot(context)
     return (
         f"Simulation context for {DEFAULT_GREENHOUSE_ID}: "
-        f"temperature {sensor_data['temperature']:.1f}C, "
-        f"humidity {sensor_data['humidity']:.1f}%, "
-        f"CO2 {sensor_data['co2Ppm']:.0f} ppm, "
-        f"light {sensor_data['lightPpfd']:.0f} PPFD, "
-        f"water {sensor_data['waterLitres']:.1f} L, "
-        f"nutrient EC {sensor_data['nutrientEc']:.1f}, "
-        f"pH {sensor_data['phLevel']:.1f}."
+        f"temperature {sensor['temperature']:.1f}C, "
+        f"humidity {sensor['humidity']:.1f}%, "
+        f"CO2 {sensor['co2Ppm']:.0f} ppm, "
+        f"light {sensor['lightPpfd']:.0f} PPFD, "
+        f"water {sensor['waterLitres']:.1f} L, "
+        f"nutrient EC {sensor['nutrientEc']:.1f}, "
+        f"pH {sensor['phLevel']:.1f}, "
+        f"water recycling {sensor['waterRecycling']:.0f}%, "
+        f"power availability {sensor['powerAvailability']:.0f}%."
     )
 
 
@@ -68,21 +71,19 @@ def build_chat_response(payload: dict[str, Any]) -> dict[str, Any]:
     if not message:
         raise ValueError("Message is required.")
 
-    conversation_id = payload.get("conversationId") or f"conv-{timestamp}"
+    conversation_id = str(payload.get("conversationId") or f"conv-{timestamp}")
     request_id = f"req-{timestamp}"
-    context = payload.get("context") or None
-    with StrandsMissionRuntime(
-        context_summary=_context_summary(context),
+    return run_mission_orchestrator(
+        message=message,
+        context_summary=_context_summary(payload.get("context") or None),
         conversation_id=conversation_id,
         request_id=request_id,
-    ) as runtime:
-        return runtime.run(message)
+    )
 
 
 def main() -> int:
     payload = json.load(sys.stdin)
-    response = build_chat_response(payload)
-    print(json.dumps(response))
+    print(json.dumps(build_chat_response(payload)))
     return 0
 
 

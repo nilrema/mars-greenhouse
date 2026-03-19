@@ -13,6 +13,7 @@ __all__ = [
     "run_crop_agent",
     "run_astro_agent",
     "run_resource_agent",
+    "StrandsMissionRuntime",
 ]
 
 
@@ -23,6 +24,7 @@ def __getattr__(name: str):
         "run_crop_agent": ("agents.crop_agent", "run_crop_agent"),
         "run_astro_agent": ("agents.astro_agent", "run_astro_agent"),
         "run_resource_agent": ("agents.resource_agent", "run_resource_agent"),
+        "StrandsMissionRuntime": ("agents.mission_orchestrator", "StrandsMissionRuntime"),
     }
 
     if name not in mapping:

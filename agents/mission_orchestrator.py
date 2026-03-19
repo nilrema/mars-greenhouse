@@ -1,217 +1,307 @@
 """
-Mission Orchestrator.
-
-Coordinator for the Mars Harvest Command specialist agents.
+Canonical Strands multi-agent runtime for Mars greenhouse chat coordination.
 """
 
 from __future__ import annotations
 
-import json
-from typing import Any
+import os
+import time
+from contextlib import AbstractContextManager
+from dataclasses import dataclass, field
+from typing import Any, Callable
 
-from agents.agent_support import DEFAULT_GREENHOUSE_ID, write_agent_event
+from strands import Agent, tool
+from strands.models import BedrockModel
+
+from agents.agent_support import (
+    AGENT_ORDER,
+    DEFAULT_MODEL_ID,
+    ORCHESTRATOR_RESPONSE_KEYS,
+    SPECIALIST_RESPONSE_KEYS,
+    agent_icon,
+    agent_name,
+    agent_role,
+    join_agent_names,
+    normalize_status,
+    parse_bullets,
+    parse_keyed_block,
+    response_text,
+    severity_from_status,
+    standby_action,
+    status_to_ui,
+)
 from agents.astro_agent import run_astro_agent
 from agents.crop_agent import run_crop_agent
 from agents.environment_agent import run_environment_agent
+from agents.mcp_support import build_knowledge_tool, create_mcp_client, describe_mcp_access, discover_tool_name, should_enable_mcp
 from agents.resource_agent import run_resource_agent
 
+SPECIALIST_RUNNERS: dict[str, Callable[..., str]] = {
+    "environment": run_environment_agent,
+    "crop": run_crop_agent,
+    "astro": run_astro_agent,
+    "resource": run_resource_agent,
+}
 
-def _safe_load(raw: str) -> dict[str, Any]:
-    return json.loads(raw)
+
+def _orchestrator_prompt(context_summary: str) -> str:
+    return f"""
+You are ORCH_AGENT, the orchestrator for a Mars greenhouse mission.
+
+Simulation context:
+{context_summary}
+
+You can respond directly or call specialist tools:
+- consult_environment_agent for greenhouse climate recovery
+- consult_crop_agent for crop stress and harvest impact
+- consult_astro_agent for crew workload and nutrition continuity
+- consult_resource_agent for water, nutrient, and power tradeoffs
+
+Route only to the specialists that are actually needed. If the operator asks a simple direct question that can be answered from the simulation context, answer directly without specialist tools.
+When specialists are used, synthesize their results into one coordinated plan with explicit ordering and a clear success condition.
+
+Reply in exactly this format:
+LEAD_AGENT: ORCHESTRATOR or ENVIRONMENT or CROP or ASTRO or RESOURCE
+SUMMARY: one concise paragraph
+NEXT_ACTIONS:
+- action one
+- action two
+SUCCESS_CONDITION: one sentence
+FINAL_MESSAGE: one concise operator-facing resolution
+"""
 
 
-def _normalize_report(report: dict[str, Any], fallback_agent: str) -> dict[str, Any]:
-    normalized = dict(report)
-    normalized["agent"] = normalized.get("agent") or fallback_agent
-
-    raw_status = str(normalized.get("status") or "").upper()
-    normalized["status"] = (
-        "ALERT"
-        if raw_status in {"CRITICAL", "ALERT"}
-        else "WATCH"
-        if raw_status in {"MONITOR", "ATTENTION", "WATCH", "WARN"}
-        else "NOMINAL"
+def _specialist_fallback(agent_id: str, error: Exception) -> str:
+    return (
+        "STATUS: WARNING\n"
+        "CURRENT_ACTION: Continue with simulation-context reasoning while the specialist runtime recovers.\n"
+        "REQUESTED_SUPPORT: None.\n"
+        f"MESSAGE: {agent_name(agent_id)} could not complete its analysis cleanly. Proceeding with the current simulation context only. Error: {error}"
     )
 
-    if "riskScore" not in normalized:
-        normalized["riskScore"] = normalized.get("risk_score", normalized.get("disease_risk_score", 0))
 
-    recommendations = normalized.get("recommendations")
-    if not recommendations:
-        recommendations = normalized.get("recommended_actions", [])
-    normalized["recommendations"] = recommendations or []
-
-    if "commands" not in normalized:
-        normalized["commands"] = normalized.get("recommended_commands", [])
-
-    if "affectedModules" not in normalized:
-        greenhouse_id = normalized.get("greenhouse_id")
-        normalized["affectedModules"] = [greenhouse_id] if greenhouse_id else []
-
-    if not normalized.get("headline"):
-        if normalized["recommendations"]:
-            normalized["headline"] = normalized["recommendations"][0]
-        elif normalized.get("anomalies"):
-            normalized["headline"] = normalized["anomalies"][0].get("message") or normalized["anomalies"][0].get("type", "Crop anomaly detected.")
-        elif normalized.get("issues"):
-            normalized["headline"] = normalized["issues"][0].get("metric", "Operational issue detected.")
-        else:
-            normalized["headline"] = f"{fallback_agent.title()} agent reports nominal conditions."
-
-    return normalized
-
-
-def prompt_to_scenario(prompt: str | None) -> str | None:
-    if not prompt:
-        return None
-    lowered = prompt.lower()
-    if "water" in lowered:
-        return "water-pressure"
-    if "disease" in lowered or "inspection" in lowered:
-        return "disease-suspicion"
-    if "dust" in lowered or "power" in lowered or "storm" in lowered:
-        return "dust-storm"
-    if "harvest" in lowered or "crew" in lowered or "dispatch" in lowered:
-        return "harvest-rush"
-    return "nominal-day"
-
-
-def compose_mission_decision(
-    environment_report: dict[str, Any],
-    crop_report: dict[str, Any],
-    astro_report: dict[str, Any],
-    resource_report: dict[str, Any],
-    scenario: str | None = None,
-) -> dict[str, Any]:
-    ranked = [environment_report, crop_report, astro_report, resource_report]
-    ranked.sort(key=lambda item: item.get("riskScore", 0), reverse=True)
-    lead = ranked[0]
-
-    priority_stack = [
-        {"owner": report["agent"], "reason": report["headline"]}
-        for report in ranked
-        if report.get("riskScore", 0) > 0 or report.get("status") != "NOMINAL"
-    ]
-    if not priority_stack:
-        priority_stack.append(
-            {"owner": "orchestrator", "reason": "All specialist agents report nominal conditions."}
-        )
-
-    operator_summary = (
-        f"{lead['agent'].title()} agent leads the cycle. "
-        f"Environment={environment_report['status']}, Crop={crop_report['status']}, "
-        f"Astro={astro_report['status']}, Resource={resource_report['status']}."
-    )
-    if scenario:
-        operator_summary += f" Scenario: {scenario}."
-
-    next_actions = []
-    for report in ranked:
-        next_actions.extend(report.get("recommendations", [])[:1])
-
+def _parse_specialist_output(agent_id: str, raw: str) -> dict[str, str]:
+    parsed = parse_keyed_block(raw, SPECIALIST_RESPONSE_KEYS)
     return {
-        "leadAgent": lead["agent"],
-        "priorityStack": priority_stack,
-        "operatorSummary": operator_summary,
-        "nextActions": next_actions[:4],
-        "scenario": scenario or "nominal-day",
+        "agentId": agent_id,
+        "status": normalize_status(parsed.get("STATUS")),
+        "currentAction": parsed.get("CURRENT_ACTION") or standby_action(agent_id),
+        "requestedSupport": parsed.get("REQUESTED_SUPPORT") or "None.",
+        "message": parsed.get("MESSAGE") or raw.strip() or standby_action(agent_id),
     }
 
 
-def run_mission_orchestrator(
-    greenhouse_id: str = DEFAULT_GREENHOUSE_ID,
-    prompt: str | None = None,
-    sensor_data: dict[str, Any] | None = None,
-    crop_records: list[dict[str, Any]] | None = None,
-    persist_events: bool = True,
-    include_knowledge: bool = False,
-) -> str:
-    environment_report = _normalize_report(
-        _safe_load(
-            run_environment_agent(
-                greenhouse_id,
-                sensor_data=sensor_data,
-                persist_event=persist_events,
-            )
-        ),
-        "environment",
-    )
-    crop_report = _normalize_report(
-        _safe_load(
-            run_crop_agent(
-                greenhouse_id,
-                sensor_data=sensor_data,
-                crop_records=crop_records,
-                persist_event=persist_events,
-                include_knowledge=include_knowledge,
-            )
-        ),
-        "crop",
-    )
-    astro_report = _normalize_report(
-        _safe_load(run_astro_agent(crop_records=crop_records, persist_event=persist_events)),
-        "astro",
-    )
-    resource_report = _normalize_report(
-        _safe_load(
-            run_resource_agent(
-                greenhouse_id,
-                sensor_data=sensor_data,
-                persist_event=persist_events,
-            )
-        ),
-        "resource",
-    )
-    scenario = prompt_to_scenario(prompt)
+def _parse_orchestrator_output(raw: str) -> dict[str, Any]:
+    parsed = parse_keyed_block(raw, ORCHESTRATOR_RESPONSE_KEYS)
+    lead_agent = (parsed.get("LEAD_AGENT") or "ORCHESTRATOR").strip().lower()
+    if lead_agent == "orchestrator":
+        lead_agent = "orchestrator"
+    elif lead_agent not in {"environment", "crop", "astro", "resource"}:
+        lead_agent = "orchestrator"
+    next_actions = parse_bullets(parsed.get("NEXT_ACTIONS", ""))
+    return {
+        "leadAgent": lead_agent,
+        "summary": parsed.get("SUMMARY") or raw.strip(),
+        "nextActions": next_actions,
+        "successCondition": parsed.get("SUCCESS_CONDITION") or "Mission remains stable after this coordination cycle.",
+        "finalMessage": parsed.get("FINAL_MESSAGE") or parsed.get("SUMMARY") or raw.strip(),
+    }
 
-    decision = compose_mission_decision(
-        environment_report=environment_report,
-        crop_report=crop_report,
-        astro_report=astro_report,
-        resource_report=resource_report,
-        scenario=scenario,
-    )
-    ui_feed_entries = [
-        {
-            "agent": "orchestrator",
-            "type": "info" if decision["leadAgent"] == "orchestrator" else "warning",
-            "message": decision["operatorSummary"],
-        },
-        *[
-            {
-                "agent": report["agent"],
-                "type": "critical" if report["status"] == "ALERT" else "warning" if report["status"] == "WATCH" else "success",
-                "message": report["headline"],
-            }
-            for report in [environment_report, crop_report, astro_report, resource_report]
-        ],
-    ]
 
-    if persist_events:
-        write_agent_event(
-            "orchestrator",
-            "WARN" if decision["leadAgent"] != "orchestrator" else "INFO",
-            "Orchestrator cycle complete",
-            decision["operatorSummary"],
+def _message_entry(agent_id: str, *, severity: str, message: str, timestamp: int, request_id: str) -> dict[str, Any]:
+    return {
+        "id": f"{request_id}-{agent_id}-{timestamp}",
+        "agentId": agent_id,
+        "agentName": agent_name(agent_id),
+        "agentRole": agent_role(agent_id),
+        "severity": severity,
+        "message": message,
+        "timestamp": timestamp,
+    }
+
+
+@dataclass
+class StrandsMissionRuntime(AbstractContextManager):
+    context_summary: str
+    conversation_id: str
+    request_id: str
+    model_id: str = field(default_factory=lambda: os.environ.get("STRANDS_MODEL_ID", DEFAULT_MODEL_ID))
+    specialist_transcript: list[dict[str, str]] = field(default_factory=list)
+    consulted_agents: list[str] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        self.model = BedrockModel(model_id=self.model_id)
+        self.mcp_client = create_mcp_client()
+        self.mcp_tool_name: str | None = None
+
+    def __enter__(self) -> "StrandsMissionRuntime":
+        if self.mcp_client is not None:
+            self.mcp_client.__enter__()
+            self.mcp_tool_name = discover_tool_name(self.mcp_client)
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        if self.mcp_client is not None:
+            self.mcp_client.__exit__(exc_type, exc, tb)
+        return None
+
+    def _run_specialist(self, agent_id: str, query: str) -> str:
+        knowledge_tool = build_knowledge_tool(
+            mcp_client=self.mcp_client,
+            tool_name=self.mcp_tool_name,
+            agent_id=agent_id,
+            enabled=should_enable_mcp(agent_id, query),
+        )
+        runner = SPECIALIST_RUNNERS[agent_id]
+        try:
+            return runner(
+                query,
+                context_summary=self.context_summary,
+                model=self.model,
+                knowledge_tool=knowledge_tool,
+            )
+        except Exception as exc:  # pragma: no cover - defensive guard
+            return _specialist_fallback(agent_id, exc)
+
+    def _build_specialist_tool(self, agent_id: str):
+        @tool(name=f"consult_{agent_id}_agent")
+        def specialist_tool(query: str) -> str:
+            """
+            Consult the retained Mars greenhouse specialist agent.
+
+            Args:
+                query: The operator or orchestration sub-question to send to the specialist.
+            """
+
+            raw = self._run_specialist(agent_id, query)
+            self.consulted_agents.append(agent_id)
+            self.specialist_transcript.append(_parse_specialist_output(agent_id, raw))
+            return raw
+
+        return specialist_tool
+
+    def _build_orchestrator(self) -> Agent:
+        return Agent(
+            model=self.model,
+            system_prompt=_orchestrator_prompt(self.context_summary),
+            tools=[
+                self._build_specialist_tool("environment"),
+                self._build_specialist_tool("crop"),
+                self._build_specialist_tool("astro"),
+                self._build_specialist_tool("resource"),
+            ],
         )
 
-    return json.dumps(
-        {
-            "agent": "orchestrator",
-            "selectedModuleId": greenhouse_id,
-            "scenario": scenario or "nominal-day",
-            "prompt": prompt,
-            "reports": {
-                "environment": environment_report,
-                "crop": crop_report,
-                "astro": astro_report,
-                "resource": resource_report,
+    def run(self, message: str) -> dict[str, Any]:
+        self.specialist_transcript.clear()
+        self.consulted_agents.clear()
+
+        orchestrator = self._build_orchestrator()
+        final_raw = response_text(orchestrator(message))
+        final = _parse_orchestrator_output(final_raw)
+
+        base_timestamp = int(time.time())
+        messages: list[dict[str, Any]] = []
+        if self.consulted_agents:
+            messages.append(
+                _message_entry(
+                    "orchestrator",
+                    severity="info",
+                    message=f"Mission control routed this request to {join_agent_names(self.consulted_agents)}.",
+                    timestamp=base_timestamp,
+                    request_id=self.request_id,
+                )
+            )
+        else:
+            messages.append(
+                _message_entry(
+                    "orchestrator",
+                    severity="info",
+                    message="Mission control handled this request directly from the current simulation context.",
+                    timestamp=base_timestamp,
+                    request_id=self.request_id,
+                )
+            )
+
+        for offset, specialist in enumerate(self.specialist_transcript, start=1):
+            messages.append(
+                _message_entry(
+                    specialist["agentId"],
+                    severity=severity_from_status(specialist["status"]),
+                    message=specialist["message"],
+                    timestamp=base_timestamp + offset,
+                    request_id=self.request_id,
+                )
+            )
+
+        final_severity = "info"
+        if any(entry["status"] == "CRITICAL" for entry in self.specialist_transcript):
+            final_severity = "critical"
+        elif self.specialist_transcript:
+            if any(entry["status"] == "WARNING" for entry in self.specialist_transcript):
+                final_severity = "warning"
+            else:
+                final_severity = "success"
+
+        messages.append(
+            _message_entry(
+                "orchestrator",
+                severity=final_severity,
+                message=f"Orchestrator resolution: {final['finalMessage']}",
+                timestamp=base_timestamp + len(self.specialist_transcript) + 1,
+                request_id=self.request_id,
+            )
+        )
+
+        specialist_map = {entry["agentId"]: entry for entry in self.specialist_transcript}
+        agent_statuses: list[dict[str, Any]] = []
+        for agent_id in AGENT_ORDER:
+            specialist_entry = specialist_map.get(agent_id)
+            if agent_id == "orchestrator":
+                action = final["nextActions"][0] if final["nextActions"] else final["summary"]
+                status = "warning" if self.consulted_agents else "nominal"
+            elif specialist_entry:
+                action = specialist_entry["currentAction"]
+                status = status_to_ui(specialist_entry["status"])
+            else:
+                action = standby_action(agent_id)
+                status = "nominal"
+
+            agent_statuses.append(
+                {
+                    "id": agent_id,
+                    "name": agent_name(agent_id),
+                    "role": agent_role(agent_id),
+                    "icon": agent_icon(agent_id),
+                    "status": status,
+                    "currentAction": action,
+                }
+            )
+
+        return {
+            "conversationId": self.conversation_id,
+            "requestId": self.request_id,
+            "agentStatuses": agent_statuses,
+            "messages": messages,
+            "meta": {
+                "leadAgent": final["leadAgent"],
+                "nextActions": final["nextActions"],
+                "successCondition": final["successCondition"],
+                "mcp": describe_mcp_access(),
             },
-            "decision": decision,
-            "uiFeedEntries": ui_feed_entries,
         }
-    )
 
 
-if __name__ == "__main__":
-    print(run_mission_orchestrator())
+def run_mission_orchestrator(
+    *,
+    message: str,
+    context_summary: str,
+    conversation_id: str,
+    request_id: str,
+) -> dict[str, Any]:
+    with StrandsMissionRuntime(
+        context_summary=context_summary,
+        conversation_id=conversation_id,
+        request_id=request_id,
+    ) as runtime:
+        return runtime.run(message)

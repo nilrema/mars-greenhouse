@@ -18,11 +18,12 @@ if RUNTIME_ROOT not in sys.path:
 
 from chat_responder_runtime.service import build_chat_response  # noqa: E402
 from agents import chat_runtime as agents_chat_runtime  # noqa: E402
-from agents import strands_runtime  # noqa: E402
+from agents import mission_orchestrator as orchestrator_module  # noqa: E402
+from agents import mcp_support  # noqa: E402
 
 
 class FakeMissionRuntime:
-    def __init__(self, *, context_summary: str, conversation_id: str, request_id: str, model_id: str | None = None):
+    def __init__(self, *, context_summary: str, conversation_id: str, request_id: str):
         self.context_summary = context_summary
         self.conversation_id = conversation_id
         self.request_id = request_id
@@ -84,11 +85,20 @@ class FakeMissionRuntime:
                     "timestamp": 102,
                 },
             ],
+            "meta": {"leadAgent": "environment", "nextActions": ["Raise temperature"], "successCondition": "Climate returns to the safe band."},
         }
 
 
 def test_service_delegates_to_agents_chat_runtime(monkeypatch):
-    monkeypatch.setattr(agents_chat_runtime, "StrandsMissionRuntime", FakeMissionRuntime)
+    monkeypatch.setattr(
+        agents_chat_runtime,
+        "run_mission_orchestrator",
+        lambda **kwargs: FakeMissionRuntime(
+            context_summary=kwargs["context_summary"],
+            conversation_id=kwargs["conversation_id"],
+            request_id=kwargs["request_id"],
+        ).run(kwargs["message"]),
+    )
 
     response = build_chat_response(
         {
@@ -106,34 +116,28 @@ def test_service_delegates_to_agents_chat_runtime(monkeypatch):
     assert response["agentStatuses"][-1]["id"] == "orchestrator"
 
 
-def test_mcp_is_only_enabled_for_knowledge_grounded_queries():
-    assert strands_runtime._should_enable_mcp("crop", "Use the Mars crop knowledge base for disease guidance.") is True
-    assert strands_runtime._should_enable_mcp("environment", "What is the current temperature right now?") is False
-    assert strands_runtime._should_enable_mcp("resource", "Summarize the current power availability.") is False
+def test_orchestrator_parsers_keep_expected_structure():
+    specialist = orchestrator_module._parse_specialist_output(
+        "environment",
+        "STATUS: WARNING\nCURRENT_ACTION: Raise temperature.\nREQUESTED_SUPPORT: RESOURCE_AGENT keep reserve power stable.\nMESSAGE: Climate recovery leads this cycle.",
+    )
+    assert specialist["status"] == "WARNING"
+    assert specialist["message"] == "Climate recovery leads this cycle."
+
+    final = orchestrator_module._parse_orchestrator_output(
+        "LEAD_AGENT: ENVIRONMENT\nSUMMARY: Climate recovery leads.\nNEXT_ACTIONS:\n- Raise temperature\n- Hold reserve power\nSUCCESS_CONDITION: Climate stabilizes.\nFINAL_MESSAGE: Restore temperature first."
+    )
+    assert final["leadAgent"] == "environment"
+    assert final["nextActions"] == ["Raise temperature", "Hold reserve power"]
 
 
-def test_tool_result_text_extractor_prefers_text_content():
-    assert (
-        strands_runtime._extract_tool_result_text(
-            {
-                "status": "success",
-                "content": [{"text": "guidance block"}],
-                "toolUseId": "abc",
-            }
-        )
-        == "guidance block"
+def test_mcp_wrapper_returns_error_without_live_client():
+    result = mcp_support.query_mars_crop_knowledge(
+        None,
+        None,
+        query="Use the Mars crop knowledge base for disease guidance.",
+        agent_id="crop",
     )
 
-
-def test_keyed_block_parser_supports_specialist_and_orchestrator_formats():
-    specialist = strands_runtime._parse_keyed_block(
-        "STATUS: WARNING\nCURRENT_ACTION: Raise temperature.\nREQUESTED_SUPPORT: Resource hold the line.\nMESSAGE: Environment needs warmer grow lanes."
-    )
-    assert specialist["STATUS"] == "WARNING"
-    assert specialist["MESSAGE"] == "Environment needs warmer grow lanes."
-
-    orchestrator = strands_runtime._parse_keyed_block(
-        "LEAD_AGENT: ENVIRONMENT\nSUMMARY: Climate recovery leads.\nNEXT_ACTIONS:\n- Raise temperature\n- Protect mature lanes\nSUCCESS_CONDITION: Climate returns to safe range.\nFINAL_MESSAGE: Restore the climate first."
-    )
-    assert orchestrator["LEAD_AGENT"] == "ENVIRONMENT"
-    assert "Raise temperature" in orchestrator["NEXT_ACTIONS"]
+    assert result["ok"] is False
+    assert result["status"] in {"unconfigured", "unavailable"}

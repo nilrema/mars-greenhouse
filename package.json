@@ -17,7 +17,6 @@
     "amplify:dev": "bash scripts/amplify_sandbox.sh",
     "amplify:outputs": "npx ampx generate outputs --branch $AWS_BRANCH --app-id $AWS_APP_ID --out-dir .",
     "amplify:deploy": "npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID --outputs-out-dir .",
-    "seed:demo": ".venv/bin/python -m agents.seed_demo_data",
     "agent:build": "cd agents && docker build -t mars-greenhouse-agent .",
     "agent:run": "cd agents && docker run --env-file .env mars-greenhouse-agent"
   },

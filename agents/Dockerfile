@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
@@ -8,5 +8,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 ENV PYTHONUNBUFFERED=1
+EXPOSE 8080
 
-CMD ["python", "-m", "agents.chat_runtime"]
+CMD ["python", "-m", "agents.agentcore_app"]

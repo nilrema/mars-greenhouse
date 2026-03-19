@@ -1,43 +1,41 @@
 # Agents Runtime
 
-The retained specialist runtime keeps five agent roles:
+This folder is now the single retained agent runtime for the product path.
 
-- `environment_agent.py`
-- `crop_agent.py`
-- `astro_agent.py`
-- `resource_agent.py`
-- `mission_orchestrator.py`
-- `strands_runtime.py`
+Active modules:
 
-The canonical Strands multi-agent runtime now lives in
-[strands_runtime.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/strands_runtime.py).
-It follows the official Strands `agents-as-tools` pattern:
+- [agent_support.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/agent_support.py)
+- [mcp_support.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/mcp_support.py)
+- [environment_agent.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/environment_agent.py)
+- [crop_agent.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/crop_agent.py)
+- [astro_agent.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/astro_agent.py)
+- [resource_agent.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/resource_agent.py)
+- [mission_orchestrator.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/mission_orchestrator.py)
+- [chat_runtime.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/chat_runtime.py)
+- [agentcore_app.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/agentcore_app.py)
+
+The runtime follows the official Strands `agents-as-tools` pattern:
 
 - `ORCH_AGENT` is the top-level Strands agent
-- each retained specialist is exposed as a Strands `@tool`
-- the orchestrator decides whether to answer directly or call one or more specialists
-- specialist agents get MCP-backed Mars crop knowledge tools only when the request actually needs knowledge grounding
+- each retained specialist is wrapped as a Strands `@tool`
+- the orchestrator decides whether to answer directly or call one specialist or several
+- specialists can use the Mars crop knowledge base through one shared Strands MCP wrapper in [mcp_support.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/mcp_support.py)
 
-The deployed chat path under
-[`amplify/functions/chatResponder/runtime`](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/amplify/functions/chatResponder/runtime)
-now delegates to the `agents/` runtime instead of keeping a separate custom orchestration stack.
+The deployed `chatResponder` Lambda still imports [chat_runtime.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/chat_runtime.py), so the frontend contract stays stable while the internal agent system uses the cleaned Strands runtime.
 
-[chat_runtime.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/chat_runtime.py)
-is the shared request-to-response bridge used by both local tests and the deployed Lambda path.
+## AgentCore
 
-## Shared MCP Access
+[agentcore_app.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/agentcore_app.py) exposes the same runtime through `BedrockAgentCoreApp`, matching the Strands Python deployment guide for Bedrock AgentCore.
 
-All retained agents share the Mars crop knowledge base configuration through
-`mcp_support.py`.
+Use it as the container entrypoint for AgentCore-style deployment:
 
-- `describe_mcp_access()` exposes configured MCP endpoint metadata
-- `query_mars_crop_knowledge()` performs the shared MCP request and normalizes
-  success/error payloads
-- the Strands runtime uses `MCPClient` with manual context management and tool discovery, matching the official Strands MCP guidance
-- `agents/tools/kb_tools.py` remains available for non-runtime wrappers and local tool access
+```bash
+python -m agents.agentcore_app
+```
 
-## Archived Entry Points
+## Testing
 
-Older experimental entry points were moved to
-[agents/archive/README.md](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/archive/README.md)
-so the active runtime path stays explicit.
+Smoke and regression coverage for this runtime lives in:
+
+- [test_agent_roles.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/test_agent_roles.py)
+- [test_runtime_smoke.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/test_runtime_smoke.py)
