@@ -6,7 +6,7 @@ Screenshot-style greenhouse operations console for the Syngenta x AWS START Hack
 The active product is a single-console greenhouse UI with:
 
 - left greenhouse live-view image
-- center `Greenhouse` and `Astronauts` tabs
+- center `Greenhouse`, `Technology`, and `Astronauts` tabs
 - right agent communication feed
 - a simulation popup with three sliders
 

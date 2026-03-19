@@ -59,6 +59,15 @@ export interface AstronautRecord {
   health: BaseStatus;
 }
 
+export interface TechnologyDevice {
+  name: string;
+  category: string;
+  status: 'online' | 'standby' | 'maintenance';
+  power: string;
+  componentHealth: string;
+  failureRisk: string;
+}
+
 export interface AgentStatusCard {
   id: AgentId;
   name: string;

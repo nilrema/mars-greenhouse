@@ -19,96 +19,211 @@ const healthBorder = {
   critical: 'border-destructive/40',
 };
 
+const hydrationValue = {
+  optimal: 100,
+  adequate: 65,
+  low: 30,
+};
+
 export function AstronautPanel({ astronauts }: { astronauts: AstronautRecord[] }) {
+  const overview = getCrewOverview(astronauts);
+
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto space-y-2">
-      {astronauts.map((a, i) => (
-        <motion.div
-          key={a.name}
-          className={`border ${healthBorder[a.health]} bg-card rounded-lg p-3`}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.06 }}
-        >
-          {/* Header */}
-          <div className="flex items-center gap-2.5 mb-2.5">
-            <div className="text-[22px] leading-none">{a.avatar}</div>
-            <div className="flex-1 min-w-0">
-              <div className="text-[12px] font-semibold text-foreground truncate">{a.name}</div>
-              <div className="text-[9px] text-muted-foreground">{a.role}</div>
-            </div>
-            <div className="flex flex-col items-end gap-0.5">
-              <span className={`text-[9px] font-semibold ${healthColor[a.health]}`}>
-                {a.health.toUpperCase()}
+    <div className="flex-1 min-h-0 overflow-y-auto space-y-2 mt-2">
+      <div className="border border-border bg-card rounded-lg p-3">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <div className="text-[11px] font-semibold text-foreground">Crew Overview</div>
+            <div className="text-[9px] text-muted-foreground">Average nutrition and hydration posture across the active crew.</div>
+          </div>
+          <div className="text-[9px] font-mono text-muted-foreground">{astronauts.length} active crew</div>
+        </div>
+
+        <div className="grid grid-cols-4 gap-2">
+          <OverviewGauge label="Calories" value={overview.calories} suffix="%" />
+          <OverviewGauge label="Protein" value={overview.protein} suffix="%" />
+          <OverviewGauge label="Micronutrients" value={overview.micronutrients} suffix="" />
+          <OverviewGauge label="Hydration" value={overview.hydration} suffix="%" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        {astronauts.map((astronaut, index) => (
+          <motion.div
+            key={astronaut.name}
+            className={`border ${healthBorder[astronaut.health]} bg-card rounded-lg p-3`}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.06 }}
+          >
+            <div className="flex items-center gap-2.5 mb-2.5">
+              <div className="text-[22px] leading-none">{astronaut.avatar}</div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[12px] font-semibold text-foreground truncate">{astronaut.name}</div>
+                <div className="text-[9px] text-muted-foreground truncate">{astronaut.role}</div>
+              </div>
+              <span className={`text-[9px] font-semibold ${healthColor[astronaut.health]}`}>
+                {astronaut.health.toUpperCase()}
               </span>
             </div>
-          </div>
 
-          {/* Metrics grid */}
-          <div className="grid grid-cols-3 gap-2">
-            {/* Calories */}
-            <MiniMetric
-              label="Calories"
-              current={a.calories.current}
-              target={a.calories.target}
-              unit="kcal"
-            />
-            {/* Protein */}
-            <MiniMetric
-              label="Protein"
-              current={a.protein.current}
-              target={a.protein.target}
-              unit="g"
-            />
-            {/* Micronutrient */}
-            <div className="bg-muted/50 rounded p-2">
-              <div className="text-[8px] text-muted-foreground mb-1">Micronutrients</div>
-              <div className={`text-[13px] font-mono font-semibold ${a.micronutrientScore < 70 ? 'text-destructive' : 'text-foreground'}`}>
-                {a.micronutrientScore}
-                <span className="text-[9px] text-muted-foreground font-normal">/100</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Hydration bar */}
-          <div className="mt-2 flex items-center gap-2">
-            <span className="text-[8px] text-muted-foreground w-14">Hydration</span>
-            <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-              <motion.div
-                className={`h-full rounded-full ${
-                  a.hydration === 'optimal' ? 'bg-success' : a.hydration === 'adequate' ? 'bg-warning' : 'bg-destructive'
-                }`}
-                initial={{ width: 0 }}
-                animate={{ width: a.hydration === 'optimal' ? '100%' : a.hydration === 'adequate' ? '65%' : '30%' }}
-                transition={{ duration: 0.5, delay: i * 0.06 }}
+            <div className="grid grid-cols-2 gap-2">
+              <CrewMetric
+                label="Calories"
+                current={astronaut.calories.current}
+                target={astronaut.calories.target}
+                unit="kcal"
+              />
+              <CrewMetric
+                label="Protein"
+                current={astronaut.protein.current}
+                target={astronaut.protein.target}
+                unit="g"
+              />
+              <ScoreMetric
+                label="Micronutrients"
+                value={astronaut.micronutrientScore}
+                display={`${astronaut.micronutrientScore}/100`}
+              />
+              <ScoreMetric
+                label="Hydration"
+                value={hydrationValue[astronaut.hydration]}
+                display={astronaut.hydration.charAt(0).toUpperCase() + astronaut.hydration.slice(1)}
+                valueClass={hydrationColor[astronaut.hydration]}
               />
             </div>
-            <span className={`text-[9px] font-medium ${hydrationColor[a.hydration]}`}>
-              {a.hydration.charAt(0).toUpperCase() + a.hydration.slice(1)}
-            </span>
-          </div>
-        </motion.div>
-      ))}
+          </motion.div>
+        ))}
+      </div>
     </div>
   );
 }
 
-function MiniMetric({ label, current, target, unit }: { label: string; current: number; target: number; unit: string }) {
-  const pct = Math.min(100, Math.round((current / target) * 100));
-  const low = pct < 75;
+function CrewMetric({
+  label,
+  current,
+  target,
+  unit,
+}: {
+  label: string;
+  current: number;
+  target: number;
+  unit: string;
+}) {
+  const pct = clampPercent(Math.round((current / target) * 100));
+  const tone = metricTone(pct);
+  const barTone = metricBarTone(pct);
+
   return (
     <div className="bg-muted/50 rounded p-2">
       <div className="text-[8px] text-muted-foreground mb-1">{label}</div>
-      <div className={`text-[13px] font-mono font-semibold ${low ? 'text-destructive' : 'text-foreground'}`}>
+      <div className={`text-[13px] font-mono font-semibold ${tone}`}>
         {current}
         <span className="text-[9px] text-muted-foreground font-normal">/{target}{unit}</span>
       </div>
       <div className="w-full h-1 bg-muted rounded-full mt-1">
-        <div
-          className={`h-full rounded-full transition-all ${low ? 'bg-destructive' : 'bg-success'}`}
-          style={{ width: `${pct}%` }}
-        />
+        <div className={`h-full rounded-full transition-all ${barTone}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
+}
+
+function ScoreMetric({
+  label,
+  value,
+  display,
+  valueClass,
+}: {
+  label: string;
+  value: number;
+  display: string;
+  valueClass?: string;
+}) {
+  const pct = clampPercent(value);
+  const tone = valueClass ?? metricTone(pct);
+  const barTone = metricBarTone(pct);
+
+  return (
+    <div className="bg-muted/50 rounded p-2">
+      <div className="text-[8px] text-muted-foreground mb-1">{label}</div>
+      <div className={`text-[13px] font-mono font-semibold ${tone}`}>{display}</div>
+      <div className="w-full h-1 bg-muted rounded-full mt-1">
+        <div className={`h-full rounded-full transition-all ${barTone}`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function OverviewGauge({
+  label,
+  value,
+  suffix,
+}: {
+  label: string;
+  value: number;
+  suffix: string;
+}) {
+  const pct = clampPercent(value);
+  const accent = gaugeAccent(pct);
+  const angle = pct * 3.6;
+
+  return (
+    <div className="rounded bg-muted/40 p-2 flex flex-col items-center justify-center">
+      <div
+        className="relative h-14 w-14 rounded-full"
+        style={{
+          background: `conic-gradient(${accent} 0deg ${angle}deg, hsl(var(--muted)) ${angle}deg 360deg)`,
+        }}
+      >
+        <div className="absolute inset-[5px] rounded-full bg-card flex items-center justify-center">
+          <div className={`font-mono text-[11px] font-semibold ${metricTone(pct)}`}>
+            {pct}
+            {suffix}
+          </div>
+        </div>
+      </div>
+      <div className="text-[8px] text-muted-foreground mt-2 text-center leading-tight">{label}</div>
+    </div>
+  );
+}
+
+function getCrewOverview(astronauts: AstronautRecord[]) {
+  const count = Math.max(astronauts.length, 1);
+
+  return {
+    calories: Math.round(
+      astronauts.reduce((sum, astronaut) => sum + astronaut.calories.current / astronaut.calories.target, 0) / count * 100
+    ),
+    protein: Math.round(
+      astronauts.reduce((sum, astronaut) => sum + astronaut.protein.current / astronaut.protein.target, 0) / count * 100
+    ),
+    micronutrients: Math.round(
+      astronauts.reduce((sum, astronaut) => sum + astronaut.micronutrientScore, 0) / count
+    ),
+    hydration: Math.round(
+      astronauts.reduce((sum, astronaut) => sum + hydrationValue[astronaut.hydration], 0) / count
+    ),
+  };
+}
+
+function clampPercent(value: number) {
+  return Math.max(0, Math.min(100, value));
+}
+
+function metricTone(value: number) {
+  if (value >= 80) return 'text-success';
+  if (value >= 60) return 'text-warning';
+  return 'text-destructive';
+}
+
+function metricBarTone(value: number) {
+  if (value >= 80) return 'bg-success';
+  if (value >= 60) return 'bg-warning';
+  return 'bg-destructive';
+}
+
+function gaugeAccent(value: number) {
+  if (value >= 80) return 'hsl(var(--success))';
+  if (value >= 60) return 'hsl(var(--warning))';
+  return 'hsl(var(--destructive))';
 }
