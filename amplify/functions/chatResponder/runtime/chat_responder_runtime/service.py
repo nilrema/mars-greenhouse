@@ -237,14 +237,15 @@ class StrandsBackend(AbstractContextManager):
         session = boto3.Session(region_name=os.environ.get("AWS_REGION"))
         self.model = BedrockModel(boto_session=session, model_id=self.model_id)
         self.mcp_client = MCPClient(_mcp_transport, startup_timeout=30, prefix="mars_kb")
+        self._mcp_started = False
 
     def __enter__(self) -> "StrandsBackend":
-        self.mcp_client.start()
-        self.mcp_client.list_tools_sync()
         return self
 
     def __exit__(self, exc_type, exc, tb) -> None:
-        self.mcp_client.stop(exc_type, exc, tb)
+        if self._mcp_started:
+            self.mcp_client.stop(exc_type, exc, tb)
+            self._mcp_started = False
 
     def _invoke_structured(self, *, name: str, system_prompt: str, prompt: str, output_model: type[BaseModel]) -> BaseModel:
         agent = Agent(
@@ -254,7 +255,10 @@ class StrandsBackend(AbstractContextManager):
             name=name,
             description=name,
         )
-        result = agent(prompt, structured_output_model=output_model)
+        try:
+            result = agent(prompt, structured_output_model=output_model)
+        finally:
+            self._mcp_started = bool(getattr(self.mcp_client, "_tool_provider_started", False))
         if result.structured_output is None:
             raise RuntimeError(f"{name} did not return structured output")
         return result.structured_output
@@ -466,4 +470,3 @@ def build_chat_response(payload: dict[str, Any], backend: AgentBackend) -> dict[
         "agentStatuses": statuses,
         "messages": messages,
     }
-
