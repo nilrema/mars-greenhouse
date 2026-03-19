@@ -1,7 +1,12 @@
 import { spawn } from 'node:child_process';
 import { submitChatMessageResponseSchema, type SubmitChatMessageRequest, type SubmitChatMessageResponse } from '../../../src/components/mission/chatContract';
+import { buildEmbeddedRuntimeResponse } from './embeddedRuntime';
 
 const DEFAULT_PYTHON_CANDIDATES = ['.venv/bin/python', 'python3', 'python'];
+
+function isSpawnNotFound(error: unknown): boolean {
+  return error instanceof Error && 'code' in error && error.code === 'ENOENT';
+}
 
 function getPythonCandidates(): string[] {
   const configured = process.env.CHAT_RUNTIME_PYTHON?.trim();
@@ -52,13 +57,19 @@ function runPythonRuntime(pythonExecutable: string, input: SubmitChatMessageRequ
 
 export async function runChatRuntime(input: SubmitChatMessageRequest): Promise<SubmitChatMessageResponse> {
   const errors: string[] = [];
+  let missingExecutableOnly = true;
 
   for (const pythonExecutable of getPythonCandidates()) {
     try {
       return await runPythonRuntime(pythonExecutable, input);
     } catch (error) {
+      missingExecutableOnly = missingExecutableOnly && isSpawnNotFound(error);
       errors.push(`${pythonExecutable}: ${error instanceof Error ? error.message : String(error)}`);
     }
+  }
+
+  if (missingExecutableOnly) {
+    return buildEmbeddedRuntimeResponse(input);
   }
 
   throw new Error(`Unable to start the retained agent runtime. ${errors.join(' | ')}`);
