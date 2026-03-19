@@ -32,6 +32,42 @@ DEFAULT_MCP_URL = os.environ.get(
 )
 DEFAULT_GREENHOUSE_ID = "mars-greenhouse-1"
 AGENT_ORDER = ["environment", "crop", "astro", "resource"]
+KB_GENERAL_KEYWORDS = {
+    "knowledge",
+    "research",
+    "best practice",
+    "best practices",
+    "guidance",
+    "reference",
+    "references",
+    "scientific",
+    "paper",
+    "papers",
+    "study",
+    "studies",
+    "mcp",
+    "mars crop knowledge base",
+}
+KB_AGENT_KEYWORDS = {
+    "environment": {"humidity", "co2", "lighting", "light recipe", "setpoint", "climate target"},
+    "crop": {
+        "crop",
+        "plant",
+        "disease",
+        "pathogen",
+        "yield",
+        "harvest",
+        "nutrient",
+        "deficiency",
+        "cultivar",
+        "leaf",
+        "canopy",
+        "stress",
+        "irrigation recipe",
+    },
+    "astro": {"crew nutrition", "nutrition", "crew workload", "human factors", "astronaut"},
+    "resource": {"irrigation", "water recovery", "fertigation", "reservoir", "power budget", "resource plan"},
+}
 
 _TOKEN_CACHE: dict[str, Any] = {"token": None, "expires_at": None}
 
@@ -191,6 +227,22 @@ def _is_invalid_tool_sequence_error(error: Exception) -> bool:
     return "invalid sequence as part of ToolUse" in str(error)
 
 
+def _normalize_message_text(text: str) -> str:
+    return " ".join(text.lower().split())
+
+
+def _should_enable_mcp(agent_id: str, context: RuntimeContext) -> bool:
+    message = _normalize_message_text(context.user_message)
+
+    if any(keyword in message for keyword in KB_GENERAL_KEYWORDS):
+        return True
+
+    if any(keyword in message for keyword in KB_AGENT_KEYWORDS.get(agent_id, set())):
+        return True
+
+    return False
+
+
 def _headers_for_mcp() -> dict[str, str]:
     client_id = os.environ.get("GATEWAY_CLIENT_ID", "").strip()
     client_secret = os.environ.get("GATEWAY_CLIENT_SECRET", "").strip()
@@ -325,7 +377,7 @@ class StrandsBackend(AbstractContextManager):
             name="orchestrator_router",
             system_prompt=_route_system_prompt(),
             prompt=prompt,
-            use_mcp=True,
+            use_mcp=False,
         )
         return self._invoke_structured(
             name="orchestrator_router_parser",
@@ -349,7 +401,7 @@ class StrandsBackend(AbstractContextManager):
             name=f"{agent_id}_specialist",
             system_prompt=_specialist_system_prompt(agent_id),
             prompt=prompt,
-            use_mcp=True,
+            use_mcp=_should_enable_mcp(agent_id, context),
         )
         assessment = self._invoke_structured(
             name=f"{agent_id}_specialist_parser",
@@ -392,7 +444,7 @@ class StrandsBackend(AbstractContextManager):
             name=f"{agent_id}_follow_up",
             system_prompt=_follow_up_system_prompt(agent_id),
             prompt=prompt,
-            use_mcp=True,
+            use_mcp=False,
         )
         follow_up = self._invoke_structured(
             name=f"{agent_id}_follow_up_parser",
@@ -436,7 +488,7 @@ class StrandsBackend(AbstractContextManager):
             name="orchestrator_resolver",
             system_prompt=_resolution_system_prompt(),
             prompt=prompt,
-            use_mcp=True,
+            use_mcp=False,
         )
         return self._invoke_structured(
             name="orchestrator_resolver_parser",

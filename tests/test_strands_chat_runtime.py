@@ -191,9 +191,9 @@ def test_strands_backend_does_not_double_start_mcp_client(monkeypatch):
         )
 
     assert result.selected_agents == ["environment"]
-    assert events == ["start", "stop"]
+    assert events == []
     assert tool_invocations == [
-        ("orchestrator_router", True, False),
+        ("orchestrator_router", False, False),
         ("orchestrator_router_parser", False, True),
     ]
 
@@ -225,14 +225,18 @@ def test_strands_backend_retries_invalid_tool_sequence_once(monkeypatch):
                 )
             if structured_output_model is None:
                 return SimpleNamespace(
-                    message={"role": "assistant", "content": [{"text": "Environment only. Route ENV_AGENT."}]},
+                    message={"role": "assistant", "content": [{"text": "Crop risk is elevated; inspect for disease."}]},
                     structured_output=None,
                 )
             return SimpleNamespace(
                 structured_output=structured_output_model(
-                    selected_agents=["environment"],
-                    rationale="Climate-only issue.",
-                    dispatch_message="Environment, assess the thermal drift.",
+                    risk_level="warning",
+                    summary="Climate-only issue.",
+                    key_evidence=["cooler canopy"],
+                    requested_support=["environment stabilization"],
+                    proposed_actions=["inspect crop lanes"],
+                    current_action="inspect crop lanes",
+                    response_message="placeholder",
                 )
             )
 
@@ -244,15 +248,127 @@ def test_strands_backend_retries_invalid_tool_sequence_once(monkeypatch):
     monkeypatch.setattr(runtime_service, "Agent", FakeAgent)
 
     with runtime_service.StrandsBackend(model_id="test-model") as backend:
-        result = backend.route(
-            RuntimeContext(
-                user_message="Assess the cold drift.",
-                conversation_id="conv-2",
-                request_id="req-2",
-                simulation_context={"temperatureDrift": -5.0, "waterRecycling": 95.0, "powerAvailability": 96.0},
-                simulation_summary="Cold drift only.",
-            )
+        context = RuntimeContext(
+            user_message="Use the Mars crop knowledge base to assess crop disease risk.",
+            conversation_id="conv-2",
+            request_id="req-2",
+            simulation_context={"temperatureDrift": -5.0, "waterRecycling": 95.0, "powerAvailability": 96.0},
+            simulation_summary="Cold drift only.",
+        )
+        route = RouteDecision(
+            selected_agents=["crop"],
+            rationale="Need crop review.",
+            dispatch_message="Crop, assess the disease risk.",
+        )
+        result = backend.assess("crop", context, route)
+
+    assert result.summary == "Climate-only issue."
+    assert attempts == ["crop_specialist", "crop_specialist", "crop_specialist_parser"]
+
+
+def test_strands_backend_only_enables_mcp_for_knowledge_grounded_specialists(monkeypatch):
+    tool_invocations: list[tuple[str, bool, bool]] = []
+
+    class FakeMCPClient:
+        def __init__(self, *args, **kwargs):
+            self._tool_provider_started = False
+
+        def start(self):
+            self._tool_provider_started = True
+
+        def stop(self, exc_type, exc, tb):
+            self._tool_provider_started = False
+
+    class FakeAgent:
+        def __init__(self, *, model, tools, system_prompt, name, description):
+            self.tools = tools
+            self.name = name
+
+        def __call__(self, prompt, structured_output_model=None):
+            tool_invocations.append((self.name, bool(self.tools), structured_output_model is not None))
+            if structured_output_model is None:
+                return SimpleNamespace(
+                    message={"role": "assistant", "content": [{"text": f"{self.name} transcript"}]},
+                    structured_output=None,
+                )
+
+            payload_by_name = {
+                "orchestrator_router_parser": RouteDecision(
+                    selected_agents=["environment", "crop"],
+                    rationale="Need climate plus agronomy input.",
+                    dispatch_message="Environment and Crop, assess the greenhouse state.",
+                ),
+                "environment_specialist_parser": SpecialistAssessment(
+                    risk_level="warning",
+                    summary="Environment summary",
+                    key_evidence=["env evidence"],
+                    requested_support=["crop support"],
+                    proposed_actions=["env action"],
+                    current_action="env current action",
+                    response_message="placeholder",
+                ),
+                "crop_specialist_parser": SpecialistAssessment(
+                    risk_level="warning",
+                    summary="Crop summary",
+                    key_evidence=["crop evidence"],
+                    requested_support=["env support"],
+                    proposed_actions=["crop action"],
+                    current_action="crop current action",
+                    response_message="placeholder",
+                ),
+                "environment_follow_up_parser": SpecialistFollowUp(
+                    alignment_message="env follow-up",
+                    updated_action="env updated action",
+                    blockers=[],
+                ),
+                "crop_follow_up_parser": SpecialistFollowUp(
+                    alignment_message="crop follow-up",
+                    updated_action="crop updated action",
+                    blockers=[],
+                ),
+                "orchestrator_resolver_parser": OrchestratorResolution(
+                    lead_agent="crop",
+                    summary="Protect the crop while environment stabilizes.",
+                    course_of_action=[
+                        ResolutionStep(owner="environment", action="Raise temperature", reason="restore climate"),
+                        ResolutionStep(owner="crop", action="Protect mature lanes", reason="avoid yield loss"),
+                    ],
+                    success_condition="Climate and crop stress are back in bounds.",
+                ),
+            }
+            return SimpleNamespace(structured_output=payload_by_name[self.name])
+
+        def cleanup(self):
+            return None
+
+    monkeypatch.setattr(runtime_service, "BedrockModel", lambda *args, **kwargs: object())
+    monkeypatch.setattr(runtime_service, "MCPClient", FakeMCPClient)
+    monkeypatch.setattr(runtime_service, "Agent", FakeAgent)
+
+    with runtime_service.StrandsBackend(model_id="test-model") as backend:
+        runtime_service.build_chat_response(
+            {
+                "message": "Use the Mars crop knowledge base to assess crop disease risk and climate targets.",
+                "context": {
+                    "temperatureDrift": -5,
+                    "waterRecycling": 80,
+                    "powerAvailability": 85,
+                },
+            },
+            backend=backend,
         )
 
-    assert result.selected_agents == ["environment"]
-    assert attempts == ["orchestrator_router", "orchestrator_router", "orchestrator_router_parser"]
+    assert tool_invocations == [
+        ("orchestrator_router", False, False),
+        ("orchestrator_router_parser", False, True),
+        ("environment_specialist", True, False),
+        ("environment_specialist_parser", False, True),
+        ("crop_specialist", True, False),
+        ("crop_specialist_parser", False, True),
+        ("environment_follow_up", False, False),
+        ("environment_follow_up_parser", False, True),
+        ("crop_follow_up", False, False),
+        ("crop_follow_up_parser", False, True),
+        ("orchestrator_resolver", False, False),
+        ("orchestrator_resolver_parser", False, True),
+    ]
