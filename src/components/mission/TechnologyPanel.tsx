@@ -13,7 +13,6 @@ const technologyDevices: TechnologyDevice[] = [
     category: 'Climate telemetry',
     status: 'online',
     power: '92%',
-    connectivity: 'Stable mesh',
     componentHealth: 'Calibrated',
     failureRisk: '8%',
   },
@@ -22,7 +21,6 @@ const technologyDevices: TechnologyDevice[] = [
     category: 'Moisture telemetry',
     status: 'online',
     power: '88%',
-    connectivity: 'Stable mesh',
     componentHealth: 'Nominal',
     failureRisk: '11%',
   },
@@ -31,7 +29,6 @@ const technologyDevices: TechnologyDevice[] = [
     category: 'Resource telemetry',
     status: 'standby',
     power: '76%',
-    connectivity: 'Intermittent relay',
     componentHealth: 'Needs inspection',
     failureRisk: '27%',
   },
@@ -40,7 +37,6 @@ const technologyDevices: TechnologyDevice[] = [
     category: 'Visual inspection',
     status: 'online',
     power: '95%',
-    connectivity: 'High bandwidth',
     componentHealth: 'Lens clear',
     failureRisk: '6%',
   },
@@ -49,15 +45,13 @@ const technologyDevices: TechnologyDevice[] = [
     category: 'Airflow control',
     status: 'maintenance',
     power: '64%',
-    connectivity: 'Local bus only',
     componentHealth: 'Fan wear detected',
     failureRisk: '41%',
   },
 ];
 
-const labelMap: Record<'power' | 'connectivity' | 'componentHealth' | 'failureRisk', string> = {
+const labelMap: Record<'power' | 'componentHealth' | 'failureRisk', string> = {
   power: 'Power',
-  connectivity: 'Connectivity',
   componentHealth: 'Component Health',
   failureRisk: 'Failure Risk',
 };
@@ -111,7 +105,6 @@ export function TechnologyPanel() {
             </div>
 
             <GaugeMetric label={labelMap.power} value={parsePercent(device.power)} unit="%" />
-            <TextMetric label={labelMap.connectivity} value={device.connectivity} />
             <TextMetric label={labelMap.componentHealth} value={device.componentHealth} />
             <GaugeMetric label={labelMap.failureRisk} value={parsePercent(device.failureRisk)} unit="%" inverse />
           </div>

@@ -72,7 +72,6 @@ describe('GreenhouseOverview', () => {
     expect(screen.getByText('Ventilation')).toBeInTheDocument();
     expect(screen.getAllByText('Status').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Power').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Connectivity').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Component Health').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Failure Risk').length).toBeGreaterThan(0);
   });

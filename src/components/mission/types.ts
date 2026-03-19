@@ -64,7 +64,6 @@ export interface TechnologyDevice {
   category: string;
   status: 'online' | 'standby' | 'maintenance';
   power: string;
-  connectivity: string;
   componentHealth: string;
   failureRisk: string;
 }

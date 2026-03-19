@@ -56,7 +56,6 @@ Each device should expose these variables in the UI:
 
 - Status
 - Power
-- Connectivity
 - Component Health
 - Failure Risk
 
