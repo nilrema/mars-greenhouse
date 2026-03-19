@@ -12,10 +12,11 @@ vi.mock('node:child_process', async (importOriginal) => {
 
 describe('runChatRuntime', () => {
   beforeEach(() => {
+    vi.resetModules();
     spawnMock.mockReset();
   });
 
-  it('falls back to the embedded retained runtime when python executables are missing', async () => {
+  it('returns a structured retained-runtime response when subprocess execution is unavailable', async () => {
     spawnMock.mockImplementation(() => {
       const listeners = new Map<string, ((error?: Error | number) => void)[]>();
       queueMicrotask(() => {
@@ -44,7 +45,9 @@ describe('runChatRuntime', () => {
     });
 
     expect(response.messages[0]?.agentId).toBe('orchestrator');
-    expect(response.messages.at(-1)?.message).toContain('Orchestrator resolution:');
+    expect(response.messages.at(-1)?.agentId).toBe('orchestrator');
     expect(response.agentStatuses.some((status) => status.id === 'environment')).toBe(true);
+    expect(response.messages.length).toBeGreaterThanOrEqual(6);
+    expect(response.messages.at(-1)?.message).toContain('Orchestrator resolution:');
   });
 });
