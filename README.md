@@ -10,7 +10,7 @@ The active product is a single-console greenhouse UI with:
 - right agent communication feed
 - a simulation popup with three sliders
 
-The current interaction model is mocked and frontend-driven.
+The current interaction model now uses a real backend chat request for operator messages, while the simulation panels remain lightweight demo controls.
 
 The root `src/` frontend remains in the repo as a frozen legacy reference during the pivot.
 

@@ -8,7 +8,7 @@ The repository keeps the existing stack, but the active frontend path is now:
 
 - `src/` as the primary frontend workspace
 - `agents/` as the future backend/runtime landing zone
-- mocked local state as the current frontend driver
+- local simulation state plus a backend chat mutation for operator requests
 
 ## 2. System Layers
 
@@ -21,8 +21,8 @@ Primary path:
 Responsibilities:
 
 - render the screenshot-style three-column greenhouse console
-- maintain local greenhouse, astronaut, agent, log, and slider state
-- drive a mocked simulation popup and conversation flow
+- maintain local greenhouse, astronaut, agent, chat, and slider state
+- drive a simulation popup while sending operator chat requests to the backend
 - keep the detail route as a future stub only
 
 ### Backend / Data
@@ -33,8 +33,8 @@ Primary path:
 
 Responsibilities:
 
-- remain available for later integration
-- not block the current mocked frontend console
+- expose the chat mutation contract consumed by the active frontend
+- keep the backend response structured enough for the UI to render reliably
 
 ### Agents
 
@@ -69,7 +69,9 @@ Responsibilities:
 1. Frontend loads mocked greenhouse and astronaut data.
 2. Operator opens the simulation modal.
 3. Operator adjusts temperature drift, water recycling, and power availability.
-4. Starting the simulation updates metrics and creates a staged agent conversation.
+4. Starting the simulation updates metrics and local system status.
+5. Operator sends a chat request from the right-side panel.
+6. Backend returns structured agent messages and status updates for rendering.
 
 ### Detail Route
 
@@ -79,8 +81,8 @@ Responsibilities:
 ## 5. Boundaries
 
 - the active frontend should stay close to the screenshots
-- local mocked state is acceptable and preferred for now
-- specialist conversation is more important than backend integration in this pass
+- local simulation state is still acceptable for greenhouse visuals
+- operator chat now flows through the backend instead of frontend mock responses
 
 ## 6. Reversion Strategy
 

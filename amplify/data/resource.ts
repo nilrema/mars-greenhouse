@@ -1,6 +1,50 @@
 import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
+import { chatResponder } from '../functions/chatResponder/resource';
 
 const schema = a.schema({
+  ChatRequestContext: a.customType({
+    temperatureDrift: a.float(),
+    waterRecycling: a.float(),
+    powerAvailability: a.float(),
+  }),
+
+  ChatAgentStatus: a.customType({
+    id: a.string().required(),
+    name: a.string().required(),
+    role: a.string().required(),
+    icon: a.string().required(),
+    status: a.string().required(),
+    currentAction: a.string().required(),
+  }),
+
+  ChatAgentMessage: a.customType({
+    id: a.string().required(),
+    agentId: a.string().required(),
+    agentName: a.string().required(),
+    agentRole: a.string().required(),
+    severity: a.string().required(),
+    message: a.string().required(),
+    timestamp: a.integer().required(),
+  }),
+
+  ChatResponse: a.customType({
+    conversationId: a.string().required(),
+    requestId: a.string().required(),
+    agentStatuses: a.ref('ChatAgentStatus').array().required(),
+    messages: a.ref('ChatAgentMessage').array().required(),
+  }),
+
+  submitChatMessage: a
+    .mutation()
+    .arguments({
+      message: a.string().required(),
+      conversationId: a.string(),
+      context: a.ref('ChatRequestContext'),
+    })
+    .returns(a.ref('ChatResponse'))
+    .authorization((allow) => [allow.publicApiKey()])
+    .handler(a.handler.function(chatResponder)),
+
   SensorReading: a
     .model({
       greenhouseId: a.string().required(),

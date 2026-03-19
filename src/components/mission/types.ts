@@ -4,6 +4,14 @@ export type ZoneType = 'growing' | 'nutrient' | 'storage' | 'quarantine' | 'airl
 export type GrowthStage = 'seedling' | 'vegetative' | 'harvest-ready';
 export type CloneRole = 'harvester' | 'inspector' | 'technician';
 export type AgentId = 'environment' | 'crop' | 'astro' | 'resource' | 'orchestrator';
+export type ChatSeverity = 'info' | 'warning' | 'critical' | 'success';
+export type ScenarioId =
+  | 'nominal-day'
+  | 'water-pressure'
+  | 'disease-suspicion'
+  | 'dust-storm'
+  | 'harvest-rush';
+export type ModuleSignalStatus = 'nominal' | 'watch' | 'alert';
 
 export interface SimulationParams {
   temperatureDrift: number;
@@ -72,7 +80,20 @@ export interface ActivityFeedItem {
   agent: AgentId;
   message: string;
   timestamp: number;
-  type: 'info' | 'warning' | 'critical' | 'success';
+  type: ChatSeverity;
+}
+
+export interface ConversationMessage {
+  id: string;
+  source: 'system' | 'agent' | 'user';
+  message: string;
+  timestamp: number;
+  type: ChatSeverity;
+  agent?: AgentId;
+  agentName?: string;
+  agentRole?: string;
+  pending?: boolean;
+  failed?: boolean;
 }
 
 export interface HumanMetrics {
@@ -139,4 +160,57 @@ export interface InspectionSelection {
   createdAt: string;
   normalizedBounds: NormalizedInspectionBounds;
   viewport: CameraViewportState;
+}
+
+export type Agent = AgentStatusCard;
+export type ReasoningLog = ActivityFeedItem;
+
+export interface ModuleSummary extends MarsBase {
+  location: string;
+  alert: string;
+  harvestScore: number;
+  resourcePressure: number;
+  astroImpact: number;
+  evidence: string[];
+  dispatchQueue: string[];
+  statusLabel: ModuleSignalStatus;
+}
+
+export interface ScenarioDefinition {
+  id: ScenarioId;
+  label: string;
+  summary: string;
+  leadAgent: AgentId;
+  affectedModules: string[];
+}
+
+export interface SpecialistSnapshot {
+  agentId: AgentId;
+  name: string;
+  role: string;
+  icon: string;
+  status: ModuleSignalStatus;
+  headline: string;
+  riskScore: number;
+  recommendations: string[];
+  affectedModules: string[];
+  timestamp: number;
+}
+
+export interface OrchestratorDecision {
+  leadAgent: AgentId;
+  priorityStack: Array<{
+    owner: AgentId;
+    reason: string;
+  }>;
+  operatorSummary: string;
+  nextActions: string[];
+  scenarioLabel: string;
+}
+
+export interface CommandCenterMetrics {
+  harvestReadiness: number;
+  resourcePressure: number;
+  astronautLoad: number;
+  incidentState: 'Nominal' | 'Watch' | 'Active';
 }

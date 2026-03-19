@@ -13,7 +13,7 @@ The active frontend is a single-screen control room with:
 - an agent communication feed on the right
 - a simulation popup that drives mocked agent interaction
 
-The current frontend is intentionally mock-driven. It does not need real agents or real backend data yet, but it must present the right structure and believable specialist-agent behavior.
+The frontend should keep the lightweight demo simulation controls, but the operator chat should now use a real backend request path and return believable specialist-agent behavior.
 
 ## 2. Demo Goals
 

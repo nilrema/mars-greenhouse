@@ -285,6 +285,7 @@ export function getDecisionForScenario(scenarioId: ScenarioId): OrchestratorDeci
 export function getActivityFeedForScenario(scenarioId: ScenarioId): ActivityFeedItem[] {
   const decision = getDecisionForScenario(scenarioId);
   const specialists = getSpecialistsForScenario(scenarioId);
+
   return [
     {
       agent: 'orchestrator',
@@ -294,7 +295,7 @@ export function getActivityFeedForScenario(scenarioId: ScenarioId): ActivityFeed
     },
     ...specialists
       .filter((snapshot) => snapshot.agentId !== 'orchestrator')
-      .map((snapshot, index) => ({
+      .map<ActivityFeedItem>((snapshot, index) => ({
         agent: snapshot.agentId,
         message: snapshot.headline,
         timestamp: now - (index + 1) * 90000,

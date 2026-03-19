@@ -3,12 +3,14 @@ import { auth } from './auth/resource';
 import { data } from './data/resource';
 import { sensorSimulator } from './functions/sensorSimulator/resource';
 import { actuatorControl } from './functions/actuatorControl/resource';
+import { chatResponder } from './functions/chatResponder/resource';
 
 const backend = defineBackend({
   auth,
   data,
   sensorSimulator,
   actuatorControl,
+  chatResponder,
 });
 
 // Grant the sensor simulator Lambda write access to the SensorReading table

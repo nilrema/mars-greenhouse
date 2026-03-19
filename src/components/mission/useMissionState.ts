@@ -1,12 +1,15 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type {
   ActivityFeedItem,
   AgentStatusCard,
   AstronautRecord,
+  ConversationMessage,
   HumanMetrics,
   MarsBase,
   SimulationParams,
 } from './types';
+import { submitChatMessage } from './chatApi';
+import type { AgentStatusSnapshot } from './chatContract';
 
 const BASELINE_TEMP = 24;
 
@@ -282,8 +285,12 @@ export function useMissionState() {
   const [astronauts, setAstronauts] = useState<AstronautRecord[]>(initialAstronauts);
   const [agents, setAgents] = useState<AgentStatusCard[]>(initialAgents);
   const [logs, setLogs] = useState<ActivityFeedItem[]>([]);
+  const [chatMessages, setChatMessages] = useState<ConversationMessage[]>([]);
   const [metrics, setMetrics] = useState<HumanMetrics>({ ...initialMetrics });
   const [simParams, setSimParams] = useState<SimulationParams>({ ...defaultSimParams });
+  const [conversationId, setConversationId] = useState<string | undefined>();
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
 
   const updateSimulation = useCallback((params: SimulationParams) => {
     const stress = getStress(params);
@@ -295,13 +302,115 @@ export function useMissionState() {
     setLogs(createLogs(params, stress));
   }, []);
 
+  const sendChat = useCallback(
+    async (message: string) => {
+      const timestamp = Date.now();
+      const pendingMessageId = `user-${timestamp}`;
+
+      setIsSendingMessage(true);
+      setChatError(null);
+      setChatMessages((current) => [
+        ...current,
+        {
+          id: pendingMessageId,
+          source: 'user',
+          message: message.trim(),
+          timestamp,
+          type: 'info',
+          pending: true,
+        },
+      ]);
+
+      try {
+        const response = await submitChatMessage({
+          message,
+          conversationId,
+          context: simParams,
+        });
+
+        setConversationId(response.conversationId);
+        setAgents(response.agentStatuses.map(mapAgentStatus));
+        setChatMessages((current) => [
+          ...current.map((entry) =>
+            entry.id === pendingMessageId
+              ? {
+                  ...entry,
+                  pending: false,
+                }
+              : entry,
+          ),
+          ...response.messages.map((entry) => ({
+            id: entry.id,
+            source: 'agent' as const,
+            agent: entry.agentId,
+            agentName: entry.agentName,
+            agentRole: entry.agentRole,
+            message: entry.message,
+            timestamp: entry.timestamp,
+            type: entry.severity,
+          })),
+        ]);
+      } catch (error) {
+        const messageText = error instanceof Error ? error.message : 'Unable to reach mission control right now.';
+
+        setChatError(messageText);
+        setChatMessages((current) =>
+          current.map((entry) =>
+            entry.id === pendingMessageId
+              ? {
+                  ...entry,
+                  pending: false,
+                  failed: true,
+                }
+              : entry,
+          ),
+        );
+      } finally {
+        setIsSendingMessage(false);
+      }
+    },
+    [conversationId, simParams],
+  );
+
+  const conversation = useMemo<ConversationMessage[]>(
+    () =>
+      [...logs.map(toConversationMessage), ...chatMessages].sort((left, right) => left.timestamp - right.timestamp),
+    [chatMessages, logs],
+  );
+
   return {
     base,
     astronauts,
     agents,
-    logs,
+    conversation,
     metrics,
     simParams,
+    isSendingMessage,
+    chatError,
+    sendChat,
     updateSimulation,
+  };
+}
+
+function toConversationMessage(log: ActivityFeedItem): ConversationMessage {
+  return {
+    id: `${log.agent}-${log.timestamp}`,
+    source: 'system',
+    agent: log.agent,
+    agentName: log.agent.toUpperCase(),
+    message: log.message,
+    timestamp: log.timestamp,
+    type: log.type,
+  };
+}
+
+function mapAgentStatus(status: AgentStatusSnapshot): AgentStatusCard {
+  return {
+    id: status.id,
+    name: status.name,
+    role: status.role,
+    icon: status.icon,
+    status: status.status,
+    currentAction: status.currentAction,
   };
 }
