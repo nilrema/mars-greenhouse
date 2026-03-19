@@ -21,7 +21,7 @@ React application that renders the two primary product views:
 
 Responsibilities:
 - render live greenhouse and crew data
-- maintain selected base and selected crop-section context
+- maintain selected module and selected crop-section context
 - display agent reasoning
 - capture operator prompts
 - trigger chaos mode
@@ -38,6 +38,7 @@ Responsibilities:
 - GraphQL models and API
 - subscriptions for real-time UI updates
 - Lambda-backed simulation and actions
+- persistence for greenhouse-module state, nutritional coverage, and resilience events
 - authentication via Cognito
 
 Key current paths:
@@ -62,6 +63,7 @@ Responsibilities:
 - respond to operator prompts
 - evaluate anomalies
 - recommend greenhouse actions
+- reason about nutritional coverage, crop allocation, and failure containment
 - coordinate incident response during chaos mode
 
 Key current paths:
@@ -87,8 +89,8 @@ Key current paths:
 2. Backend persists new readings and derived status.
 3. Agents evaluate state and write reasoning / alerts.
 4. Frontend subscribes to updates and renders:
-   - three bases on Mars
-   - selected-base summary
+   - three greenhouse modules in the mission network
+   - selected-module summary
    - crew overview
    - agent reasoning stream
 
@@ -103,7 +105,7 @@ Key current paths:
 ### Chaos flow
 
 1. Operator presses `Activate Chaos`.
-2. Backend generates abnormal conditions for two greenhouses.
+2. Backend generates abnormal conditions for two greenhouse modules.
 3. Agents re-evaluate the state.
 4. UI shows changed metrics, alerts, and updated reasoning.
 
@@ -111,13 +113,15 @@ Key current paths:
 
 The exact schema can evolve, but the architecture should support these product entities:
 
-- Base
-- BaseSummary
+- GreenhouseModule
+- GreenhouseModuleSummary
 - Greenhouse
 - GreenhouseSection
 - SensorReading
 - SectionAnalysis
 - AnomalyEvent
+- NutritionalCoverage
+- ResourceConstraintSnapshot
 - CrewMember
 - CrewMissionStatus
 - AgentMessage
@@ -131,7 +135,7 @@ The exact schema can evolve, but the architecture should support these product e
 ### Mars Overview
 
 - 3D Mars scene
-- selected-base summary panel
+- selected-module summary panel
 - chat / reasoning panel
 - crew overview strip
 - chaos activation control
@@ -151,6 +155,8 @@ The exact schema can evolve, but the architecture should support these product e
 - Agent reasoning should be persisted so the UI can render it consistently
 - Chaos mode should be a first-class backend action, not only a local UI effect
 - Crew metrics must be connected to greenhouse output, not treated as isolated decoration
+- The system should model Mars agriculture as sealed hydroponic / soilless controlled-environment agriculture, not open-air or regolith-first farming
+- Multiple independently controlled modules should be treated as a resilience feature that limits disease spread and single-point failures
 
 ## 7. CI Expectations
 

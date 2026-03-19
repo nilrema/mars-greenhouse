@@ -1,24 +1,30 @@
 # Martian Greenhouse Command Center
 
-Mission-control interface for three Martian greenhouse bases, built for the Syngenta x AWS START Hack 2026 hackathon.
+Mission-control interface for a Mars agricultural system with three selectable greenhouse modules, built for the Syngenta x AWS START Hack 2026 hackathon.
 
 ## What We Are Building
 
 The product has two main screens:
 
 - Mars Overview
-  - 3D Mars with three greenhouse bases
-  - selected-base summary in the center
+  - 3D Mars with three greenhouse modules
+  - selected-module summary in the center
   - agent reasoning and operator chat on the right
   - crew overview for four astronauts at the bottom
   - `Activate Chaos` button to trigger abnormal events on two greenhouses
 
 - Greenhouse Detail
   - bird's-eye 2D greenhouse map
-  - greenhouse summary and operational metrics on the left
+  - greenhouse summary, operational metrics, and crop portfolio coverage on the left
   - section-level analysis, anomaly detection, and controls on the right
   - persistent agent chat
   - crop inspection flow with image input for disease analysis
+
+Domain assumptions:
+- Mars agriculture is modeled as sealed controlled-environment agriculture, not open-air farming.
+- Hydroponic / soilless systems are the default because untreated Martian regolith is not a realistic primary grow medium.
+- Artificial lighting, water recycling, and module isolation are first-class operational concerns.
+- The greenhouse system supplements stored food and optimizes calorie, protein, and micronutrient coverage for the crew.
 
 ## Current Stack
 

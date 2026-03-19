@@ -19,7 +19,6 @@ from agents.agent_support import (
     write_agent_event,
 )
 from agents.tools.kb_tools import query_knowledge_base
-from agents.stress_agent import analyze_crop_image
 
 
 def analyze_crop_health(
@@ -116,6 +115,8 @@ def inspect_crop_image(image_ref: str | None = None) -> dict[str, Any]:
             "message": "Only s3:// image references are supported in the current functional version.",
             "image_ref": image_ref,
         }
+
+    from agents.stress_agent import analyze_crop_image
 
     bucket, _, key = image_ref.replace("s3://", "", 1).partition("/")
     return safe_load_json(analyze_crop_image(bucket, key))

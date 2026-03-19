@@ -16,17 +16,18 @@ Create the product foundation for the two-screen experience and align the backen
 
 ### Andrija
 
-- Define the target GraphQL models for base overview, crew summary, greenhouse detail, section analysis, agent messages, and chaos events
-- Extend or reshape the simulation layer so it can produce data for three bases and four astronauts
+- Define the target GraphQL models for greenhouse-module overview, crew summary, greenhouse detail, section analysis, nutritional coverage, agent messages, and chaos events
+- Extend or reshape the simulation layer so it can produce data for three greenhouse modules and four astronauts
 - Define a backend action for chaos activation
-- Add seed data for three bases, greenhouse summaries, and crew status
+- Add seed data for three greenhouse modules, greenhouse summaries, crop portfolios, and crew status
+- Model realistic Mars CEA constraints in the simulation: sealed modules, artificial lighting, hydroponic water loops, and module-level isolation
 - Establish the first automated backend / agent test setup
 
 ### Marin
 
 - Replace the current single dashboard layout with explicit routing or view state for `Mars Overview` and `Greenhouse Detail`
 - Build the high-level shell for the Mars Overview screen
-- Add placeholder UI regions for the 3D Mars panel, base overview panel, chat panel, and crew strip
+- Add placeholder UI regions for the 3D Mars panel, module overview panel, chat panel, and crew strip
 - Add the `Activate Chaos` control in the overview layout
 - Create the high-level shell for the Greenhouse Detail screen
 
@@ -39,27 +40,27 @@ Create the product foundation for the two-screen experience and align the backen
 
 ### Goal
 
-Make the first screen functional with selectable bases, crew metrics, reasoning feed, and chaos response.
+Make the first screen functional with selectable greenhouse modules, crew metrics, reasoning feed, and chaos response.
 
 ### Andrija
 
-- Implement APIs and subscriptions for base summary, crew mission status, and agent reasoning feed
+- Implement APIs and subscriptions for greenhouse-module summary, crew mission status, and agent reasoning feed
 - Connect chaos activation to backend state changes affecting two greenhouses
-- Produce derived base status fields for quick UI rendering
-- Add tests for base selection data loading, crew summary data, and chaos event generation
+- Produce derived module status fields for quick UI rendering
+- Add tests for module selection data loading, crew summary data, and chaos event generation
 - Expose a stable contract for chat message submission and reasoning retrieval
 
 ### Marin
 
-- Implement the Mars Overview interface with interactive base selection
-- Render the selected-base summary in the center panel
+- Implement the Mars Overview interface with interactive module selection
+- Render the selected-module summary in the center panel
 - Implement the right-side chat and reasoning stream UI
-- Implement the bottom crew overview with nutrition score, meal diversity, food security, and health risk
-- Add clear visual feedback for chaos mode impacts on affected bases
+- Implement the bottom crew overview with nutrition score, meal diversity, food security, health risk, and nutritional coverage
+- Add clear visual feedback for chaos mode impacts on affected modules
 
 ### Independent Delivery Notes
 
-- Base-selection UI can be built against mock contracts while backend endpoints are finalized
+- Module-selection UI can be built against mock contracts while backend endpoints are finalized
 - Chat UI can be completed before final agent orchestration is wired in
 
 ## Milestone 3: Greenhouse Detail And Inspection
@@ -70,17 +71,17 @@ Deliver the second screen with greenhouse map exploration, section analysis, and
 
 ### Andrija
 
-- Implement greenhouse detail models and APIs for summary, operational metrics, crop portfolio, and section-level sensor data
+- Implement greenhouse detail models and APIs for summary, operational metrics, crop portfolio, crop-cycle stage, nutritional coverage, and section-level sensor data
 - Add anomaly detection outputs for greenhouse sections
 - Implement the image inspection backend flow for crop disease analysis
-- Add action endpoints for astronaut inspection and harvest requests
+- Add action endpoints for astronaut inspection, harvest requests, and zone-isolation / crop-rebalancing actions
 - Add tests for section analysis, anomaly reporting, image inspection submission, and action request handling
 
 ### Marin
 
 - Build the bird's-eye greenhouse map view
 - Add section zoom and selection interactions
-- Implement the left summary panel with status, alert, risk, production, operational metrics, and crop portfolio
+- Implement the left summary panel with status, alert, risk, production, operational metrics, crop portfolio, and nutritional coverage
 - Implement the right analysis panel for section-level analysis, sensor data, and anomaly display
 - Build the image capture / upload interaction and hook it into the agent-chat workflow
 
@@ -99,6 +100,7 @@ Stabilize the full experience, align the agent model with the product, and enfor
 
 - Refactor agent orchestration toward the target roles: Mission Orchestrator, Greenhouse Operations, Crop Health, Crew Nutrition, Incident / Chaos
 - Upgrade the current functional first-pass agents into richer domain-specific workflows and data contracts once the UI and schema settle
+- Make agent reasoning crop-aware so recommendations reflect calorie, protein, micronutrient, water, and energy trade-offs rather than generic yield alone
 - Ensure agent reasoning is persisted in a UI-friendly structure
 - Implement or document fallback behavior for missing data and agent timeouts
 - Add CI pipeline for frontend and backend / agent tests

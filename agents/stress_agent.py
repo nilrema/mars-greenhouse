@@ -16,7 +16,10 @@ from agents.tools.sensor_tools import get_latest_sensor_reading, get_sensor_hist
 from agents.tools.kb_tools import query_knowledge_base, get_plant_stress_guide
 
 logger = logging.getLogger(__name__)
-AWS_REGION = get_runtime_region()
+try:
+    AWS_REGION = get_runtime_region()
+except RuntimeError:
+    AWS_REGION = os.environ.get("AWS_REGION", "us-east-2")
 
 # Plant stress indicators
 STRESS_INDICATORS = {
