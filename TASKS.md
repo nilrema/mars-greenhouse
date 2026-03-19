@@ -21,3 +21,11 @@ This task should produce a dataset structure that is consistent, easy to consume
 Marin needs to implement zooming for the left-side live camera section. The goal is to let the user use the mouse to zoom into the camera feed and select a specific area for closer inspection.
 
 This interaction should feel precise and intuitive, because the selected region will later be sent to the crop agent once the backend integration is ready. The implementation should therefore support both navigation within the image and clear selection of the exact area the user wants to inspect in more detail.
+
+Status: completed on `feature/live-camera-inspection-zoom`
+
+Notes:
+- Added wheel-based zoom with clamped pan movement inside the live camera viewport.
+- Added an explicit `Inspect area` mode so selection gestures do not conflict with panning.
+- Preserved a normalized inspection payload with viewport state for future crop-agent integration.
+- Added frontend smoke-level tests for zoom/mode flow and unit tests for selection normalization and payload shape.
