@@ -19,6 +19,8 @@ Notes:
 - Defined a shared request and response contract for message text, simulation context, agent status snapshots, and structured agent replies.
 - Wired the frontend chat panel to submit real backend requests, append backend responses into the existing feed, and keep the UI stable during loading or failure states.
 - Added regression coverage for the backend response builder plus frontend loading, success, and failure behavior.
+- Replaced the remaining hardcoded simulation/orchestrator feed with a backend specialist coordination cycle and final orchestrator resolution.
+- Simulation updates now trigger a backend review so the panel shows real agent communication instead of placeholder messages.
 
 ## 2. Dataset Creation For Frontend Integration
 

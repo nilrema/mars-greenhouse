@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Index from '@/pages/Index';
+import { useMissionState } from '@/components/mission/useMissionState';
 
 const submitChatMessageMock = vi.fn();
 
@@ -48,19 +49,29 @@ describe('chat integration', () => {
       ],
       messages: [
         {
+          id: 'msg-0',
+          agentId: 'environment',
+          agentName: 'ENV_AGENT',
+          agentRole: 'Environment Control',
+          severity: 'warning',
+          message: 'Environment agent report from the backend.',
+          timestamp: Date.now() - 1,
+        },
+        {
           id: 'msg-1',
           agentId: 'orchestrator',
           agentName: 'ORCH_AGENT',
           agentRole: 'Mission Orchestration',
           severity: 'info',
-          message: 'Mission summary ready from the backend.',
+          message: 'Orchestrator resolution: mission summary ready from the backend.',
           timestamp: Date.now(),
         },
       ],
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Mission summary ready from the backend.')).toBeInTheDocument();
+      expect(screen.getByText('Environment agent report from the backend.')).toBeInTheDocument();
+      expect(screen.getByText('Orchestrator resolution: mission summary ready from the backend.')).toBeInTheDocument();
     });
 
     expect(screen.queryByText('Awaiting backend agent response…')).not.toBeInTheDocument();
@@ -82,5 +93,55 @@ describe('chat integration', () => {
 
     expect(screen.getByText('Do we have a problem?')).toBeInTheDocument();
     expect(screen.getByText('Delivery failed')).toBeInTheDocument();
+  });
+
+  it('requests a backend coordination cycle when the simulation changes', async () => {
+    submitChatMessageMock.mockResolvedValue({
+      conversationId: 'conv-sim',
+      requestId: 'req-sim',
+      agentStatuses: [
+        {
+          id: 'orchestrator',
+          name: 'ORCH_AGENT',
+          role: 'Mission Orchestration',
+          icon: '🧭',
+          status: 'warning',
+          currentAction: 'Protect the greenhouse envelope first.',
+        },
+      ],
+      messages: [
+        {
+          id: 'sim-msg-1',
+          agentId: 'orchestrator',
+          agentName: 'ORCH_AGENT',
+          agentRole: 'Mission Orchestration',
+          severity: 'warning',
+          message: 'Orchestrator resolution: simulation review complete.',
+          timestamp: Date.now(),
+        },
+      ],
+    });
+
+    const { result } = renderHook(() => useMissionState());
+
+    await act(async () => {
+      result.current.updateSimulation({
+        temperatureDrift: -6,
+        waterRecycling: 55,
+        powerAvailability: 62,
+      });
+    });
+
+    await waitFor(() => {
+      expect(submitChatMessageMock).toHaveBeenCalledWith({
+        message: 'Review the latest simulation change, coordinate the specialists, and deliver a final mission resolution.',
+        conversationId: undefined,
+        context: {
+          temperatureDrift: -6,
+          waterRecycling: 55,
+          powerAvailability: 62,
+        },
+      });
+    });
   });
 });

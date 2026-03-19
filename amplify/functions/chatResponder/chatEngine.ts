@@ -10,6 +10,27 @@ import type { AgentId, BaseStatus, ChatSeverity } from '../../../src/components/
 
 const BASELINE_TEMP = 24;
 
+type SpecialistInsight = {
+  id: AgentId;
+  name: string;
+  role: string;
+  icon: string;
+  status: BaseStatus;
+  severity: ChatSeverity;
+  riskScore: number;
+  headline: string;
+  response: string;
+  recommendations: string[];
+  currentAction: string;
+};
+
+type OrchestratorResolution = {
+  leadAgent: AgentId;
+  severity: ChatSeverity;
+  summary: string;
+  recommendations: string[];
+};
+
 function getStress(context?: SimulationContext) {
   if (!context) {
     return 0;
@@ -23,179 +44,293 @@ function getStress(context?: SimulationContext) {
   return Math.min(100, tempStress + waterStress + powerStress);
 }
 
-function resolveStatus(stress: number, mildThreshold: number, severeThreshold: number): BaseStatus {
-  if (stress >= severeThreshold) {
+function severityFromStatus(status: BaseStatus): ChatSeverity {
+  if (status === 'critical') {
     return 'critical';
   }
 
-  if (stress >= mildThreshold) {
+  if (status === 'warning') {
+    return 'warning';
+  }
+
+  return 'success';
+}
+
+function statusFromRisk(riskScore: number, warningThreshold: number, criticalThreshold: number): BaseStatus {
+  if (riskScore >= criticalThreshold) {
+    return 'critical';
+  }
+
+  if (riskScore >= warningThreshold) {
     return 'warning';
   }
 
   return 'nominal';
 }
 
-export function buildAgentStatuses(context?: SimulationContext): AgentStatusSnapshot[] {
+function humidityFromContext(context: SimulationContext | undefined) {
+  if (!context) {
+    return 68;
+  }
+
+  const effectiveTemp = BASELINE_TEMP + context.temperatureDrift;
+  return Math.max(
+    20,
+    68 - Math.round(Math.max(0, (15 - effectiveTemp) * 0.5)) + Math.round((100 - context.waterRecycling) * 0.1),
+  );
+}
+
+function inferFocus(message: string) {
+  const normalized = message.toLowerCase();
+
+  return {
+    environment: /(temp|temperature|climate|cold|heat|humidity|air)/.test(normalized),
+    resource: /(water|power|resource|energy|irrigation|reservoir)/.test(normalized),
+    crop: /(crop|plant|yield|harvest|growth|disease|inspection)/.test(normalized),
+    astro: /(crew|astronaut|nutrition|food|meal|health|workload)/.test(normalized),
+    resolution: /(resolve|resolution|plan|next step|coordinate|summary|status)/.test(normalized),
+  };
+}
+
+function analyzeEnvironment(context: SimulationContext | undefined, focus: ReturnType<typeof inferFocus>): SpecialistInsight {
+  const effectiveTemp = BASELINE_TEMP + (context?.temperatureDrift ?? 0);
+  const humidity = humidityFromContext(context);
+  const temperatureRisk = Math.max(0, Math.abs(effectiveTemp - 22) * 8);
+  const humidityRisk = humidity > 78 ? (humidity > 84 ? 34 : 18) : humidity < 55 ? 14 : 0;
+  const riskScore = Math.min(100, Math.round(temperatureRisk + humidityRisk));
+  const status = statusFromRisk(riskScore, 18, 42);
+  const headline =
+    status === 'nominal'
+      ? 'Environmental envelope is stable across the selected greenhouse.'
+      : effectiveTemp < 20
+        ? `Temperature is drifting down to ${effectiveTemp}°C and needs stabilization.`
+        : humidity > 78
+          ? `Humidity is elevated at ${humidity}% and increasing disease risk.`
+          : `Environmental controls need correction around ${effectiveTemp}°C and ${humidity}% humidity.`;
+  const recommendations =
+    status === 'nominal'
+      ? ['Maintain current greenhouse climate setpoints']
+      : effectiveTemp < 20
+        ? ['Increase thermal recovery and protect the crop envelope', 'Stabilize humidity while heat recovers']
+        : humidity > 78
+          ? ['Increase circulation and dehumidification in the active lanes', 'Protect vulnerable crop sections from fungal spread']
+          : ['Retune climate controls before crop stress compounds'];
+  const response =
+    status === 'nominal' && !focus.environment
+      ? 'Environment agent confirms the climate loop is nominal and no immediate retuning is required.'
+      : `${headline} I recommend ${recommendations[0].toLowerCase()}${recommendations[1] ? `, then ${recommendations[1].toLowerCase()}` : ''}.`;
+
+  return {
+    id: 'environment',
+    name: 'ENV_AGENT',
+    role: 'Environment Control',
+    icon: '🌡️',
+    status,
+    severity: severityFromStatus(status),
+    riskScore,
+    headline,
+    response,
+    recommendations,
+    currentAction: recommendations[0],
+  };
+}
+
+function analyzeCrop(
+  context: SimulationContext | undefined,
+  focus: ReturnType<typeof inferFocus>,
+): SpecialistInsight {
   const stress = getStress(context);
   const effectiveTemp = BASELINE_TEMP + (context?.temperatureDrift ?? 0);
   const waterRecycling = context?.waterRecycling ?? 100;
   const powerAvailability = context?.powerAvailability ?? 100;
+  const riskScore = Math.min(
+    100,
+    Math.round(
+      Math.max(0, stress * 0.9) +
+        Math.max(0, 72 - waterRecycling) * 0.6 +
+        Math.max(0, 82 - powerAvailability) * 0.35,
+    ),
+  );
+  const status = statusFromRisk(riskScore, 22, 50);
+  const headline =
+    status === 'nominal'
+      ? 'Crop outlook is stable and the near-term harvest window remains intact.'
+      : effectiveTemp < 20
+        ? 'Crop stress is increasing because colder greenhouse conditions are slowing recovery.'
+        : waterRecycling < 70
+          ? 'Reduced water recycling is pushing the crop lanes into a monitored stress state.'
+          : 'Crop yield risk is rising under the current greenhouse load.';
+  const recommendations =
+    status === 'nominal'
+      ? ['Maintain nominal crop monitoring and harvest rotation']
+      : [
+          'Protect the most mature crop lanes first',
+          waterRecycling < 70 ? 'Inspect irrigation-sensitive sections for stress markers' : 'Run a focused inspection pass on the highest-risk beds',
+        ];
+  const response =
+    status === 'nominal' && !focus.crop
+      ? 'Crop agent reports nominal plant health across the active lanes.'
+      : `${headline} My priority is to ${recommendations[0].toLowerCase()}${recommendations[1] ? ` and ${recommendations[1].toLowerCase()}` : ''}.`;
 
-  return [
-    {
-      id: 'environment',
-      name: 'ENV_AGENT',
-      role: 'Environment Control',
-      icon: '🌡️',
-      status: resolveStatus(
-        Math.max(stress, context && context.temperatureDrift < -5 ? 45 : 0),
-        20,
-        45,
-      ),
-      currentAction:
-        context && context.temperatureDrift < -2
-          ? `Counteracting temperature drift at ${effectiveTemp}°C.`
-          : 'Climate loop stable and holding target conditions.',
-    },
-    {
-      id: 'crop',
-      name: 'CROP_AGENT',
-      role: 'Crop Management',
-      icon: '🌱',
-      status: resolveStatus(stress, 30, 55),
-      currentAction:
-        stress > 30
-          ? 'Reducing crop stress and protecting harvest yield.'
-          : 'Harvest rotation and canopy health remain on schedule.',
-    },
-    {
-      id: 'astro',
-      name: 'ASTRO_AGENT',
-      role: 'Astronaut Welfare',
-      icon: '🧑‍🚀',
-      status: resolveStatus(stress, 40, 60),
-      currentAction:
-        stress > 40
-          ? 'Monitoring crew workload, nutrition coverage, and contingency staffing.'
-          : 'Crew nutrition and workload remain nominal.',
-    },
-    {
-      id: 'resource',
-      name: 'RESOURCE_AGENT',
-      role: 'Resource Management',
-      icon: '⚡',
-      status: resolveStatus(Math.max(100 - waterRecycling, 100 - powerAvailability), 30, 55),
-      currentAction:
-        waterRecycling < 70
-          ? `Water recycling is ${waterRecycling}%. Compensating through reserve prioritization.`
-          : powerAvailability < 80
-            ? `Power availability is ${powerAvailability}%. Rebalancing non-critical loads.`
-            : 'Water and power reserves remain stable.',
-    },
-    {
-      id: 'orchestrator',
-      name: 'ORCH_AGENT',
-      role: 'Mission Orchestration',
-      icon: '🧭',
-      status: resolveStatus(stress, 25, 55),
-      currentAction:
-        stress > 25
-          ? 'Coordinating mitigation across greenhouse, crop, crew, and resource specialists.'
-          : 'Specialists remain aligned on nominal operations.',
-    },
-  ];
+  return {
+    id: 'crop',
+    name: 'CROP_AGENT',
+    role: 'Crop Management',
+    icon: '🌱',
+    status,
+    severity: severityFromStatus(status),
+    riskScore,
+    headline,
+    response,
+    recommendations,
+    currentAction: recommendations[0],
+  };
 }
 
-function containsAny(text: string, words: string[]) {
-  return words.some((word) => text.includes(word));
-}
-
-function inferPrimaryAgent(message: string): AgentId {
-  const normalized = message.toLowerCase();
-
-  if (containsAny(normalized, ['temp', 'temperature', 'climate', 'cold', 'heat', 'humidity'])) {
-    return 'environment';
-  }
-
-  if (containsAny(normalized, ['water', 'power', 'resource', 'energy', 'irrigation', 'reservoir'])) {
-    return 'resource';
-  }
-
-  if (containsAny(normalized, ['crop', 'plant', 'yield', 'harvest', 'growth'])) {
-    return 'crop';
-  }
-
-  if (containsAny(normalized, ['crew', 'astronaut', 'nutrition', 'food', 'meal', 'health'])) {
-    return 'astro';
-  }
-
-  return 'orchestrator';
-}
-
-function buildPrimaryMessage(
-  primaryAgent: AgentId,
-  normalizedMessage: string,
+function analyzeAstro(
   context: SimulationContext | undefined,
-  stress: number,
-): { severity: ChatSeverity; text: string } {
-  const effectiveTemp = BASELINE_TEMP + (context?.temperatureDrift ?? 0);
+  focus: ReturnType<typeof inferFocus>,
+): SpecialistInsight {
+  const stress = getStress(context);
+  const waterRecycling = context?.waterRecycling ?? 100;
+  const powerAvailability = context?.powerAvailability ?? 100;
+  const foodSecurityDays = Math.max(20, Math.round(142 - stress * 1.2));
+  const workloadRisk = Math.max(0, 100 - foodSecurityDays) * 0.55 + Math.max(0, 80 - powerAvailability) * 0.3;
+  const riskScore = Math.min(100, Math.round(workloadRisk + Math.max(0, 78 - waterRecycling) * 0.2));
+  const status = statusFromRisk(riskScore, 20, 46);
+  const headline =
+    status === 'nominal'
+      ? 'Crew workload and nutrition coverage remain inside nominal bounds.'
+      : foodSecurityDays < 110
+        ? `Projected food security is down to ${foodSecurityDays} sols under current stress.`
+        : 'Crew workload is rising because greenhouse recovery now needs manual follow-up.';
+  const recommendations =
+    status === 'nominal'
+      ? ['Keep astronaut workload on nominal harvest cadence']
+      : ['Queue follow-up checks for the highest-risk greenhouse sections', 'Protect meal coverage while greenhouse conditions recover'];
+  const response =
+    status === 'nominal' && !focus.astro
+      ? 'Astro agent confirms the crew can stay on the normal workload plan.'
+      : `${headline} I recommend ${recommendations[0].toLowerCase()}${recommendations[1] ? ` and ${recommendations[1].toLowerCase()}` : ''}.`;
 
-  switch (primaryAgent) {
-    case 'environment':
-      return {
-        severity: stress >= 55 ? 'critical' : context?.temperatureDrift && context.temperatureDrift < -2 ? 'warning' : 'info',
-        text:
-          context && context.temperatureDrift !== 0
-            ? `Environmental controls are tracking a live temperature of ${effectiveTemp}°C. I am compensating for the current drift and monitoring humidity stability before conditions cascade into crop stress.`
-            : 'Environmental controls are nominal. I can keep tracking temperature, humidity, and atmosphere if you want a deeper climate readout.',
-      };
-    case 'resource':
-      return {
-        severity:
-          context && (context.waterRecycling < 60 || context.powerAvailability < 50) ? 'critical' : 'warning',
-        text:
-          context
-            ? `Resource posture is ${context.waterRecycling}% water recycling and ${context.powerAvailability}% power availability. I am prioritizing greenhouse continuity first and deferring non-critical loads.`
-            : 'Resource systems are stable. Ask for water, power, or irrigation posture and I will return a current operating summary.',
-      };
-    case 'crop':
-      return {
-        severity: stress >= 45 ? 'warning' : 'success',
-        text:
-          context
-            ? 'Crop outlook is being recalculated against the current greenhouse conditions. The immediate focus is preserving plant health, reducing stress exposure, and protecting near-term harvest yield.'
-            : 'Crop conditions are nominal right now. I can summarize harvest readiness, plant stress, or inspection priorities when needed.',
-      };
-    case 'astro':
-      return {
-        severity: stress >= 45 ? 'warning' : 'info',
-        text:
-          context
-            ? 'Crew impact remains tied to greenhouse recovery. I am watching nutrition coverage, manual workload, and whether environmental instability could force schedule changes.'
-            : 'Crew posture is nominal. I can summarize nutrition and workload implications whenever greenhouse conditions shift.',
-      };
-    case 'orchestrator':
-    default:
-      return {
-        severity: stress >= 55 ? 'warning' : 'info',
-        text: normalizedMessage.includes('status')
-          ? 'Mission control summary ready. I can route the request to the most relevant specialist and return a coordinated answer without leaving the operator chat flow.'
-          : 'Request received. I am coordinating the specialist agents and returning the clearest next action based on the current greenhouse context.',
-      };
-  }
+  return {
+    id: 'astro',
+    name: 'ASTRO_AGENT',
+    role: 'Astronaut Welfare',
+    icon: '🧑‍🚀',
+    status,
+    severity: severityFromStatus(status),
+    riskScore,
+    headline,
+    response,
+    recommendations,
+    currentAction: recommendations[0],
+  };
+}
+
+function analyzeResource(
+  context: SimulationContext | undefined,
+  focus: ReturnType<typeof inferFocus>,
+): SpecialistInsight {
+  const waterRecycling = context?.waterRecycling ?? 100;
+  const powerAvailability = context?.powerAvailability ?? 100;
+  const riskScore = Math.min(
+    100,
+    Math.round(Math.max(0, 82 - waterRecycling) * 1.2 + Math.max(0, 88 - powerAvailability) * 0.9),
+  );
+  const status = statusFromRisk(riskScore, 18, 44);
+  const headline =
+    status === 'nominal'
+      ? 'Resource reserves are within the nominal operating buffer.'
+      : waterRecycling < powerAvailability
+        ? `Water recycling has dropped to ${waterRecycling}% and needs active compensation.`
+        : `Power availability is down to ${powerAvailability}% and reserve scheduling is active.`;
+  const recommendations =
+    status === 'nominal'
+      ? ['Maintain current water, nutrient, and power budgets']
+      : [
+          waterRecycling < powerAvailability
+            ? 'Prioritize water recovery and stagger irrigation loads'
+            : 'Shift to an energy-constrained lighting schedule for non-critical bays',
+          'Preserve reserve capacity for greenhouse stabilization',
+        ];
+  const response =
+    status === 'nominal' && !focus.resource
+      ? 'Resource agent confirms water and power are currently stable.'
+      : `${headline} I am moving to ${recommendations[0].toLowerCase()}${recommendations[1] ? ` while we ${recommendations[1].toLowerCase()}` : ''}.`;
+
+  return {
+    id: 'resource',
+    name: 'RESOURCE_AGENT',
+    role: 'Resource Management',
+    icon: '⚡',
+    status,
+    severity: severityFromStatus(status),
+    riskScore,
+    headline,
+    response,
+    recommendations,
+    currentAction: recommendations[0],
+  };
+}
+
+function resolveMission(
+  reports: SpecialistInsight[],
+  focus: ReturnType<typeof inferFocus>,
+  prompt: string,
+): OrchestratorResolution {
+  const ranked = [...reports].sort((left, right) => right.riskScore - left.riskScore);
+  const lead = ranked[0];
+  const activeReports = ranked.filter((report) => report.status !== 'nominal');
+  const sequence =
+    activeReports.length === 0
+      ? 'No specialist escalation is required right now.'
+      : activeReports
+          .map((report, index) =>
+            index === 0
+              ? `${report.name} takes point`
+              : `${report.name} supports with ${report.currentAction.toLowerCase()}`,
+          )
+          .join(', ');
+  const recommendations = ranked.flatMap((report) => report.recommendations.slice(0, 1)).slice(0, 3);
+  const summary =
+    activeReports.length === 0 && !focus.resolution
+      ? 'Orchestrator resolution: all specialist agents report nominal conditions, so we keep standard monitoring and preserve reserve capacity.'
+      : `Orchestrator resolution: ${lead.name} leads the cycle. ${sequence} Final plan: ${recommendations.join('; ')}. Request context: ${prompt.trim()}.`;
+  const severity = lead.status === 'critical' ? 'critical' : activeReports.length > 0 ? 'warning' : 'success';
+
+  return {
+    leadAgent: lead.id,
+    severity,
+    summary,
+    recommendations,
+  };
+}
+
+function toStatusSnapshot(report: SpecialistInsight): AgentStatusSnapshot {
+  return {
+    id: report.id,
+    name: report.name,
+    role: report.role,
+    icon: report.icon,
+    status: report.status,
+    currentAction: report.currentAction,
+  };
 }
 
 function messageForAgent(
-  status: AgentStatusSnapshot,
+  agentId: AgentId,
+  agentName: string,
+  agentRole: string,
   severity: ChatSeverity,
   message: string,
   timestamp: number,
 ): AgentResponseMessage {
   return {
-    id: `${status.id}-${timestamp}`,
-    agentId: status.id,
-    agentName: status.name,
-    agentRole: status.role,
+    id: `${agentId}-${timestamp}`,
+    agentId,
+    agentName,
+    agentRole,
     severity,
     message,
     timestamp,
@@ -207,26 +342,60 @@ export function buildChatResponse(input: SubmitChatMessageRequest): SubmitChatMe
   const timestamp = Date.now();
   const requestId = `req-${timestamp}`;
   const conversationId = request.conversationId ?? `conv-${timestamp}`;
-  const agentStatuses = buildAgentStatuses(request.context);
-  const primaryAgent = inferPrimaryAgent(request.message);
-  const primaryStatus = agentStatuses.find((status) => status.id === primaryAgent) ?? agentStatuses[0];
-  const stress = getStress(request.context);
-  const normalizedMessage = request.message.toLowerCase();
-  const primary = buildPrimaryMessage(primaryAgent, normalizedMessage, request.context, stress);
+  const focus = inferFocus(request.message);
 
-  const messages: AgentResponseMessage[] = [
-    messageForAgent(primaryStatus, primary.severity, primary.text, timestamp),
+  const environment = analyzeEnvironment(request.context, focus);
+  const crop = analyzeCrop(request.context, focus);
+  const astro = analyzeAstro(request.context, focus);
+  const resource = analyzeResource(request.context, focus);
+  const reports = [environment, crop, astro, resource];
+  const resolution = resolveMission(reports, focus, request.message);
+
+  const agentStatuses: AgentStatusSnapshot[] = [
+    ...reports.map(toStatusSnapshot),
+    {
+      id: 'orchestrator' as const,
+      name: 'ORCH_AGENT',
+      role: 'Mission Orchestration',
+      icon: '🧭',
+      status:
+        resolution.severity === 'critical'
+          ? 'critical'
+          : resolution.severity === 'warning'
+            ? 'warning'
+            : 'nominal',
+      currentAction: resolution.recommendations[0] ?? 'Maintain standard monitoring cadence',
+    },
   ];
 
-  if (stress >= 25 || primaryAgent !== 'orchestrator') {
-    const orchestrator = agentStatuses.find((status) => status.id === 'orchestrator') ?? agentStatuses[0];
-    const summary =
-      stress >= 55
-        ? 'Priority sequence is containment, greenhouse stabilization, then crew-impact review. Keep the operator loop active while the specialists work through mitigation.'
-        : 'Specialists are aligned. The operator can continue using chat as the control point while we keep greenhouse, crop, and crew signals coordinated.';
-
-    messages.push(messageForAgent(orchestrator, stress >= 55 ? 'warning' : 'info', summary, timestamp + 1));
-  }
+  const messages = [
+    messageForAgent(
+      'orchestrator',
+      'ORCH_AGENT',
+      'Mission Orchestration',
+      'info',
+      'Mission control acknowledged the operator request and opened a specialist coordination cycle.',
+      timestamp,
+    ),
+    ...reports.map((report, index) =>
+      messageForAgent(
+        report.id,
+        report.name,
+        report.role,
+        report.severity,
+        report.response,
+        timestamp + index + 1,
+      ),
+    ),
+    messageForAgent(
+      'orchestrator',
+      'ORCH_AGENT',
+      'Mission Orchestration',
+      resolution.severity,
+      resolution.summary,
+      timestamp + reports.length + 1,
+    ),
+  ];
 
   return {
     conversationId,

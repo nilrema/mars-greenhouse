@@ -22,7 +22,7 @@ Responsibilities:
 
 - render the screenshot-style three-column greenhouse console
 - maintain local greenhouse, astronaut, agent, chat, and slider state
-- drive a simulation popup while sending operator chat requests to the backend
+- drive a simulation popup while sending operator chat requests and simulation review requests to the backend
 - keep the detail route as a future stub only
 
 ### Backend / Data
@@ -70,8 +70,9 @@ Responsibilities:
 2. Operator opens the simulation modal.
 3. Operator adjusts temperature drift, water recycling, and power availability.
 4. Starting the simulation updates metrics and local system status.
-5. Operator sends a chat request from the right-side panel.
-6. Backend returns structured agent messages and status updates for rendering.
+5. Frontend requests a backend specialist review for the updated simulation state.
+6. Operator can continue the same coordination thread from the right-side panel.
+7. Backend returns structured specialist messages plus a final orchestrator resolution for rendering.
 
 ### Detail Route
 

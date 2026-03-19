@@ -109,9 +109,13 @@ export function AgentChatPanel({
                 >
                   <div className="flex items-center gap-1.5 mb-1">
                     <span className="text-[10px] font-semibold text-primary">
-                      {message.source === 'user' ? 'OPERATOR' : message.agentName || message.agent?.toUpperCase()}
+                      {message.source === 'user'
+                        ? 'OPERATOR'
+                        : message.source === 'system'
+                          ? 'MISSION CONTROL'
+                          : message.agentName || message.agent?.toUpperCase()}
                     </span>
-                    {message.source !== 'user' && (
+                    {message.source === 'agent' && (
                       <>
                         <span className="text-[9px] text-muted-foreground/50">·</span>
                         <span className="text-[9px] text-muted-foreground/50">
@@ -129,7 +133,7 @@ export function AgentChatPanel({
                     {message.pending && <span className="text-[9px] text-muted-foreground/70">Sending…</span>}
                     {message.failed && <span className="text-[9px] text-destructive">Delivery failed</span>}
                   </div>
-                  {message.agentRole && message.source !== 'user' && (
+                  {message.agentRole && message.source === 'agent' && (
                     <div className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground/70 mb-1">
                       {message.agentRole}
                     </div>

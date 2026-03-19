@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
 import type {
-  ActivityFeedItem,
   AgentStatusCard,
   AstronautRecord,
   ConversationMessage,
@@ -185,60 +184,6 @@ function computeMetricsFromStress(stress: number): HumanMetrics {
   };
 }
 
-function createLogs(params: SimulationParams, stress: number): ActivityFeedItem[] {
-  const now = Date.now();
-  const effectiveTemp = BASELINE_TEMP + params.temperatureDrift;
-  const entries: ActivityFeedItem[] = [];
-
-  if (params.temperatureDrift < -2) {
-    entries.push({
-      agent: 'environment',
-      message: `Temperature drift detected at ${effectiveTemp}°C. Adjusting greenhouse climate controls and protecting the crop envelope.`,
-      timestamp: now,
-      type: params.temperatureDrift < -5 ? 'critical' : 'warning',
-    });
-  }
-
-  if (params.waterRecycling < 70) {
-    entries.push({
-      agent: 'resource',
-      message: `Water recycling dropped to ${params.waterRecycling}%. Rebalancing irrigation flow and prioritizing critical bays.`,
-      timestamp: now + 1,
-      type: params.waterRecycling < 40 ? 'critical' : 'warning',
-    });
-  }
-
-  if (params.powerAvailability < 80) {
-    entries.push({
-      agent: 'crop',
-      message: `Power availability is ${params.powerAvailability}%. Monitoring yield impact and delaying low-priority harvest activity.`,
-      timestamp: now + 2,
-      type: params.powerAvailability < 50 ? 'warning' : 'info',
-    });
-  }
-
-  entries.push({
-    agent: 'astro',
-    message:
-      stress > 45
-        ? 'Crew workload elevated. Recommending manual inspection and tighter meal planning until greenhouse conditions recover.'
-        : 'Crew outlook remains stable. No intervention required beyond routine monitoring.',
-    timestamp: now + 3,
-    type: stress > 45 ? 'warning' : 'success',
-  });
-
-  if (stress > 20) {
-    entries.push({
-      agent: 'orchestrator',
-      message: 'Specialists aligned. Immediate focus is greenhouse stabilization, then crew-impact review.',
-      timestamp: now + 4,
-      type: stress > 50 ? 'critical' : 'info',
-    });
-  }
-
-  return entries;
-}
-
 function computeAgents(params: SimulationParams, stress: number): AgentStatusCard[] {
   const effectiveTemp = BASELINE_TEMP + params.temperatureDrift;
   return [
@@ -284,7 +229,6 @@ export function useMissionState() {
   const [base, setBase] = useState<MarsBase>({ ...initialBase });
   const [astronauts, setAstronauts] = useState<AstronautRecord[]>(initialAstronauts);
   const [agents, setAgents] = useState<AgentStatusCard[]>(initialAgents);
-  const [logs, setLogs] = useState<ActivityFeedItem[]>([]);
   const [chatMessages, setChatMessages] = useState<ConversationMessage[]>([]);
   const [metrics, setMetrics] = useState<HumanMetrics>({ ...initialMetrics });
   const [simParams, setSimParams] = useState<SimulationParams>({ ...defaultSimParams });
@@ -292,40 +236,46 @@ export function useMissionState() {
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
 
-  const updateSimulation = useCallback((params: SimulationParams) => {
-    const stress = getStress(params);
-    setSimParams(params);
-    setBase(computeBaseFromParams(params));
-    setAstronauts(computeAstronautsFromStress(stress));
-    setAgents(computeAgents(params, stress));
-    setMetrics(computeMetricsFromStress(stress));
-    setLogs(createLogs(params, stress));
-  }, []);
-
-  const sendChat = useCallback(
-    async (message: string) => {
+  const dispatchMissionRequest = useCallback(
+    async ({
+      message,
+      context,
+      source,
+      visibleMessage,
+    }: {
+      message: string;
+      context: SimulationParams;
+      source: 'user' | 'system';
+      visibleMessage?: string;
+    }) => {
       const timestamp = Date.now();
-      const pendingMessageId = `user-${timestamp}`;
+      const pendingMessageId =
+        source === 'user' || visibleMessage
+          ? `${source}-${timestamp}`
+          : null;
 
       setIsSendingMessage(true);
       setChatError(null);
-      setChatMessages((current) => [
-        ...current,
-        {
-          id: pendingMessageId,
-          source: 'user',
-          message: message.trim(),
-          timestamp,
-          type: 'info',
-          pending: true,
-        },
-      ]);
+
+      if (pendingMessageId) {
+        setChatMessages((current) => [
+          ...current,
+          {
+            id: pendingMessageId,
+            source,
+            message: visibleMessage ?? message.trim(),
+            timestamp,
+            type: 'info',
+            pending: true,
+          },
+        ]);
+      }
 
       try {
         const response = await submitChatMessage({
           message,
           conversationId,
-          context: simParams,
+          context,
         });
 
         setConversationId(response.conversationId);
@@ -369,13 +319,42 @@ export function useMissionState() {
         setIsSendingMessage(false);
       }
     },
-    [conversationId, simParams],
+    [conversationId],
+  );
+
+  const updateSimulation = useCallback(
+    (params: SimulationParams) => {
+      const stress = getStress(params);
+      setSimParams(params);
+      setBase(computeBaseFromParams(params));
+      setAstronauts(computeAstronautsFromStress(stress));
+      setAgents(computeAgents(params, stress));
+      setMetrics(computeMetricsFromStress(stress));
+
+      void dispatchMissionRequest({
+        message: 'Review the latest simulation change, coordinate the specialists, and deliver a final mission resolution.',
+        context: params,
+        source: 'system',
+        visibleMessage: 'Simulation update received. Requesting coordinated specialist review.',
+      });
+    },
+    [dispatchMissionRequest],
+  );
+
+  const sendChat = useCallback(
+    async (message: string) => {
+      await dispatchMissionRequest({
+        message,
+        context: simParams,
+        source: 'user',
+      });
+    },
+    [dispatchMissionRequest, simParams],
   );
 
   const conversation = useMemo<ConversationMessage[]>(
-    () =>
-      [...logs.map(toConversationMessage), ...chatMessages].sort((left, right) => left.timestamp - right.timestamp),
-    [chatMessages, logs],
+    () => [...chatMessages].sort((left, right) => left.timestamp - right.timestamp),
+    [chatMessages],
   );
 
   return {
@@ -389,18 +368,6 @@ export function useMissionState() {
     chatError,
     sendChat,
     updateSimulation,
-  };
-}
-
-function toConversationMessage(log: ActivityFeedItem): ConversationMessage {
-  return {
-    id: `${log.agent}-${log.timestamp}`,
-    source: 'system',
-    agent: log.agent,
-    agentName: log.agent.toUpperCase(),
-    message: log.message,
-    timestamp: log.timestamp,
-    type: log.type,
   };
 }
 
