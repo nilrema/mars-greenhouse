@@ -4,7 +4,7 @@ Environment Agent - Controls temperature, humidity, CO₂, and lighting.
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from strands import Agent, tool
 from strands.models import BedrockModel
@@ -54,7 +54,7 @@ def analyze_environmental_conditions(greenhouse_id: str = "mars-greenhouse-1") -
         
         analysis = {
             "greenhouse_id": greenhouse_id,
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             "metrics": {},
             "issues": [],
             "recommendations": [],
@@ -144,10 +144,10 @@ Always:
 def run_environment_agent(greenhouse_id: str = "mars-greenhouse-1") -> str:
     """Run one cycle of the environment agent."""
     model = BedrockModel(
-        model_id="us.anthropic.claude-sonnet-4-5",
+        model_id="us.anthropic.claude-sonnet-4-5-20250929-v1:0",
         region_name=AWS_REGION,
         temperature=0.1,  # Low temperature for precise control
-        max_tokens=1024,
+        max_tokens=4096,
     )
     
     tools = [

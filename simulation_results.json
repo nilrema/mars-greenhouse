@@ -1,0 +1,3261 @@
+{
+  "mission_duration_sols": 450,
+  "astronaut_count": 4,
+  "total_kcal_required": 4140000,
+  "total_kcal_harvested": 766245,
+  "total_kg_harvested": 904.7,
+  "total_harvests": 33,
+  "harvest_by_crop": {
+    "lettuce": {
+      "count": 15,
+      "total_kg": 279.7,
+      "total_kcal": 41956.0
+    },
+    "tomato": {
+      "count": 6,
+      "total_kg": 331.9,
+      "total_kcal": 59740.0
+    },
+    "wheat": {
+      "count": 9,
+      "total_kg": 162.4,
+      "total_kcal": 552062.0
+    },
+    "sweet_potato": {
+      "count": 3,
+      "total_kg": 130.8,
+      "total_kcal": 112487.0
+    }
+  },
+  "total_events": 29,
+  "event_log": [
+    {
+      "sol": 39,
+      "event": "water_pump_failure",
+      "action": "STARTED",
+      "duration": 1
+    },
+    {
+      "sol": 39,
+      "event": "water_pump_failure",
+      "action": "ENDED"
+    },
+    {
+      "sol": 59,
+      "event": "co2_scrubber_fault",
+      "action": "STARTED",
+      "duration": 2
+    },
+    {
+      "sol": 60,
+      "event": "co2_scrubber_fault",
+      "action": "ENDED"
+    },
+    {
+      "sol": 61,
+      "event": "heater_malfunction",
+      "action": "STARTED",
+      "duration": 2
+    },
+    {
+      "sol": 62,
+      "event": "heater_malfunction",
+      "action": "ENDED"
+    },
+    {
+      "sol": 86,
+      "event": "dust_storm",
+      "action": "STARTED",
+      "duration": 7
+    },
+    {
+      "sol": 92,
+      "event": "dust_storm",
+      "action": "ENDED"
+    },
+    {
+      "sol": 100,
+      "event": "heater_malfunction",
+      "action": "STARTED",
+      "duration": 2
+    },
+    {
+      "sol": 101,
+      "event": "humidity_sensor_drift",
+      "action": "STARTED",
+      "duration": 4
+    },
+    {
+      "sol": 101,
+      "event": "heater_malfunction",
+      "action": "ENDED"
+    },
+    {
+      "sol": 104,
+      "event": "humidity_sensor_drift",
+      "action": "ENDED"
+    },
+    {
+      "sol": 105,
+      "event": "dust_storm",
+      "action": "STARTED",
+      "duration": 7
+    },
+    {
+      "sol": 111,
+      "event": "dust_storm",
+      "action": "ENDED"
+    },
+    {
+      "sol": 117,
+      "event": "co2_scrubber_fault",
+      "action": "STARTED",
+      "duration": 2
+    },
+    {
+      "sol": 118,
+      "event": "co2_scrubber_fault",
+      "action": "ENDED"
+    },
+    {
+      "sol": 122,
+      "event": "water_pump_failure",
+      "action": "STARTED",
+      "duration": 1
+    },
+    {
+      "sol": 122,
+      "event": "water_pump_failure",
+      "action": "ENDED"
+    },
+    {
+      "sol": 123,
+      "event": "dust_storm",
+      "action": "STARTED",
+      "duration": 7
+    },
+    {
+      "sol": 129,
+      "event": "dust_storm",
+      "action": "ENDED"
+    },
+    {
+      "sol": 134,
+      "event": "water_pump_failure",
+      "action": "STARTED",
+      "duration": 1
+    },
+    {
+      "sol": 134,
+      "event": "water_pump_failure",
+      "action": "ENDED"
+    },
+    {
+      "sol": 145,
+      "event": "dust_storm",
+      "action": "STARTED",
+      "duration": 7
+    },
+    {
+      "sol": 151,
+      "event": "dust_storm",
+      "action": "ENDED"
+    },
+    {
+      "sol": 155,
+      "event": "water_pump_failure",
+      "action": "STARTED",
+      "duration": 1
+    },
+    {
+      "sol": 155,
+      "event": "water_pump_failure",
+      "action": "ENDED"
+    },
+    {
+      "sol": 164,
+      "event": "water_pump_failure",
+      "action": "STARTED",
+      "duration": 1
+    },
+    {
+      "sol": 164,
+      "event": "water_pump_failure",
+      "action": "ENDED"
+    },
+    {
+      "sol": 228,
+      "event": "dust_storm",
+      "action": "STARTED",
+      "duration": 7
+    },
+    {
+      "sol": 234,
+      "event": "dust_storm",
+      "action": "ENDED"
+    },
+    {
+      "sol": 243,
+      "event": "dust_storm",
+      "action": "STARTED",
+      "duration": 7
+    },
+    {
+      "sol": 249,
+      "event": "dust_storm",
+      "action": "ENDED"
+    },
+    {
+      "sol": 268,
+      "event": "heater_malfunction",
+      "action": "STARTED",
+      "duration": 2
+    },
+    {
+      "sol": 269,
+      "event": "dust_storm",
+      "action": "STARTED",
+      "duration": 7
+    },
+    {
+      "sol": 269,
+      "event": "heater_malfunction",
+      "action": "ENDED"
+    },
+    {
+      "sol": 275,
+      "event": "dust_storm",
+      "action": "ENDED"
+    },
+    {
+      "sol": 283,
+      "event": "dust_storm",
+      "action": "STARTED",
+      "duration": 7
+    },
+    {
+      "sol": 283,
+      "event": "heater_malfunction",
+      "action": "STARTED",
+      "duration": 2
+    },
+    {
+      "sol": 284,
+      "event": "heater_malfunction",
+      "action": "ENDED"
+    },
+    {
+      "sol": 289,
+      "event": "dust_storm",
+      "action": "ENDED"
+    },
+    {
+      "sol": 312,
+      "event": "water_pump_failure",
+      "action": "STARTED",
+      "duration": 1
+    },
+    {
+      "sol": 312,
+      "event": "water_pump_failure",
+      "action": "ENDED"
+    },
+    {
+      "sol": 318,
+      "event": "co2_scrubber_fault",
+      "action": "STARTED",
+      "duration": 2
+    },
+    {
+      "sol": 319,
+      "event": "co2_scrubber_fault",
+      "action": "ENDED"
+    },
+    {
+      "sol": 322,
+      "event": "heater_malfunction",
+      "action": "STARTED",
+      "duration": 2
+    },
+    {
+      "sol": 323,
+      "event": "heater_malfunction",
+      "action": "ENDED"
+    },
+    {
+      "sol": 348,
+      "event": "humidity_sensor_drift",
+      "action": "STARTED",
+      "duration": 4
+    },
+    {
+      "sol": 351,
+      "event": "humidity_sensor_drift",
+      "action": "ENDED"
+    },
+    {
+      "sol": 355,
+      "event": "co2_scrubber_fault",
+      "action": "STARTED",
+      "duration": 2
+    },
+    {
+      "sol": 356,
+      "event": "nutrient_contamination",
+      "action": "STARTED",
+      "duration": 3
+    },
+    {
+      "sol": 356,
+      "event": "co2_scrubber_fault",
+      "action": "ENDED"
+    },
+    {
+      "sol": 358,
+      "event": "nutrient_contamination",
+      "action": "ENDED"
+    },
+    {
+      "sol": 374,
+      "event": "dust_storm",
+      "action": "STARTED",
+      "duration": 7
+    },
+    {
+      "sol": 380,
+      "event": "dust_storm",
+      "action": "ENDED"
+    },
+    {
+      "sol": 399,
+      "event": "co2_scrubber_fault",
+      "action": "STARTED",
+      "duration": 2
+    },
+    {
+      "sol": 400,
+      "event": "co2_scrubber_fault",
+      "action": "ENDED"
+    },
+    {
+      "sol": 424,
+      "event": "dust_storm",
+      "action": "STARTED",
+      "duration": 7
+    },
+    {
+      "sol": 430,
+      "event": "dust_storm",
+      "action": "ENDED"
+    }
+  ],
+  "final_water_reserve_litres": 1499.7,
+  "final_nutrition": {
+    "sol": 450,
+    "sols_remaining": 0,
+    "astronaut_count": 4,
+    "kcal_per_astronaut_per_sol": 2300,
+    "kcal_needed_remaining": 0,
+    "kcal_from_projected_harvests": 0,
+    "kcal_from_storage": 766245,
+    "kcal_total_available": 766245,
+    "deficit_kcal": 0,
+    "surplus_kcal": 766245,
+    "days_of_food_remaining": 83.3,
+    "mission_viable": true,
+    "viability_status": "ON_TRACK",
+    "crop_projections": [
+      {
+        "crop": "wheat",
+        "zone": "main",
+        "area_m2": 15.0,
+        "health": 1.0,
+        "harvests_remaining": 0,
+        "projected_kg": 0.0,
+        "projected_kcal": 0.0
+      },
+      {
+        "crop": "sweet_potato",
+        "zone": "main",
+        "area_m2": 12.0,
+        "health": 0.946,
+        "harvests_remaining": 0,
+        "projected_kg": 0.0,
+        "projected_kcal": 0.0
+      },
+      {
+        "crop": "lettuce",
+        "zone": "nursery",
+        "area_m2": 8.0,
+        "health": 1.0,
+        "harvests_remaining": 0,
+        "projected_kg": 0.0,
+        "projected_kcal": 0.0
+      },
+      {
+        "crop": "tomato",
+        "zone": "flowering",
+        "area_m2": 10.0,
+        "health": 1.0,
+        "harvests_remaining": 0,
+        "projected_kg": 0.0,
+        "projected_kcal": 0.0
+      },
+      {
+        "crop": "wheat",
+        "zone": "emergency",
+        "area_m2": 15.0,
+        "health": 0.892,
+        "harvests_remaining": 0,
+        "projected_kg": 0.0,
+        "projected_kcal": 0.0
+      }
+    ]
+  },
+  "nutrition_timeline": [
+    {
+      "sol": 1,
+      "sols_remaining": 449,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 4130800,
+      "kcal_from_projected_harvests": 763200,
+      "kcal_from_storage": 0,
+      "kcal_total_available": 763200,
+      "deficit_kcal": 3367600,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 83.0,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 5,
+          "projected_kg": 135.0,
+          "projected_kcal": 459000.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 1.0,
+          "harvests_remaining": 3,
+          "projected_kg": 180.0,
+          "projected_kcal": 154800.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 15,
+          "projected_kg": 420.0,
+          "projected_kcal": 63000.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 1.0,
+          "harvests_remaining": 6,
+          "projected_kg": 480.0,
+          "projected_kcal": 86400.0
+        }
+      ]
+    },
+    {
+      "sol": 10,
+      "sols_remaining": 440,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 4048000,
+      "kcal_from_projected_harvests": 1130400,
+      "kcal_from_storage": 0,
+      "kcal_total_available": 1130400,
+      "deficit_kcal": 2917600,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 122.9,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 5,
+          "projected_kg": 135.0,
+          "projected_kcal": 459000.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 1.0,
+          "harvests_remaining": 3,
+          "projected_kg": 180.0,
+          "projected_kcal": 154800.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 15,
+          "projected_kg": 420.0,
+          "projected_kcal": 63000.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 1.0,
+          "harvests_remaining": 6,
+          "projected_kg": 480.0,
+          "projected_kcal": 86400.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 4,
+          "projected_kg": 108.0,
+          "projected_kcal": 367200.0
+        }
+      ]
+    },
+    {
+      "sol": 20,
+      "sols_remaining": 430,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 3956000,
+      "kcal_from_projected_harvests": 1130400,
+      "kcal_from_storage": 0,
+      "kcal_total_available": 1130400,
+      "deficit_kcal": 2825600,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 122.9,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 5,
+          "projected_kg": 135.0,
+          "projected_kcal": 459000.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 1.0,
+          "harvests_remaining": 3,
+          "projected_kg": 180.0,
+          "projected_kcal": 154800.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 15,
+          "projected_kg": 420.0,
+          "projected_kcal": 63000.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 1.0,
+          "harvests_remaining": 6,
+          "projected_kg": 480.0,
+          "projected_kcal": 86400.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 4,
+          "projected_kg": 108.0,
+          "projected_kcal": 367200.0
+        }
+      ]
+    },
+    {
+      "sol": 30,
+      "sols_remaining": 420,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 3864000,
+      "kcal_from_projected_harvests": 1126200,
+      "kcal_from_storage": 2873,
+      "kcal_total_available": 1129073,
+      "deficit_kcal": 2734927,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 122.7,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 5,
+          "projected_kg": 135.0,
+          "projected_kcal": 459000.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 1.0,
+          "harvests_remaining": 3,
+          "projected_kg": 180.0,
+          "projected_kcal": 154800.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 14,
+          "projected_kg": 392.0,
+          "projected_kcal": 58800.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 1.0,
+          "harvests_remaining": 6,
+          "projected_kg": 480.0,
+          "projected_kcal": 86400.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 4,
+          "projected_kg": 108.0,
+          "projected_kcal": 367200.0
+        }
+      ]
+    },
+    {
+      "sol": 40,
+      "sols_remaining": 410,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 3772000,
+      "kcal_from_projected_harvests": 1096097,
+      "kcal_from_storage": 2873,
+      "kcal_total_available": 1098970,
+      "deficit_kcal": 2673030,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 119.5,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.972,
+          "harvests_remaining": 5,
+          "projected_kg": 135.0,
+          "projected_kcal": 446148.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.982,
+          "harvests_remaining": 3,
+          "projected_kg": 180.0,
+          "projected_kcal": 152014.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 0.97,
+          "harvests_remaining": 14,
+          "projected_kg": 392.0,
+          "projected_kcal": 57036.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.972,
+          "harvests_remaining": 6,
+          "projected_kg": 480.0,
+          "projected_kcal": 83981.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.972,
+          "harvests_remaining": 4,
+          "projected_kg": 108.0,
+          "projected_kcal": 356918.0
+        }
+      ]
+    },
+    {
+      "sol": 50,
+      "sols_remaining": 400,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 3680000,
+      "kcal_from_projected_harvests": 1117135,
+      "kcal_from_storage": 2873,
+      "kcal_total_available": 1120008,
+      "deficit_kcal": 2559992,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 121.7,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.992,
+          "harvests_remaining": 5,
+          "projected_kg": 135.0,
+          "projected_kcal": 455328.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 1.0,
+          "harvests_remaining": 3,
+          "projected_kg": 180.0,
+          "projected_kcal": 154800.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 0.97,
+          "harvests_remaining": 14,
+          "projected_kg": 392.0,
+          "projected_kcal": 57036.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.992,
+          "harvests_remaining": 6,
+          "projected_kg": 480.0,
+          "projected_kcal": 85709.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.992,
+          "harvests_remaining": 4,
+          "projected_kg": 108.0,
+          "projected_kcal": 364262.0
+        }
+      ]
+    },
+    {
+      "sol": 60,
+      "sols_remaining": 390,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 3588000,
+      "kcal_from_projected_harvests": 1100652,
+      "kcal_from_storage": 5544,
+      "kcal_total_available": 1106196,
+      "deficit_kcal": 2481804,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 120.2,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.98,
+          "harvests_remaining": 5,
+          "projected_kg": 135.0,
+          "projected_kcal": 449820.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.98,
+          "harvests_remaining": 3,
+          "projected_kg": 180.0,
+          "projected_kcal": 151704.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 13,
+          "projected_kg": 364.0,
+          "projected_kcal": 54600.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.98,
+          "harvests_remaining": 6,
+          "projected_kg": 480.0,
+          "projected_kcal": 84672.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.98,
+          "harvests_remaining": 4,
+          "projected_kg": 108.0,
+          "projected_kcal": 359856.0
+        }
+      ]
+    },
+    {
+      "sol": 70,
+      "sols_remaining": 380,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 3496000,
+      "kcal_from_projected_harvests": 1121035,
+      "kcal_from_storage": 5544,
+      "kcal_total_available": 1126579,
+      "deficit_kcal": 2369421,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 122.5,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 5,
+          "projected_kg": 135.0,
+          "projected_kcal": 459000.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.996,
+          "harvests_remaining": 3,
+          "projected_kg": 180.0,
+          "projected_kcal": 154181.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 13,
+          "projected_kg": 364.0,
+          "projected_kcal": 54600.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.996,
+          "harvests_remaining": 6,
+          "projected_kg": 480.0,
+          "projected_kcal": 86054.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 4,
+          "projected_kg": 108.0,
+          "projected_kcal": 367200.0
+        }
+      ]
+    },
+    {
+      "sol": 80,
+      "sols_remaining": 370,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 3404000,
+      "kcal_from_projected_harvests": 1107600,
+      "kcal_from_storage": 19088,
+      "kcal_total_available": 1126688,
+      "deficit_kcal": 2277312,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 122.5,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 5,
+          "projected_kg": 135.0,
+          "projected_kcal": 459000.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 1.0,
+          "harvests_remaining": 3,
+          "projected_kg": 180.0,
+          "projected_kcal": 154800.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 13,
+          "projected_kg": 364.0,
+          "projected_kcal": 54600.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 1.0,
+          "harvests_remaining": 5,
+          "projected_kg": 400.0,
+          "projected_kcal": 72000.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 4,
+          "projected_kg": 108.0,
+          "projected_kcal": 367200.0
+        }
+      ]
+    },
+    {
+      "sol": 90,
+      "sols_remaining": 360,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 3312000,
+      "kcal_from_projected_harvests": 981900,
+      "kcal_from_storage": 104748,
+      "kcal_total_available": 1086648,
+      "deficit_kcal": 2225352,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 118.1,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 4,
+          "projected_kg": 108.0,
+          "projected_kcal": 367200.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.95,
+          "harvests_remaining": 3,
+          "projected_kg": 180.0,
+          "projected_kcal": 147060.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 12,
+          "projected_kg": 336.0,
+          "projected_kcal": 50400.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.95,
+          "harvests_remaining": 5,
+          "projected_kg": 400.0,
+          "projected_kcal": 68400.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.95,
+          "harvests_remaining": 4,
+          "projected_kg": 108.0,
+          "projected_kcal": 348840.0
+        }
+      ]
+    },
+    {
+      "sol": 100,
+      "sols_remaining": 350,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 3220000,
+      "kcal_from_projected_harvests": 879541,
+      "kcal_from_storage": 186965,
+      "kcal_total_available": 1066506,
+      "deficit_kcal": 2153494,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 115.9,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.96,
+          "harvests_remaining": 4,
+          "projected_kg": 108.0,
+          "projected_kcal": 352512.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.932,
+          "harvests_remaining": 3,
+          "projected_kg": 180.0,
+          "projected_kcal": 144274.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 0.994,
+          "harvests_remaining": 12,
+          "projected_kg": 336.0,
+          "projected_kcal": 50098.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.91,
+          "harvests_remaining": 5,
+          "projected_kg": 400.0,
+          "projected_kcal": 65520.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.97,
+          "harvests_remaining": 3,
+          "projected_kg": 81.0,
+          "projected_kcal": 267138.0
+        }
+      ]
+    },
+    {
+      "sol": 110,
+      "sols_remaining": 340,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 3128000,
+      "kcal_from_projected_harvests": 825584,
+      "kcal_from_storage": 186965,
+      "kcal_total_available": 1012549,
+      "deficit_kcal": 2115451,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 110.1,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.9,
+          "harvests_remaining": 4,
+          "projected_kg": 108.0,
+          "projected_kcal": 330480.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.878,
+          "harvests_remaining": 3,
+          "projected_kg": 180.0,
+          "projected_kcal": 135914.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 0.94,
+          "harvests_remaining": 12,
+          "projected_kg": 336.0,
+          "projected_kcal": 47376.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.85,
+          "harvests_remaining": 5,
+          "projected_kg": 400.0,
+          "projected_kcal": 61200.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.91,
+          "harvests_remaining": 3,
+          "projected_kg": 81.0,
+          "projected_kcal": 250614.0
+        }
+      ]
+    },
+    {
+      "sol": 120,
+      "sols_remaining": 330,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 3036000,
+      "kcal_from_projected_harvests": 763110,
+      "kcal_from_storage": 232329,
+      "kcal_total_available": 995439,
+      "deficit_kcal": 2040561,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 108.2,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.86,
+          "harvests_remaining": 4,
+          "projected_kg": 108.0,
+          "projected_kcal": 315792.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 1.0,
+          "harvests_remaining": 2,
+          "projected_kg": 120.0,
+          "projected_kcal": 103200.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 11,
+          "projected_kg": 308.0,
+          "projected_kcal": 46200.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.81,
+          "harvests_remaining": 5,
+          "projected_kg": 400.0,
+          "projected_kcal": 58320.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.87,
+          "harvests_remaining": 3,
+          "projected_kg": 81.0,
+          "projected_kcal": 239598.0
+        }
+      ]
+    },
+    {
+      "sol": 130,
+      "sols_remaining": 320,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 2944000,
+      "kcal_from_projected_harvests": 670688,
+      "kcal_from_storage": 232329,
+      "kcal_total_available": 903018,
+      "deficit_kcal": 2040982,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 98.2,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.75,
+          "harvests_remaining": 4,
+          "projected_kg": 108.0,
+          "projected_kcal": 275400.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.91,
+          "harvests_remaining": 2,
+          "projected_kg": 120.0,
+          "projected_kcal": 93912.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 0.902,
+          "harvests_remaining": 11,
+          "projected_kg": 308.0,
+          "projected_kcal": 41672.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.7,
+          "harvests_remaining": 5,
+          "projected_kg": 400.0,
+          "projected_kcal": 50400.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.76,
+          "harvests_remaining": 3,
+          "projected_kg": 81.0,
+          "projected_kcal": 209304.0
+        }
+      ]
+    },
+    {
+      "sol": 140,
+      "sols_remaining": 310,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 2852000,
+      "kcal_from_projected_harvests": 647094,
+      "kcal_from_storage": 232329,
+      "kcal_total_available": 879423,
+      "deficit_kcal": 1972577,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 95.6,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.72,
+          "harvests_remaining": 4,
+          "projected_kg": 108.0,
+          "projected_kcal": 264384.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.89,
+          "harvests_remaining": 2,
+          "projected_kg": 120.0,
+          "projected_kcal": 91848.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 0.9,
+          "harvests_remaining": 11,
+          "projected_kg": 308.0,
+          "projected_kcal": 41580.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.67,
+          "harvests_remaining": 5,
+          "projected_kg": 400.0,
+          "projected_kcal": 48240.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.73,
+          "harvests_remaining": 3,
+          "projected_kg": 81.0,
+          "projected_kcal": 201042.0
+        }
+      ]
+    },
+    {
+      "sol": 150,
+      "sols_remaining": 300,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 2760000,
+      "kcal_from_projected_harvests": 616807,
+      "kcal_from_storage": 240686,
+      "kcal_total_available": 857493,
+      "deficit_kcal": 1902507,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 93.2,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.666,
+          "harvests_remaining": 4,
+          "projected_kg": 108.0,
+          "projected_kcal": 244555.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.838,
+          "harvests_remaining": 2,
+          "projected_kg": 120.0,
+          "projected_kcal": 86482.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 10,
+          "projected_kg": 280.0,
+          "projected_kcal": 42000.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 1.0,
+          "harvests_remaining": 4,
+          "projected_kg": 320.0,
+          "projected_kcal": 57600.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.676,
+          "harvests_remaining": 3,
+          "projected_kg": 81.0,
+          "projected_kcal": 186170.0
+        }
+      ]
+    },
+    {
+      "sol": 160,
+      "sols_remaining": 290,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 2668000,
+      "kcal_from_projected_harvests": 570905,
+      "kcal_from_storage": 240686,
+      "kcal_total_available": 811591,
+      "deficit_kcal": 1856409,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 88.2,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.606,
+          "harvests_remaining": 4,
+          "projected_kg": 108.0,
+          "projected_kcal": 222523.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.806,
+          "harvests_remaining": 2,
+          "projected_kg": 120.0,
+          "projected_kcal": 83179.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 0.986,
+          "harvests_remaining": 10,
+          "projected_kg": 280.0,
+          "projected_kcal": 41412.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.94,
+          "harvests_remaining": 4,
+          "projected_kg": 320.0,
+          "projected_kcal": 54144.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.616,
+          "harvests_remaining": 3,
+          "projected_kg": 81.0,
+          "projected_kcal": 169646.0
+        }
+      ]
+    },
+    {
+      "sol": 170,
+      "sols_remaining": 280,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 2576000,
+      "kcal_from_projected_harvests": 558739,
+      "kcal_from_storage": 240686,
+      "kcal_total_available": 799425,
+      "deficit_kcal": 1776575,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 86.9,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.59,
+          "harvests_remaining": 4,
+          "projected_kg": 108.0,
+          "projected_kcal": 216648.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.804,
+          "harvests_remaining": 2,
+          "projected_kg": 120.0,
+          "projected_kcal": 82973.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 0.968,
+          "harvests_remaining": 10,
+          "projected_kg": 280.0,
+          "projected_kcal": 40656.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.924,
+          "harvests_remaining": 4,
+          "projected_kg": 320.0,
+          "projected_kcal": 53222.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.6,
+          "harvests_remaining": 3,
+          "projected_kg": 81.0,
+          "projected_kcal": 165240.0
+        }
+      ]
+    },
+    {
+      "sol": 180,
+      "sols_remaining": 270,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 2484000,
+      "kcal_from_projected_harvests": 623359,
+      "kcal_from_storage": 280172,
+      "kcal_total_available": 903531,
+      "deficit_kcal": 1580469,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 98.2,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 3,
+          "projected_kg": 81.0,
+          "projected_kcal": 275400.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.824,
+          "harvests_remaining": 2,
+          "projected_kg": 120.0,
+          "projected_kcal": 85037.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 9,
+          "projected_kg": 252.0,
+          "projected_kcal": 37800.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.944,
+          "harvests_remaining": 4,
+          "projected_kg": 320.0,
+          "projected_kcal": 54374.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.62,
+          "harvests_remaining": 3,
+          "projected_kg": 81.0,
+          "projected_kcal": 170748.0
+        }
+      ]
+    },
+    {
+      "sol": 190,
+      "sols_remaining": 260,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 2392000,
+      "kcal_from_projected_harvests": 639427,
+      "kcal_from_storage": 317507,
+      "kcal_total_available": 956934,
+      "deficit_kcal": 1435066,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 104.0,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 3,
+          "projected_kg": 81.0,
+          "projected_kcal": 275400.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.844,
+          "harvests_remaining": 2,
+          "projected_kg": 120.0,
+          "projected_kcal": 87101.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 9,
+          "projected_kg": 252.0,
+          "projected_kcal": 37800.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.964,
+          "harvests_remaining": 4,
+          "projected_kg": 320.0,
+          "projected_kcal": 55526.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 2,
+          "projected_kg": 54.0,
+          "projected_kcal": 183600.0
+        }
+      ]
+    },
+    {
+      "sol": 200,
+      "sols_remaining": 250,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 2300000,
+      "kcal_from_projected_harvests": 642643,
+      "kcal_from_storage": 317507,
+      "kcal_total_available": 960150,
+      "deficit_kcal": 1339850,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 104.4,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 3,
+          "projected_kg": 81.0,
+          "projected_kcal": 275400.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.864,
+          "harvests_remaining": 2,
+          "projected_kg": 120.0,
+          "projected_kcal": 89165.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 9,
+          "projected_kg": 252.0,
+          "projected_kcal": 37800.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.984,
+          "harvests_remaining": 4,
+          "projected_kg": 320.0,
+          "projected_kcal": 56678.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 2,
+          "projected_kg": 54.0,
+          "projected_kcal": 183600.0
+        }
+      ]
+    },
+    {
+      "sol": 210,
+      "sols_remaining": 240,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 2208000,
+      "kcal_from_projected_harvests": 641429,
+      "kcal_from_storage": 320293,
+      "kcal_total_available": 961722,
+      "deficit_kcal": 1246278,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 104.5,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 3,
+          "projected_kg": 81.0,
+          "projected_kcal": 275400.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.884,
+          "harvests_remaining": 2,
+          "projected_kg": 120.0,
+          "projected_kcal": 91229.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 8,
+          "projected_kg": 224.0,
+          "projected_kcal": 33600.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 1.0,
+          "harvests_remaining": 4,
+          "projected_kg": 320.0,
+          "projected_kcal": 57600.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 2,
+          "projected_kg": 54.0,
+          "projected_kcal": 183600.0
+        }
+      ]
+    },
+    {
+      "sol": 220,
+      "sols_remaining": 230,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 2116000,
+      "kcal_from_projected_harvests": 643493,
+      "kcal_from_storage": 320293,
+      "kcal_total_available": 963786,
+      "deficit_kcal": 1152214,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 104.8,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 3,
+          "projected_kg": 81.0,
+          "projected_kcal": 275400.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.904,
+          "harvests_remaining": 2,
+          "projected_kg": 120.0,
+          "projected_kcal": 93293.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 8,
+          "projected_kg": 224.0,
+          "projected_kcal": 33600.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 1.0,
+          "harvests_remaining": 4,
+          "projected_kg": 320.0,
+          "projected_kcal": 57600.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 2,
+          "projected_kg": 54.0,
+          "projected_kcal": 183600.0
+        }
+      ]
+    },
+    {
+      "sol": 230,
+      "sols_remaining": 220,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 2024000,
+      "kcal_from_projected_harvests": 611368,
+      "kcal_from_storage": 332722,
+      "kcal_total_available": 944090,
+      "deficit_kcal": 1079910,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 102.6,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.97,
+          "harvests_remaining": 3,
+          "projected_kg": 81.0,
+          "projected_kcal": 267138.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.888,
+          "harvests_remaining": 2,
+          "projected_kg": 120.0,
+          "projected_kcal": 91642.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 0.97,
+          "harvests_remaining": 8,
+          "projected_kg": 224.0,
+          "projected_kcal": 32592.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.97,
+          "harvests_remaining": 3,
+          "projected_kg": 240.0,
+          "projected_kcal": 41904.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.97,
+          "harvests_remaining": 2,
+          "projected_kg": 54.0,
+          "projected_kcal": 178092.0
+        }
+      ]
+    },
+    {
+      "sol": 240,
+      "sols_remaining": 210,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 1932000,
+      "kcal_from_projected_harvests": 543024,
+      "kcal_from_storage": 370640,
+      "kcal_total_available": 913664,
+      "deficit_kcal": 1018336,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 99.3,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.92,
+          "harvests_remaining": 3,
+          "projected_kg": 81.0,
+          "projected_kcal": 253368.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 1.0,
+          "harvests_remaining": 1,
+          "projected_kg": 60.0,
+          "projected_kcal": 51600.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 7,
+          "projected_kg": 196.0,
+          "projected_kcal": 29400.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.92,
+          "harvests_remaining": 3,
+          "projected_kg": 240.0,
+          "projected_kcal": 39744.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.92,
+          "harvests_remaining": 2,
+          "projected_kg": 54.0,
+          "projected_kcal": 168912.0
+        }
+      ]
+    },
+    {
+      "sol": 250,
+      "sols_remaining": 200,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 1840000,
+      "kcal_from_projected_harvests": 502259,
+      "kcal_from_storage": 370640,
+      "kcal_total_available": 872899,
+      "deficit_kcal": 967101,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 94.9,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.85,
+          "harvests_remaining": 3,
+          "projected_kg": 81.0,
+          "projected_kcal": 234090.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.93,
+          "harvests_remaining": 1,
+          "projected_kg": 60.0,
+          "projected_kcal": 47988.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 0.932,
+          "harvests_remaining": 7,
+          "projected_kg": 196.0,
+          "projected_kcal": 27401.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.85,
+          "harvests_remaining": 3,
+          "projected_kg": 240.0,
+          "projected_kcal": 36720.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.85,
+          "harvests_remaining": 2,
+          "projected_kg": 54.0,
+          "projected_kcal": 156060.0
+        }
+      ]
+    },
+    {
+      "sol": 260,
+      "sols_remaining": 190,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 1748000,
+      "kcal_from_projected_harvests": 503672,
+      "kcal_from_storage": 370640,
+      "kcal_total_available": 874313,
+      "deficit_kcal": 873687,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 95.0,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.85,
+          "harvests_remaining": 3,
+          "projected_kg": 81.0,
+          "projected_kcal": 234090.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.946,
+          "harvests_remaining": 1,
+          "projected_kg": 60.0,
+          "projected_kcal": 48814.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 0.952,
+          "harvests_remaining": 7,
+          "projected_kg": 196.0,
+          "projected_kcal": 27989.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.85,
+          "harvests_remaining": 3,
+          "projected_kg": 240.0,
+          "projected_kcal": 36720.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.85,
+          "harvests_remaining": 2,
+          "projected_kg": 54.0,
+          "projected_kcal": 156060.0
+        }
+      ]
+    },
+    {
+      "sol": 270,
+      "sols_remaining": 180,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 1656000,
+      "kcal_from_projected_harvests": 448183,
+      "kcal_from_storage": 438760,
+      "kcal_total_available": 886943,
+      "deficit_kcal": 769057,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 96.4,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 2,
+          "projected_kg": 54.0,
+          "projected_kcal": 183600.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.94,
+          "harvests_remaining": 1,
+          "projected_kg": 60.0,
+          "projected_kcal": 48504.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 6,
+          "projected_kg": 168.0,
+          "projected_kcal": 25200.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.84,
+          "harvests_remaining": 3,
+          "projected_kg": 240.0,
+          "projected_kcal": 36288.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.842,
+          "harvests_remaining": 2,
+          "projected_kg": 54.0,
+          "projected_kcal": 154591.0
+        }
+      ]
+    },
+    {
+      "sol": 280,
+      "sols_remaining": 170,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 1564000,
+      "kcal_from_projected_harvests": 363606,
+      "kcal_from_storage": 503044,
+      "kcal_total_available": 866650,
+      "deficit_kcal": 697350,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 94.2,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.94,
+          "harvests_remaining": 2,
+          "projected_kg": 54.0,
+          "projected_kcal": 172584.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.89,
+          "harvests_remaining": 1,
+          "projected_kg": 60.0,
+          "projected_kcal": 45924.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 0.96,
+          "harvests_remaining": 6,
+          "projected_kg": 168.0,
+          "projected_kcal": 24192.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.78,
+          "harvests_remaining": 3,
+          "projected_kg": 240.0,
+          "projected_kcal": 33696.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.95,
+          "harvests_remaining": 1,
+          "projected_kg": 27.0,
+          "projected_kcal": 87210.0
+        }
+      ]
+    },
+    {
+      "sol": 290,
+      "sols_remaining": 160,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 1472000,
+      "kcal_from_projected_harvests": 336286,
+      "kcal_from_storage": 503044,
+      "kcal_total_available": 839329,
+      "deficit_kcal": 632671,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 91.2,
+      "mission_viable": false,
+      "viability_status": "CRITICAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.87,
+          "harvests_remaining": 2,
+          "projected_kg": 54.0,
+          "projected_kcal": 159732.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.824,
+          "harvests_remaining": 1,
+          "projected_kg": 60.0,
+          "projected_kcal": 42518.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 0.896,
+          "harvests_remaining": 6,
+          "projected_kg": 168.0,
+          "projected_kcal": 22579.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.71,
+          "harvests_remaining": 3,
+          "projected_kg": 240.0,
+          "projected_kcal": 30672.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.88,
+          "harvests_remaining": 1,
+          "projected_kg": 27.0,
+          "projected_kcal": 80784.0
+        }
+      ]
+    },
+    {
+      "sol": 300,
+      "sols_remaining": 150,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 1380000,
+      "kcal_from_projected_harvests": 331250,
+      "kcal_from_storage": 511232,
+      "kcal_total_available": 842482,
+      "deficit_kcal": 537518,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 91.6,
+      "mission_viable": false,
+      "viability_status": "AT_RISK",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.862,
+          "harvests_remaining": 2,
+          "projected_kg": 54.0,
+          "projected_kcal": 158263.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.836,
+          "harvests_remaining": 1,
+          "projected_kg": 60.0,
+          "projected_kcal": 43138.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 5,
+          "projected_kg": 140.0,
+          "projected_kcal": 21000.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 1.0,
+          "harvests_remaining": 2,
+          "projected_kg": 160.0,
+          "projected_kcal": 28800.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.872,
+          "harvests_remaining": 1,
+          "projected_kg": 27.0,
+          "projected_kcal": 80050.0
+        }
+      ]
+    },
+    {
+      "sol": 310,
+      "sols_remaining": 140,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 1288000,
+      "kcal_from_projected_harvests": 337240,
+      "kcal_from_storage": 511232,
+      "kcal_total_available": 848471,
+      "deficit_kcal": 439529,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 92.2,
+      "mission_viable": false,
+      "viability_status": "AT_RISK",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.88,
+          "harvests_remaining": 2,
+          "projected_kg": 54.0,
+          "projected_kcal": 161568.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.856,
+          "harvests_remaining": 1,
+          "projected_kg": 60.0,
+          "projected_kcal": 44170.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 5,
+          "projected_kg": 140.0,
+          "projected_kcal": 21000.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 1.0,
+          "harvests_remaining": 2,
+          "projected_kg": 160.0,
+          "projected_kcal": 28800.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.89,
+          "harvests_remaining": 1,
+          "projected_kg": 27.0,
+          "projected_kcal": 81702.0
+        }
+      ]
+    },
+    {
+      "sol": 320,
+      "sols_remaining": 130,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 1196000,
+      "kcal_from_projected_harvests": 326593,
+      "kcal_from_storage": 511232,
+      "kcal_total_available": 837825,
+      "deficit_kcal": 358175,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 91.1,
+      "mission_viable": false,
+      "viability_status": "AT_RISK",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.854,
+          "harvests_remaining": 2,
+          "projected_kg": 54.0,
+          "projected_kcal": 156794.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.83,
+          "harvests_remaining": 1,
+          "projected_kg": 60.0,
+          "projected_kcal": 42828.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 0.95,
+          "harvests_remaining": 5,
+          "projected_kg": 140.0,
+          "projected_kcal": 19950.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.962,
+          "harvests_remaining": 2,
+          "projected_kg": 160.0,
+          "projected_kcal": 27706.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.864,
+          "harvests_remaining": 1,
+          "projected_kg": 27.0,
+          "projected_kcal": 79315.0
+        }
+      ]
+    },
+    {
+      "sol": 330,
+      "sols_remaining": 120,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 1104000,
+      "kcal_from_projected_harvests": 330238,
+      "kcal_from_storage": 514040,
+      "kcal_total_available": 844278,
+      "deficit_kcal": 259722,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 91.8,
+      "mission_viable": false,
+      "viability_status": "AT_RISK",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.874,
+          "harvests_remaining": 2,
+          "projected_kg": 54.0,
+          "projected_kcal": 160466.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.846,
+          "harvests_remaining": 1,
+          "projected_kg": 60.0,
+          "projected_kcal": 43654.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 4,
+          "projected_kg": 112.0,
+          "projected_kcal": 16800.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.978,
+          "harvests_remaining": 2,
+          "projected_kg": 160.0,
+          "projected_kcal": 28166.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.884,
+          "harvests_remaining": 1,
+          "projected_kg": 27.0,
+          "projected_kcal": 81151.0
+        }
+      ]
+    },
+    {
+      "sol": 340,
+      "sols_remaining": 110,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 1012000,
+      "kcal_from_projected_harvests": 337354,
+      "kcal_from_storage": 514040,
+      "kcal_total_available": 851394,
+      "deficit_kcal": 160606,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 92.5,
+      "mission_viable": false,
+      "viability_status": "AT_RISK",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.894,
+          "harvests_remaining": 2,
+          "projected_kg": 54.0,
+          "projected_kcal": 164138.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.866,
+          "harvests_remaining": 1,
+          "projected_kg": 60.0,
+          "projected_kcal": 44686.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 4,
+          "projected_kg": 112.0,
+          "projected_kcal": 16800.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.998,
+          "harvests_remaining": 2,
+          "projected_kg": 160.0,
+          "projected_kcal": 28742.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.904,
+          "harvests_remaining": 1,
+          "projected_kg": 27.0,
+          "projected_kcal": 82987.0
+        }
+      ]
+    },
+    {
+      "sol": 350,
+      "sols_remaining": 100,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 920000,
+      "kcal_from_projected_harvests": 343400,
+      "kcal_from_storage": 514040,
+      "kcal_total_available": 857440,
+      "deficit_kcal": 62560,
+      "surplus_kcal": 0,
+      "days_of_food_remaining": 93.2,
+      "mission_viable": false,
+      "viability_status": "MARGINAL",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.912,
+          "harvests_remaining": 2,
+          "projected_kg": 54.0,
+          "projected_kcal": 167443.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.886,
+          "harvests_remaining": 1,
+          "projected_kg": 60.0,
+          "projected_kcal": 45718.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 4,
+          "projected_kg": 112.0,
+          "projected_kcal": 16800.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 1.0,
+          "harvests_remaining": 2,
+          "projected_kg": 160.0,
+          "projected_kcal": 28800.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.922,
+          "harvests_remaining": 1,
+          "projected_kg": 27.0,
+          "projected_kcal": 84640.0
+        }
+      ]
+    },
+    {
+      "sol": 360,
+      "sols_remaining": 90,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 828000,
+      "kcal_from_projected_harvests": 217127,
+      "kcal_from_storage": 611444,
+      "kcal_total_available": 828570,
+      "deficit_kcal": 0,
+      "surplus_kcal": 570,
+      "days_of_food_remaining": 90.1,
+      "mission_viable": true,
+      "viability_status": "ON_TRACK",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 1,
+          "projected_kg": 27.0,
+          "projected_kcal": 91800.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 1.0,
+          "harvests_remaining": 0,
+          "projected_kg": 0.0,
+          "projected_kcal": 0.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 3,
+          "projected_kg": 84.0,
+          "projected_kcal": 12600.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.988,
+          "harvests_remaining": 2,
+          "projected_kg": 160.0,
+          "projected_kcal": 28454.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.918,
+          "harvests_remaining": 1,
+          "projected_kg": 27.0,
+          "projected_kcal": 84272.0
+        }
+      ]
+    },
+    {
+      "sol": 370,
+      "sols_remaining": 80,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 736000,
+      "kcal_from_projected_harvests": 133200,
+      "kcal_from_storage": 672777,
+      "kcal_total_available": 805977,
+      "deficit_kcal": 0,
+      "surplus_kcal": 69977,
+      "days_of_food_remaining": 87.6,
+      "mission_viable": true,
+      "viability_status": "ON_TRACK",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 1,
+          "projected_kg": 27.0,
+          "projected_kcal": 91800.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 1.0,
+          "harvests_remaining": 0,
+          "projected_kg": 0.0,
+          "projected_kcal": 0.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 3,
+          "projected_kg": 84.0,
+          "projected_kcal": 12600.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 1.0,
+          "harvests_remaining": 2,
+          "projected_kg": 160.0,
+          "projected_kcal": 28800.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 0,
+          "projected_kg": 0.0,
+          "projected_kcal": 0.0
+        }
+      ]
+    },
+    {
+      "sol": 380,
+      "sols_remaining": 70,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 644000,
+      "kcal_from_projected_harvests": 110772,
+      "kcal_from_storage": 685604,
+      "kcal_total_available": 796376,
+      "deficit_kcal": 0,
+      "surplus_kcal": 152376,
+      "days_of_food_remaining": 86.6,
+      "mission_viable": true,
+      "viability_status": "ON_TRACK",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.93,
+          "harvests_remaining": 1,
+          "projected_kg": 27.0,
+          "projected_kcal": 85374.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.93,
+          "harvests_remaining": 0,
+          "projected_kg": 0.0,
+          "projected_kcal": 0.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 0.93,
+          "harvests_remaining": 3,
+          "projected_kg": 84.0,
+          "projected_kcal": 11718.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.95,
+          "harvests_remaining": 1,
+          "projected_kg": 80.0,
+          "projected_kcal": 13680.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.93,
+          "harvests_remaining": 0,
+          "projected_kg": 0.0,
+          "projected_kcal": 0.0
+        }
+      ]
+    },
+    {
+      "sol": 390,
+      "sols_remaining": 60,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 552000,
+      "kcal_from_projected_harvests": 106392,
+      "kcal_from_storage": 688419,
+      "kcal_total_available": 794811,
+      "deficit_kcal": 0,
+      "surplus_kcal": 242811,
+      "days_of_food_remaining": 86.4,
+      "mission_viable": true,
+      "viability_status": "ON_TRACK",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.92,
+          "harvests_remaining": 1,
+          "projected_kg": 27.0,
+          "projected_kcal": 84456.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.942,
+          "harvests_remaining": 0,
+          "projected_kg": 0.0,
+          "projected_kcal": 0.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 2,
+          "projected_kg": 56.0,
+          "projected_kcal": 8400.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.94,
+          "harvests_remaining": 1,
+          "projected_kg": 80.0,
+          "projected_kcal": 13536.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.92,
+          "harvests_remaining": 0,
+          "projected_kg": 0.0,
+          "projected_kcal": 0.0
+        }
+      ]
+    },
+    {
+      "sol": 400,
+      "sols_remaining": 50,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 460000,
+      "kcal_from_projected_harvests": 105162,
+      "kcal_from_storage": 688419,
+      "kcal_total_available": 793581,
+      "deficit_kcal": 0,
+      "surplus_kcal": 333581,
+      "days_of_food_remaining": 86.3,
+      "mission_viable": true,
+      "viability_status": "ON_TRACK",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.91,
+          "harvests_remaining": 1,
+          "projected_kg": 27.0,
+          "projected_kcal": 83538.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.938,
+          "harvests_remaining": 0,
+          "projected_kg": 0.0,
+          "projected_kcal": 0.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 0.98,
+          "harvests_remaining": 2,
+          "projected_kg": 56.0,
+          "projected_kcal": 8232.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.93,
+          "harvests_remaining": 1,
+          "projected_kg": 80.0,
+          "projected_kcal": 13392.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.91,
+          "harvests_remaining": 0,
+          "projected_kg": 0.0,
+          "projected_kcal": 0.0
+        }
+      ]
+    },
+    {
+      "sol": 410,
+      "sols_remaining": 40,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 368000,
+      "kcal_from_projected_harvests": 107286,
+      "kcal_from_storage": 688419,
+      "kcal_total_available": 795705,
+      "deficit_kcal": 0,
+      "surplus_kcal": 427705,
+      "days_of_food_remaining": 86.5,
+      "mission_viable": true,
+      "viability_status": "ON_TRACK",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.93,
+          "harvests_remaining": 1,
+          "projected_kg": 27.0,
+          "projected_kcal": 85374.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.958,
+          "harvests_remaining": 0,
+          "projected_kg": 0.0,
+          "projected_kcal": 0.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 0.98,
+          "harvests_remaining": 2,
+          "projected_kg": 56.0,
+          "projected_kcal": 8232.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.95,
+          "harvests_remaining": 1,
+          "projected_kg": 80.0,
+          "projected_kcal": 13680.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.93,
+          "harvests_remaining": 0,
+          "projected_kg": 0.0,
+          "projected_kcal": 0.0
+        }
+      ]
+    },
+    {
+      "sol": 420,
+      "sols_remaining": 30,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 276000,
+      "kcal_from_projected_harvests": 105378,
+      "kcal_from_storage": 691399,
+      "kcal_total_available": 796777,
+      "deficit_kcal": 0,
+      "surplus_kcal": 520777,
+      "days_of_food_remaining": 86.6,
+      "mission_viable": true,
+      "viability_status": "ON_TRACK",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.95,
+          "harvests_remaining": 1,
+          "projected_kg": 27.0,
+          "projected_kcal": 87210.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.978,
+          "harvests_remaining": 0,
+          "projected_kg": 0.0,
+          "projected_kcal": 0.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 1,
+          "projected_kg": 28.0,
+          "projected_kcal": 4200.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.97,
+          "harvests_remaining": 1,
+          "projected_kg": 80.0,
+          "projected_kcal": 13968.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.95,
+          "harvests_remaining": 0,
+          "projected_kg": 0.0,
+          "projected_kcal": 0.0
+        }
+      ]
+    },
+    {
+      "sol": 430,
+      "sols_remaining": 20,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 184000,
+      "kcal_from_projected_harvests": 98287,
+      "kcal_from_storage": 691399,
+      "kcal_total_available": 789686,
+      "deficit_kcal": 0,
+      "surplus_kcal": 605686,
+      "days_of_food_remaining": 85.8,
+      "mission_viable": true,
+      "viability_status": "ON_TRACK",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.886,
+          "harvests_remaining": 1,
+          "projected_kg": 27.0,
+          "projected_kcal": 81335.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.914,
+          "harvests_remaining": 0,
+          "projected_kg": 0.0,
+          "projected_kcal": 0.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 0.93,
+          "harvests_remaining": 1,
+          "projected_kg": 28.0,
+          "projected_kcal": 3906.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.906,
+          "harvests_remaining": 1,
+          "projected_kg": 80.0,
+          "projected_kcal": 13046.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.886,
+          "harvests_remaining": 0,
+          "projected_kg": 0.0,
+          "projected_kcal": 0.0
+        }
+      ]
+    },
+    {
+      "sol": 440,
+      "sols_remaining": 10,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 92000,
+      "kcal_from_projected_harvests": 97309,
+      "kcal_from_storage": 691399,
+      "kcal_total_available": 788708,
+      "deficit_kcal": 0,
+      "surplus_kcal": 696708,
+      "days_of_food_remaining": 85.7,
+      "mission_viable": true,
+      "viability_status": "ON_TRACK",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 0.876,
+          "harvests_remaining": 1,
+          "projected_kg": 27.0,
+          "projected_kcal": 80417.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.926,
+          "harvests_remaining": 0,
+          "projected_kg": 0.0,
+          "projected_kcal": 0.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 0.95,
+          "harvests_remaining": 1,
+          "projected_kg": 28.0,
+          "projected_kcal": 3990.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 0.896,
+          "harvests_remaining": 1,
+          "projected_kg": 80.0,
+          "projected_kcal": 12902.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.876,
+          "harvests_remaining": 0,
+          "projected_kg": 0.0,
+          "projected_kcal": 0.0
+        }
+      ]
+    },
+    {
+      "sol": 450,
+      "sols_remaining": 0,
+      "astronaut_count": 4,
+      "kcal_per_astronaut_per_sol": 2300,
+      "kcal_needed_remaining": 0,
+      "kcal_from_projected_harvests": 0,
+      "kcal_from_storage": 766245,
+      "kcal_total_available": 766245,
+      "deficit_kcal": 0,
+      "surplus_kcal": 766245,
+      "days_of_food_remaining": 83.3,
+      "mission_viable": true,
+      "viability_status": "ON_TRACK",
+      "crop_projections": [
+        {
+          "crop": "wheat",
+          "zone": "main",
+          "area_m2": 15.0,
+          "health": 1.0,
+          "harvests_remaining": 0,
+          "projected_kg": 0.0,
+          "projected_kcal": 0.0
+        },
+        {
+          "crop": "sweet_potato",
+          "zone": "main",
+          "area_m2": 12.0,
+          "health": 0.946,
+          "harvests_remaining": 0,
+          "projected_kg": 0.0,
+          "projected_kcal": 0.0
+        },
+        {
+          "crop": "lettuce",
+          "zone": "nursery",
+          "area_m2": 8.0,
+          "health": 1.0,
+          "harvests_remaining": 0,
+          "projected_kg": 0.0,
+          "projected_kcal": 0.0
+        },
+        {
+          "crop": "tomato",
+          "zone": "flowering",
+          "area_m2": 10.0,
+          "health": 1.0,
+          "harvests_remaining": 0,
+          "projected_kg": 0.0,
+          "projected_kcal": 0.0
+        },
+        {
+          "crop": "wheat",
+          "zone": "emergency",
+          "area_m2": 15.0,
+          "health": 0.892,
+          "harvests_remaining": 0,
+          "projected_kg": 0.0,
+          "projected_kcal": 0.0
+        }
+      ]
+    }
+  ],
+  "mission_viable": true
+}

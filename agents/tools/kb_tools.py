@@ -86,19 +86,10 @@ def query_knowledge_base(query: str) -> str:
             "jsonrpc": "2.0",
             "method": "tools/call",
             "params": {
-                "name": "query_knowledge_base",
+                "name": "kb-start-hack-target___knowledge_base_retrieve",
                 "arguments": {
                     "query": query,
                     "max_results": 5,
-                    "domains": [
-                        "Mars Environmental Constraints",
-                        "Controlled Environment Agriculture Principles",
-                        "Crop Profiles",
-                        "Plant Stress and Response Guide",
-                        "Human Nutritional Strategy",
-                        "Greenhouse Operational Scenarios",
-                        "Innovation Impact (Mars to Earth)"
-                    ]
                 }
             },
             "id": 1

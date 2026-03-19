@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { generateClient } from 'aws-amplify/data';
 import MetricCard from '../components/MetricCard';
+import MissionViabilityPanel from '../components/MissionViabilityPanel';
 import AgentLog from '../components/AgentLog';
 import CropTable from '../components/CropTable';
 import {
@@ -99,6 +100,8 @@ export default function Dashboard({ amplifyConfigured = false }) {
     <div style={styles.page}>
       <h1 style={styles.heading}>Mars Greenhouse Dashboard</h1>
       {loadError ? <p style={styles.error}>{loadError}</p> : null}
+
+      <MissionViabilityPanel />
 
       <section aria-label="Sensor Readings" style={styles.grid}>
         {SENSOR_METRICS.map(({ key, label, unit }) => (

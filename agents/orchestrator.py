@@ -1,12 +1,15 @@
 """
 Mars Greenhouse Orchestrator Agent
 Reads sensor data from DynamoDB, queries the AgentCore KB via MCP,
-and decides on greenhouse adjustments using Claude Sonnet on Bedrock.
+delegates to sub-agents, tracks mission nutrition, and manages priorities.
 """
 
 import json
 import logging
-from datetime import datetime, timedelta
+import os
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Optional
 
 import httpx
 from mcp.client.streamable_http import streamablehttp_client
@@ -21,8 +24,6 @@ logger = logging.getLogger(__name__)
 
 # ── Configuration ────────────────────────────────────────────────────────────
 
-import os
-
 KB_MCP_URL = os.environ.get("KB_MCP_URL", "https://kb-start-hack-gateway-buyjtibfpg.gateway.bedrock-agentcore.us-east-2.amazonaws.com/mcp")
 GATEWAY_CLIENT_ID = os.environ.get("GATEWAY_CLIENT_ID", "")
 GATEWAY_CLIENT_SECRET = os.environ.get("GATEWAY_CLIENT_SECRET", "")
@@ -30,10 +31,16 @@ GATEWAY_TOKEN_ENDPOINT = os.environ.get("GATEWAY_TOKEN_ENDPOINT", "")
 GATEWAY_SCOPE = os.environ.get("GATEWAY_SCOPE", "")
 
 AWS_REGION = get_runtime_region()
+MODEL_ID = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
 
-MODEL_ID = "us.anthropic.claude-sonnet-4-5"
+# ── Mission constants ────────────────────────────────────────────────────────
 
-# ── OAuth2 token cache ────────────────────────────────────────────────────────
+MISSION_DURATION_SOLS = 450
+ASTRONAUT_COUNT = 4
+KCAL_PER_ASTRONAUT_PER_SOL = 2300
+ACTION_LOG_PATH = Path(__file__).resolve().parent / "action_log.json"
+
+# ── OAuth2 token cache ───────────────────────────────────────────────────────
 
 _token_cache: dict = {"token": None, "expires_at": None}
 
@@ -45,7 +52,6 @@ def get_oauth_token() -> str:
         return _token_cache["token"]
 
     if not all([GATEWAY_CLIENT_ID, GATEWAY_CLIENT_SECRET, GATEWAY_TOKEN_ENDPOINT]):
-        # No OAuth configured — gateway may allow unauthenticated access (dev mode)
         logger.warning("OAuth credentials not set; attempting unauthenticated MCP connection.")
         return ""
 
@@ -63,7 +69,7 @@ def get_oauth_token() -> str:
     resp.raise_for_status()
     data = resp.json()
     token = data["access_token"]
-    expires_in = data.get("expires_in", 3600) - 300  # 5-min buffer
+    expires_in = data.get("expires_in", 3600) - 300
     _token_cache["token"] = token
     _token_cache["expires_at"] = now + timedelta(seconds=expires_in)
     logger.info("OAuth token refreshed, expires in %ds", expires_in)
@@ -77,7 +83,48 @@ def build_mcp_client() -> MCPClient:
     return MCPClient(lambda: streamablehttp_client(KB_MCP_URL, headers=headers))
 
 
-# ── DynamoDB tools ────────────────────────────────────────────────────────────
+# ── Action Memory ────────────────────────────────────────────────────────────
+
+def load_action_log() -> list:
+    """Load previous cycle actions from disk."""
+    if ACTION_LOG_PATH.exists():
+        try:
+            with open(ACTION_LOG_PATH, "r") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            return []
+    return []
+
+
+def save_action_log(actions: list) -> None:
+    """Persist actions taken this cycle for next cycle's memory."""
+    # Keep only the last 20 actions to avoid unbounded growth
+    actions = actions[-20:]
+    with open(ACTION_LOG_PATH, "w") as f:
+        json.dump(actions, f, indent=2, default=str)
+
+
+# ── Mission Clock ────────────────────────────────────────────────────────────
+
+def get_mission_sol() -> int:
+    """
+    Calculate current mission Sol from mission start date.
+    Falls back to environment variable MISSION_START_DATE or defaults to Sol 1.
+    A Mars sol is 24h 37m 22s = 88,642 seconds.
+    """
+    start_str = os.environ.get("MISSION_START_DATE", "")
+    if not start_str:
+        # Default: mission started 30 days ago for demo purposes
+        start = datetime.now(timezone.utc) - timedelta(days=30)
+    else:
+        start = datetime.fromisoformat(start_str)
+
+    elapsed_seconds = (datetime.now(timezone.utc) - start).total_seconds()
+    mars_sol_seconds = 88642
+    return max(1, int(elapsed_seconds / mars_sol_seconds) + 1)
+
+
+# ── DynamoDB tools ───────────────────────────────────────────────────────────
 
 LIST_SENSOR_READINGS = """
 query ListSensorReadings($limit: Int) {
@@ -120,10 +167,8 @@ def get_latest_sensor_reading() -> str:
     items = result.get("listSensorReadings", {}).get("items", [])
     if not items:
         return json.dumps({"error": "No sensor readings found"})
-    # Sort by createdAt descending and return the latest
     items.sort(key=lambda x: x.get("createdAt", ""), reverse=True)
     latest = items[0]
-    # Convert Decimal to float for JSON serialisation
     return json.dumps(latest)
 
 
@@ -132,12 +177,12 @@ def write_agent_event(severity: str, message: str, action_taken: str) -> str:
     """Persist an AgentEvent to DynamoDB so the React dashboard can display it.
 
     Args:
-        severity: One of INFO, WARNING, ERROR
+        severity: One of INFO, WARNING, CRITICAL
         message: Human-readable description of what the agent observed
         action_taken: The adjustment or recommendation the agent made
     """
     import uuid
-    now = datetime.utcnow().isoformat() + "Z"
+    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     item = {
         "id": str(uuid.uuid4()),
         "agentId": "orchestrator",
@@ -151,7 +196,161 @@ def write_agent_event(severity: str, message: str, action_taken: str) -> str:
     return json.dumps({"status": "ok", "id": item["id"]})
 
 
-# ── Greenhouse thresholds ─────────────────────────────────────────────────────
+# ── Sub-agent delegation tools ───────────────────────────────────────────────
+
+@tool
+def delegate_environment_check(greenhouse_id: str = "mars-greenhouse-1") -> str:
+    """Delegate environmental analysis to the Environment Agent.
+
+    The environment agent checks temperature, humidity, CO₂, and lighting,
+    queries the knowledge base for crop-specific guidance, and issues
+    actuator commands as needed.
+
+    Args:
+        greenhouse_id: ID of the greenhouse to analyze
+    """
+    try:
+        from agents.environment_agent import run_environment_agent
+        result = run_environment_agent(greenhouse_id)
+        return json.dumps({"status": "completed", "agent": "environment", "result": str(result)[:2000]})
+    except Exception as e:
+        logger.error("Environment agent delegation failed: %s", e)
+        return json.dumps({"status": "error", "agent": "environment", "error": str(e)})
+
+
+@tool
+def delegate_resource_check() -> str:
+    """Delegate resource management to the Resource Agent.
+
+    The resource agent tracks water consumption rate, projects days-remaining,
+    manages nutrient EC and pH, and throttles irrigation when reserves
+    drop below 30%.
+    """
+    try:
+        from agents.resource_agent import run_resource_agent
+        result = run_resource_agent()
+        return json.dumps({"status": "completed", "agent": "resource", "result": str(result)[:2000]})
+    except Exception as e:
+        logger.error("Resource agent delegation failed: %s", e)
+        return json.dumps({"status": "error", "agent": "resource", "error": str(e)})
+
+
+@tool
+def delegate_stress_check(greenhouse_id: str = "mars-greenhouse-1") -> str:
+    """Delegate plant health monitoring to the Stress Agent.
+
+    The stress agent detects anomalies, performs visual disease detection,
+    and writes CRITICAL AgentEvents when stress is detected.
+
+    Args:
+        greenhouse_id: ID of the greenhouse to monitor
+    """
+    try:
+        from agents.stress_agent import run_stress_agent
+        result = run_stress_agent(greenhouse_id)
+        return json.dumps({"status": "completed", "agent": "stress", "result": str(result)[:2000]})
+    except Exception as e:
+        logger.error("Stress agent delegation failed: %s", e)
+        return json.dumps({"status": "error", "agent": "stress", "error": str(e)})
+
+
+@tool
+def get_mission_status() -> str:
+    """Get current mission clock, nutritional projections, and action history.
+
+    Returns mission Sol, days remaining, caloric projections, and
+    the last 5 actions taken by agents to avoid repeating commands.
+    """
+    sol = get_mission_sol()
+    sols_remaining = max(0, MISSION_DURATION_SOLS - sol)
+    kcal_needed = ASTRONAUT_COUNT * KCAL_PER_ASTRONAUT_PER_SOL * sols_remaining
+    previous_actions = load_action_log()
+
+    return json.dumps({
+        "current_sol": sol,
+        "mission_duration": MISSION_DURATION_SOLS,
+        "sols_remaining": sols_remaining,
+        "astronaut_count": ASTRONAUT_COUNT,
+        "kcal_per_astronaut_per_sol": KCAL_PER_ASTRONAUT_PER_SOL,
+        "kcal_needed_remaining": kcal_needed,
+        "mission_phase": (
+            "EARLY" if sol < 100 else
+            "MID" if sol < 300 else
+            "LATE" if sol < 400 else
+            "FINAL"
+        ),
+        "strategy_note": (
+            "Focus on establishing all crop zones and building food reserves."
+            if sol < 100 else
+            "Steady-state production. Optimize yields and monitor for stress."
+            if sol < 300 else
+            "Late mission. Prioritize fast-growing calorie-dense crops."
+            if sol < 400 else
+            "FINAL PHASE. Only plant crops that can harvest before mission end."
+        ),
+        "previous_actions": previous_actions[-5:],
+    })
+
+
+@tool
+def record_action(action_description: str, action_type: str) -> str:
+    """Record an action taken by the orchestrator for memory persistence.
+
+    Args:
+        action_description: What was done
+        action_type: Category (ENVIRONMENTAL, RESOURCE, STRESS, NUTRITIONAL)
+    """
+    actions = load_action_log()
+    actions.append({
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "sol": get_mission_sol(),
+        "action": action_description,
+        "type": action_type,
+    })
+    save_action_log(actions)
+    return json.dumps({"status": "recorded"})
+
+
+@tool
+def verify_last_action() -> str:
+    """Verify the effect of the last action by comparing sensor readings.
+
+    Reads the most recent sensor data and checks whether conditions
+    have improved since the last action was taken. This implements
+    the feedback loop.
+    """
+    actions = load_action_log()
+    latest_reading_json = get_latest_sensor_reading()
+    latest = json.loads(latest_reading_json)
+
+    if "error" in latest:
+        return json.dumps({"verification": "UNABLE", "reason": "No sensor data available"})
+
+    if not actions:
+        return json.dumps({"verification": "NO_PREVIOUS_ACTIONS", "current_readings": latest})
+
+    last_action = actions[-1]
+    return json.dumps({
+        "verification": "CHECK_REQUIRED",
+        "last_action": last_action,
+        "current_readings": {
+            "temperature": latest.get("temperature"),
+            "humidity": latest.get("humidity"),
+            "co2Ppm": latest.get("co2Ppm"),
+            "lightPpfd": latest.get("lightPpfd"),
+            "phLevel": latest.get("phLevel"),
+            "nutrientEc": latest.get("nutrientEc"),
+            "waterLitres": latest.get("waterLitres"),
+        },
+        "instruction": (
+            "Compare current readings against the expected effect of the last action. "
+            "If the readings confirm the change worked, report SUCCESS. "
+            "If not, determine if the action needs to be repeated or adjusted."
+        ),
+    })
+
+
+# ── Greenhouse thresholds ────────────────────────────────────────────────────
 
 THRESHOLDS = {
     "temperature":  {"min": 18.0,  "max": 26.0,  "unit": "°C"},
@@ -169,26 +368,61 @@ def build_system_prompt() -> str:
         f"  - {k}: {v['min']}–{v['max']} {v['unit']}"
         for k, v in THRESHOLDS.items()
     )
-    return f"""You are the Mars Greenhouse Orchestrator — an expert autonomous agent managing
-a hydroponic greenhouse on Mars. Your job is to:
 
-1. Read the latest sensor data using get_latest_sensor_reading.
-2. Query the knowledge base (via MCP tools) for relevant agronomic guidance when values
-   are outside normal ranges.
-3. Decide on concrete adjustments (e.g. "increase CO₂ injection by 10%", "reduce LED
-   intensity", "add 5L of nutrient solution").
-4. Write a structured AgentEvent using write_agent_event summarising your findings and
-   the action taken.
+    sol = get_mission_sol()
+    sols_remaining = max(0, MISSION_DURATION_SOLS - sol)
+
+    return f"""You are the autonomous manager of a Martian greenhouse sustaining {ASTRONAUT_COUNT} astronauts
+for a {MISSION_DURATION_SOLS}-sol mission. You make all decisions about crop management, resource
+allocation, and environmental control.
+
+MISSION PARAMETERS:
+- {ASTRONAUT_COUNT} astronauts requiring {KCAL_PER_ASTRONAUT_PER_SOL} kcal/person/sol
+- Total mission caloric need: {ASTRONAUT_COUNT * KCAL_PER_ASTRONAUT_PER_SOL * MISSION_DURATION_SOLS:,} kcal
+- Water is non-renewable beyond recycling — treat every litre as critical
+- Resupply is impossible — equipment failures must be managed with what exists
+- Current Sol: {sol}
+- Sols Remaining: {sols_remaining}
+
+DECISION PRIORITY ORDER (never violate this):
+1. CREW NUTRITION — if food supply drops below 60 days, emergency replanting overrides everything
+2. RESOURCE CONSERVATION — never deplete water below 20% reserve; throttle irrigation at 30%
+3. ENVIRONMENTAL STABILITY — keep all metrics within crop-viable ranges
+4. YIELD OPTIMIZATION — maximize caloric output within constraints
+
+WHEN MULTIPLE CRISES OCCUR SIMULTANEOUSLY:
+- Water critically low AND CO₂ elevated → address water FIRST (crew dies without water before CO₂ kills crops)
+- Temperature extreme AND nutrient imbalance → address temperature FIRST (plants die faster from thermal shock)
+- Always resolve life-threatening issues before optimisation issues
+
+FEEDBACK LOOP:
+- After issuing any command, use verify_last_action to check if the next sensor reading confirms the change worked
+- If the change did not work, escalate or adjust the approach
+
+MEMORY:
+- Use get_mission_status to see what actions were taken in the previous cycle
+- Do NOT repeat the same action if it was already taken recently unless verification shows it failed
+- Use record_action to log every action you take
 
 Optimal ranges for this Martian greenhouse:
 {threshold_lines}
 
-Be concise and action-oriented. Always call write_agent_event at the end of your analysis,
-even if all readings are nominal (use severity=INFO in that case).
+YOUR WORKFLOW EACH CYCLE:
+1. Call get_mission_status to understand current sol, nutrition, and recent actions
+2. Call get_latest_sensor_reading for current conditions
+3. Verify the last action's effectiveness with verify_last_action
+4. Delegate to sub-agents as needed:
+   - delegate_environment_check for temperature/humidity/CO₂/light issues
+   - delegate_resource_check for water/nutrient/power management
+   - delegate_stress_check for plant health anomalies
+5. Record all actions taken with record_action
+6. Write a final AgentEvent summary with write_agent_event
+
+Be concise and action-oriented. Always log your reasoning.
 """
 
 
-# ── Main entry point ──────────────────────────────────────────────────────────
+# ── Main entry point ─────────────────────────────────────────────────────────
 
 def run_orchestrator(prompt: str | None = None) -> str:
     """Run one orchestration cycle and return the agent's response."""
@@ -199,7 +433,16 @@ def run_orchestrator(prompt: str | None = None) -> str:
         max_tokens=2048,
     )
 
-    local_tools = [get_latest_sensor_reading, write_agent_event]
+    local_tools = [
+        get_latest_sensor_reading,
+        write_agent_event,
+        get_mission_status,
+        record_action,
+        verify_last_action,
+        delegate_environment_check,
+        delegate_resource_check,
+        delegate_stress_check,
+    ]
 
     mcp_client = build_mcp_client()
     with mcp_client:
@@ -213,11 +456,12 @@ def run_orchestrator(prompt: str | None = None) -> str:
         )
 
         user_prompt = prompt or (
-            "Analyse the current greenhouse sensor readings, consult the knowledge base "
-            "if any values are out of range, and recommend adjustments."
+            "Run a full orchestration cycle: check mission status, read sensors, "
+            "verify previous actions, delegate to sub-agents as needed, "
+            "and log all decisions. Follow the priority ordering strictly."
         )
 
-        logger.info("Orchestrator starting cycle...")
+        logger.info("Orchestrator starting cycle (Sol %d)...", get_mission_sol())
         response = agent(user_prompt)
         logger.info("Orchestrator cycle complete.")
         return str(response)
