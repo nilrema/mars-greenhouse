@@ -13,7 +13,7 @@ import {
 interface TopNavProps {
   chaosActive: boolean;
   simParams: SimulationParams;
-  onSimChange: (params: SimulationParams) => void;
+  onSimChange: (params: SimulationParams) => void | Promise<void>;
 }
 
 export function TopNav({ chaosActive, simParams, onSimChange }: TopNavProps) {

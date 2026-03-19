@@ -40,16 +40,17 @@ Responsibilities:
 
 Primary paths:
 
-- [agents/mission_orchestrator.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/mission_orchestrator.py)
-- [agents/environment_agent.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/environment_agent.py)
-- [agents/crop_agent.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/crop_agent.py)
-- [agents/astro_agent.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/astro_agent.py)
-- [agents/resource_agent.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/resource_agent.py)
+- [agents/orchestrator.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/orchestrator.py)
+- [agents/specialized_agents.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/specialized_agents.py)
+- [agents/mcp.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/mcp.py)
 
 Responsibilities:
 
-- remain compatible with future integration plans
-- not define the active frontend interaction model yet
+- expose a minimal `handle_chat(query: str) -> str` backend entrypoint for chat integration
+- route user requests through a Strands Agents "Agents as Tools" orchestration flow
+- provide `environment_agent`, `crop_agent`, `astro_agent`, and `resource_agent` specialist tools
+- keep Mars knowledge base MCP access available to the orchestrator and specialist tools
+- provide a lightweight frontend chat bridge so the React UI can submit chat turns and render agent steps
 
 ## 3. Active Frontend State
 

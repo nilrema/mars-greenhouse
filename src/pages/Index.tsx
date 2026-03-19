@@ -5,13 +5,13 @@ import { AgentChatPanel } from '@/components/mission/AgentChatPanel';
 import { useMissionState } from '@/components/mission/useMissionState';
 
 const Index = () => {
-  const { base, astronauts, agents, logs, metrics, simParams, updateSimulation } = useMissionState();
+  const { base, astronauts, agents, chatMessages, isChatLoading, metrics, runSimulation, simParams, sendChatMessage } = useMissionState();
   const chaosActive =
     simParams.temperatureDrift !== 0 || simParams.waterRecycling !== 100 || simParams.powerAvailability !== 100;
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-background">
-      <TopNav chaosActive={chaosActive} simParams={simParams} onSimChange={updateSimulation} />
+      <TopNav chaosActive={chaosActive} simParams={simParams} onSimChange={runSimulation} />
 
       <div className="flex-1 flex min-h-0 p-2 gap-2">
         <div className="w-[20%] min-h-0">
@@ -23,7 +23,12 @@ const Index = () => {
         </div>
 
         <div className="w-[28%] min-h-0">
-          <AgentChatPanel agents={agents} logs={logs} />
+          <AgentChatPanel
+            agents={agents}
+            messages={chatMessages}
+            isLoading={isChatLoading}
+            onSendMessage={sendChatMessage}
+          />
         </div>
       </div>
 

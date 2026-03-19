@@ -1,8 +1,10 @@
 import { useCallback, useState } from 'react';
+import { sendChatQuery } from './chatApi';
 import type {
   ActivityFeedItem,
   AgentStatusCard,
   AstronautRecord,
+  ChatMessage,
   HumanMetrics,
   MarsBase,
   SimulationParams,
@@ -90,6 +92,30 @@ const defaultSimParams: SimulationParams = {
   waterRecycling: 100,
   powerAvailability: 100,
 };
+
+const initialChatMessages: ChatMessage[] = [
+  {
+    id: 'system-welcome',
+    role: 'system',
+    author: 'system',
+    agent: 'system',
+    message: 'Mars greenhouse agents online. Ask about climate, crops, crew impact, or resource constraints.',
+  },
+];
+
+function createChatMessageId(prefix: string) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function buildSimulationAgentPrompt(params: SimulationParams) {
+  return [
+    'Analyze this Mars greenhouse simulation update and explain the operational impact.',
+    `Temperature drift: ${params.temperatureDrift}°C`,
+    `Water recycling: ${params.waterRecycling}%`,
+    `Power availability: ${params.powerAvailability}%`,
+    'Use the current greenhouse telemetry plus your specialist agents to explain what is happening and what actions matter most right now.',
+  ].join('\n');
+}
 
 function computeHardware(params: SimulationParams) {
   const effectiveTemp = BASELINE_TEMP + params.temperatureDrift;
@@ -282,6 +308,8 @@ export function useMissionState() {
   const [astronauts, setAstronauts] = useState<AstronautRecord[]>(initialAstronauts);
   const [agents, setAgents] = useState<AgentStatusCard[]>(initialAgents);
   const [logs, setLogs] = useState<ActivityFeedItem[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(initialChatMessages);
+  const [isChatLoading, setIsChatLoading] = useState(false);
   const [metrics, setMetrics] = useState<HumanMetrics>({ ...initialMetrics });
   const [simParams, setSimParams] = useState<SimulationParams>({ ...defaultSimParams });
 
@@ -295,13 +323,108 @@ export function useMissionState() {
     setLogs(createLogs(params, stress));
   }, []);
 
+  const requestAgentResponse = useCallback(async (query: string) => {
+    const payload = await sendChatQuery(query);
+    setChatMessages((currentMessages) => [
+      ...currentMessages,
+      ...payload.steps.map((step) => ({
+        id: createChatMessageId(step.agent),
+        role: 'system' as const,
+        author: step.agent === 'orchestrator' ? 'orchestrator' : 'system',
+        agent: step.agent === 'orchestrator' ? 'orchestrator' : (step.agent as 'environment' | 'crop' | 'astro' | 'resource'),
+        message: step.message,
+      })),
+      {
+        id: createChatMessageId('agent'),
+        role: 'agent' as const,
+        author: 'agent system',
+        agent: 'orchestrator',
+        message: payload.response,
+      },
+    ]);
+  }, []);
+
+  const sendChatMessage = useCallback(async (query: string) => {
+    const cleanedQuery = query.trim();
+    if (!cleanedQuery || isChatLoading) {
+      return;
+    }
+
+    setChatMessages((currentMessages) => [
+      ...currentMessages,
+      {
+        id: createChatMessageId('user'),
+        role: 'user',
+        author: 'operator',
+        agent: 'user',
+        message: cleanedQuery,
+      },
+    ]);
+    setIsChatLoading(true);
+
+    try {
+      await requestAgentResponse(cleanedQuery);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'The backend chat bridge is unavailable.';
+      setChatMessages((currentMessages) => [
+        ...currentMessages,
+        {
+          id: createChatMessageId('error'),
+          role: 'system',
+          author: 'system',
+          agent: 'system',
+          message,
+        },
+      ]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  }, [isChatLoading, requestAgentResponse]);
+
+  const runSimulation = useCallback(async (params: SimulationParams) => {
+    updateSimulation(params);
+    setChatMessages((currentMessages) => [
+      ...currentMessages,
+      {
+        id: createChatMessageId('simulation'),
+        role: 'system',
+        author: 'simulation',
+        agent: 'system',
+        message: `Simulation started: temperature drift ${params.temperatureDrift}°C, water recycling ${params.waterRecycling}%, power availability ${params.powerAvailability}%.`,
+      },
+    ]);
+    setIsChatLoading(true);
+
+    try {
+      await requestAgentResponse(buildSimulationAgentPrompt(params));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'The backend chat bridge is unavailable.';
+      setChatMessages((currentMessages) => [
+        ...currentMessages,
+        {
+          id: createChatMessageId('simulation-error'),
+          role: 'system',
+          author: 'system',
+          agent: 'system',
+          message,
+        },
+      ]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  }, [requestAgentResponse, updateSimulation]);
+
   return {
     base,
     astronauts,
     agents,
+    chatMessages,
+    isChatLoading,
     logs,
     metrics,
+    runSimulation,
     simParams,
+    sendChatMessage,
     updateSimulation,
   };
 }
