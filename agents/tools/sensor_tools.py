@@ -1,156 +1,130 @@
 """
-Sensor tools for reading greenhouse sensor data from DynamoDB.
+Sensor tools for reading greenhouse sensor data from AppSync.
 """
+
+from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
-import boto3
 from strands import tool
+
+from agents.appsync_client import execute_graphql
 
 logger = logging.getLogger(__name__)
 
-# DynamoDB client
-_dynamodb = boto3.resource("dynamodb", region_name="us-east-2")
-_sensor_table = _dynamodb.Table("SensorReading")
+LIST_SENSOR_READINGS = """
+query ListSensorReadings($filter: ModelSensorReadingFilterInput, $limit: Int) {
+  listSensorReadings(filter: $filter, limit: $limit) {
+    items {
+      id
+      greenhouseId
+      timestamp
+      temperature
+      humidity
+      co2Ppm
+      lightPpfd
+      phLevel
+      nutrientEc
+      waterLitres
+      radiationMsv
+      createdAt
+      updatedAt
+    }
+  }
+}
+"""
+
+
+def _load_sensor_readings(greenhouse_id: str, limit: int = 100) -> list[dict]:
+    data = execute_graphql(
+        LIST_SENSOR_READINGS,
+        {
+            "filter": {"greenhouseId": {"eq": greenhouse_id}},
+            "limit": limit,
+        },
+    )
+    items = data.get("listSensorReadings", {}).get("items", [])
+    return [item for item in items if item]
 
 
 @tool
 def get_latest_sensor_reading(greenhouse_id: str) -> str:
-    """Fetch the most recent SensorReading for a specific greenhouse.
-
-    Args:
-        greenhouse_id: The ID of the greenhouse (e.g., "mars-greenhouse-1")
-
-    Returns:
-        JSON string with temperature (°C), humidity (%), co2Ppm, lightPpfd,
-        phLevel, nutrientEc (mS/cm), waterLitres, and radiationMsv.
-    """
     try:
-        # Query by greenhouseId, sorted by timestamp descending
-        response = _sensor_table.query(
-            KeyConditionExpression="greenhouseId = :gid",
-            ExpressionAttributeValues={":gid": greenhouse_id},
-            Limit=1,
-            ScanIndexForward=False,  # Most recent first
-        )
-        items = response.get("Items", [])
+        items = _load_sensor_readings(greenhouse_id, limit=100)
         if not items:
-            return json.dumps({"error": f"No sensor readings found for greenhouse {greenhouse_id}"})
-        
-        latest = items[0]
-        # Convert Decimal to float for JSON serialization
-        result = {}
-        for key, value in latest.items():
-            if hasattr(value, "__float__"):
-                result[key] = float(value)
-            else:
-                result[key] = value
-        
+            return json.dumps(
+                {"error": f"No sensor readings found for greenhouse {greenhouse_id}"}
+            )
+
+        latest = max(items, key=lambda item: item.get("timestamp", ""))
         logger.info("Retrieved latest sensor reading for %s", greenhouse_id)
-        return json.dumps(result)
-    
-    except Exception as e:
-        logger.error("Failed to get latest sensor reading: %s", e)
-        return json.dumps({"error": str(e)})
+        return json.dumps(latest)
+    except Exception as error:
+        logger.error("Failed to get latest sensor reading: %s", error)
+        return json.dumps({"error": str(error)})
 
 
 @tool
 def get_sensor_history(greenhouse_id: str, hours: int = 24) -> str:
-    """Fetch sensor readings from the last N hours.
-
-    Args:
-        greenhouse_id: The ID of the greenhouse
-        hours: Number of hours of history to retrieve (default: 24)
-
-    Returns:
-        JSON array of sensor readings, each with timestamp and sensor values.
-    """
     try:
-        # Calculate time range
-        end_time = datetime.utcnow()
-        start_time = end_time - timedelta(hours=hours)
-        
-        # Query by greenhouseId and timestamp range
-        response = _sensor_table.query(
-            KeyConditionExpression="greenhouseId = :gid AND #ts BETWEEN :start AND :end",
-            ExpressionAttributeNames={"#ts": "timestamp"},
-            ExpressionAttributeValues={
-                ":gid": greenhouse_id,
-                ":start": start_time.isoformat() + "Z",
-                ":end": end_time.isoformat() + "Z",
-            },
-            ScanIndexForward=True,  # Oldest first
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+        items = _load_sensor_readings(greenhouse_id, limit=1000)
+        history = [
+            item
+            for item in items
+            if item.get("timestamp")
+            and datetime.fromisoformat(item["timestamp"].replace("Z", "+00:00")) >= cutoff
+        ]
+        history.sort(key=lambda item: item.get("timestamp", ""))
+
+        if not history:
+            return json.dumps(
+                {
+                    "error": (
+                        f"No sensor readings found for greenhouse {greenhouse_id} "
+                        f"in last {hours} hours"
+                    )
+                }
+            )
+
+        logger.info(
+            "Retrieved %d sensor readings for %s (last %d hours)",
+            len(history),
+            greenhouse_id,
+            hours,
         )
-        
-        items = response.get("Items", [])
-        if not items:
-            return json.dumps({"error": f"No sensor readings found for greenhouse {greenhouse_id} in last {hours} hours"})
-        
-        # Convert Decimal to float and format results
-        results = []
-        for item in items:
-            formatted = {}
-            for key, value in item.items():
-                if hasattr(value, "__float__"):
-                    formatted[key] = float(value)
-                else:
-                    formatted[key] = value
-            results.append(formatted)
-        
-        logger.info("Retrieved %d sensor readings for %s (last %d hours)", len(results), greenhouse_id, hours)
-        return json.dumps(results)
-    
-    except Exception as e:
-        logger.error("Failed to get sensor history: %s", e)
-        return json.dumps({"error": str(e)})
+        return json.dumps(history)
+    except Exception as error:
+        logger.error("Failed to get sensor history: %s", error)
+        return json.dumps({"error": str(error)})
 
 
 @tool
 def get_sensor_statistics(greenhouse_id: str, metric: str, hours: int = 24) -> str:
-    """Calculate statistics (min, max, avg) for a specific sensor metric.
-
-    Args:
-        greenhouse_id: The ID of the greenhouse
-        metric: Sensor metric name (temperature, humidity, co2Ppm, etc.)
-        hours: Time window in hours (default: 24)
-
-    Returns:
-        JSON with min, max, average, and current value of the metric.
-    """
     try:
-        # Get history first
         history_json = get_sensor_history(greenhouse_id, hours)
         history = json.loads(history_json)
-        
-        if "error" in history:
+
+        if isinstance(history, dict) and "error" in history:
             return history_json
-        
-        # Extract metric values
-        values = []
-        for reading in history:
-            if metric in reading:
-                values.append(reading[metric])
-        
+
+        values = [reading[metric] for reading in history if reading.get(metric) is not None]
         if not values:
             return json.dumps({"error": f"Metric {metric} not found in sensor readings"})
-        
-        # Calculate statistics
-        current = values[-1] if values else None
-        stats = {
-            "metric": metric,
-            "current": current,
-            "min": min(values),
-            "max": max(values),
-            "average": sum(values) / len(values),
-            "samples": len(values),
-            "time_window_hours": hours,
-        }
-        
-        logger.info("Calculated statistics for %s.%s", greenhouse_id, metric)
-        return json.dumps(stats)
-    
-    except Exception as e:
-        logger.error("Failed to calculate sensor statistics: %s", e)
-        return json.dumps({"error": str(e)})
+
+        return json.dumps(
+            {
+                "metric": metric,
+                "current": values[-1],
+                "min": min(values),
+                "max": max(values),
+                "average": sum(values) / len(values),
+                "samples": len(values),
+                "time_window_hours": hours,
+            }
+        )
+    except Exception as error:
+        logger.error("Failed to calculate sensor statistics: %s", error)
+        return json.dumps({"error": str(error)})

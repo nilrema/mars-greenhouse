@@ -160,13 +160,19 @@ mars-greenhouse/
    ```
    If `amplify_outputs.json` is not present yet, the dashboard boots in mock mode so the UI is still usable.
 
-3. **Run the orchestrator agent**
+3. **Seed demo data for the dashboard**
+   ```bash
+   npm run seed:demo
+   ```
+   This creates initial sensor readings, crop records, and an agent event so the frontend has data immediately.
+
+4. **Run the orchestrator agent**
    ```bash
    cd agents
    python orchestrator.py
    ```
 
-4. **Build and run agents with Docker**
+5. **Build and run agents with Docker**
    ```bash
    npm run agent:build
    npm run agent:run

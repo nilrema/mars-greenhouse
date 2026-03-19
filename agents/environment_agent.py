@@ -9,6 +9,7 @@ from datetime import datetime
 from strands import Agent, tool
 from strands.models import BedrockModel
 
+from agents.appsync_client import get_runtime_region
 from agents.tools.sensor_tools import get_latest_sensor_reading, get_sensor_history
 from agents.tools.actuator_tools import (
     adjust_temperature,
@@ -19,6 +20,7 @@ from agents.tools.actuator_tools import (
 from agents.tools.kb_tools import query_knowledge_base
 
 logger = logging.getLogger(__name__)
+AWS_REGION = get_runtime_region()
 
 # Optimal ranges for Martian greenhouse
 OPTIMAL_RANGES = {
@@ -143,7 +145,7 @@ def run_environment_agent(greenhouse_id: str = "mars-greenhouse-1") -> str:
     """Run one cycle of the environment agent."""
     model = BedrockModel(
         model_id="us.anthropic.claude-sonnet-4-5",
-        region_name="us-east-2",
+        region_name=AWS_REGION,
         temperature=0.1,  # Low temperature for precise control
         max_tokens=1024,
     )

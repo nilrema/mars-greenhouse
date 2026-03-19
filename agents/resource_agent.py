@@ -9,11 +9,13 @@ from datetime import datetime
 from strands import Agent, tool
 from strands.models import BedrockModel
 
+from agents.appsync_client import get_runtime_region
 from agents.tools.sensor_tools import get_latest_sensor_reading, get_sensor_history
 from agents.tools.actuator_tools import trigger_irrigation, get_command_status
 from agents.tools.kb_tools import query_knowledge_base
 
 logger = logging.getLogger(__name__)
+AWS_REGION = get_runtime_region()
 
 # Resource constraints (Martian constraints)
 RESOURCE_LIMITS = {
@@ -183,7 +185,7 @@ def run_resource_agent() -> str:
     """Run one cycle of the resource agent."""
     model = BedrockModel(
         model_id="us.anthropic.claude-sonnet-4-5",
-        region_name="us-east-2",
+        region_name=AWS_REGION,
         temperature=0.2,  # Low temperature for precise resource management
         max_tokens=1024,
     )

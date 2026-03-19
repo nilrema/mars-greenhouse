@@ -4,32 +4,32 @@ Reads sensor data from DynamoDB, queries the AgentCore KB via MCP,
 and decides on greenhouse adjustments using Claude Sonnet on Bedrock.
 """
 
-import os
 import json
 import logging
 from datetime import datetime, timedelta
 
-import boto3
 import httpx
 from mcp.client.streamable_http import streamablehttp_client
 from strands import Agent, tool
 from strands.models import BedrockModel
 from strands.tools.mcp import MCPClient
 
+from agents.appsync_client import execute_graphql, get_runtime_region
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
 # ── Configuration ────────────────────────────────────────────────────────────
 
-KB_MCP_URL          = os.environ.get("KB_MCP_URL", "https://kb-start-hack-gateway-buyjtibfpg.gateway.bedrock-agentcore.us-east-2.amazonaws.com/mcp")
-GATEWAY_CLIENT_ID   = os.environ.get("GATEWAY_CLIENT_ID", "")
+import os
+
+KB_MCP_URL = os.environ.get("KB_MCP_URL", "https://kb-start-hack-gateway-buyjtibfpg.gateway.bedrock-agentcore.us-east-2.amazonaws.com/mcp")
+GATEWAY_CLIENT_ID = os.environ.get("GATEWAY_CLIENT_ID", "")
 GATEWAY_CLIENT_SECRET = os.environ.get("GATEWAY_CLIENT_SECRET", "")
 GATEWAY_TOKEN_ENDPOINT = os.environ.get("GATEWAY_TOKEN_ENDPOINT", "")
-GATEWAY_SCOPE       = os.environ.get("GATEWAY_SCOPE", "")
+GATEWAY_SCOPE = os.environ.get("GATEWAY_SCOPE", "")
 
-SENSOR_TABLE        = os.environ.get("SENSOR_TABLE", "SensorReading")
-AGENT_EVENT_TABLE   = os.environ.get("AGENT_EVENT_TABLE", "AgentEvent")
-AWS_REGION          = os.environ.get("AWS_REGION", "us-east-2")
+AWS_REGION = get_runtime_region()
 
 MODEL_ID = "us.anthropic.claude-sonnet-4-5"
 
@@ -79,7 +79,34 @@ def build_mcp_client() -> MCPClient:
 
 # ── DynamoDB tools ────────────────────────────────────────────────────────────
 
-_dynamodb = boto3.resource("dynamodb", region_name=AWS_REGION)
+LIST_SENSOR_READINGS = """
+query ListSensorReadings($limit: Int) {
+  listSensorReadings(limit: $limit) {
+    items {
+      id
+      greenhouseId
+      timestamp
+      temperature
+      humidity
+      co2Ppm
+      lightPpfd
+      phLevel
+      nutrientEc
+      waterLitres
+      radiationMsv
+      createdAt
+    }
+  }
+}
+"""
+
+CREATE_AGENT_EVENT = """
+mutation CreateAgentEvent($input: CreateAgentEventInput!) {
+  createAgentEvent(input: $input) {
+    id
+  }
+}
+"""
 
 
 @tool
@@ -89,16 +116,15 @@ def get_latest_sensor_reading() -> str:
     Returns a JSON string with temperature (°C), humidity (%), co2Ppm,
     lightPpfd (µmol/m²/s), phLevel, nutrientEc (mS/cm), and waterLitres.
     """
-    table = _dynamodb.Table(SENSOR_TABLE)
-    result = table.scan(Limit=10)
-    items = result.get("Items", [])
+    result = execute_graphql(LIST_SENSOR_READINGS, {"limit": 100})
+    items = result.get("listSensorReadings", {}).get("items", [])
     if not items:
         return json.dumps({"error": "No sensor readings found"})
     # Sort by createdAt descending and return the latest
     items.sort(key=lambda x: x.get("createdAt", ""), reverse=True)
     latest = items[0]
     # Convert Decimal to float for JSON serialisation
-    return json.dumps({k: float(v) if hasattr(v, "__float__") else v for k, v in latest.items()})
+    return json.dumps(latest)
 
 
 @tool
@@ -111,7 +137,6 @@ def write_agent_event(severity: str, message: str, action_taken: str) -> str:
         action_taken: The adjustment or recommendation the agent made
     """
     import uuid
-    table = _dynamodb.Table(AGENT_EVENT_TABLE)
     now = datetime.utcnow().isoformat() + "Z"
     item = {
         "id": str(uuid.uuid4()),
@@ -119,11 +144,9 @@ def write_agent_event(severity: str, message: str, action_taken: str) -> str:
         "severity": severity.upper(),
         "message": message,
         "actionTaken": action_taken,
-        "createdAt": now,
-        "updatedAt": now,
-        "__typename": "AgentEvent",
+        "timestamp": now,
     }
-    table.put_item(Item=item)
+    execute_graphql(CREATE_AGENT_EVENT, {"input": item})
     logger.info("AgentEvent written: %s", message)
     return json.dumps({"status": "ok", "id": item["id"]})
 
