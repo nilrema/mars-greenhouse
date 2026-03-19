@@ -1,117 +1,23 @@
 # TASKS.md
 
-## Delivery Rules
+## Product Focus
 
-- Split delivery into 4 milestones
-- Marin owns frontend delivery in `src/`
-- Andrija owns backend, schema, simulation integration, agent contracts, and tests
-- Luka owns datasets, scenario fixtures, assumptions, and demo evidence material
-- Every milestone must end in a demoable increment
-- The root `src/` frontend is the active frontend baseline
-- The active frontend should match the screenshot-style single-console layout
+This task list is intentionally limited to the core product work. It excludes presentation-only work, demo polish, and other side tasks so the team can stay focused on the functionality that needs to exist in the product.
 
-## Milestone 1: Pivot Foundation
+## 1. Backend To Frontend Chat Integration
 
-### Goal
+Andrija needs to connect the backend to the frontend chat interface so the chat no longer depends on mock responses. The goal is for messages from the UI to reach the backend, for the backend to return structured agent responses, and for the frontend to render those responses clearly and reliably in the existing chat flow.
 
-Establish the screenshot-style greenhouse console with aligned docs and a mocked simulation flow.
+This task should define the API contract between frontend and backend, wire the request and response lifecycle, and make sure the chat can handle loading, success, and failure states. Once this is in place, the chat becomes the real entry point for interacting with the system instead of a placeholder.
 
-### Marin
+## 2. Dataset Creation For Frontend Integration
 
-- Use the root `src/` frontend as the active baseline
-- Keep the main page as a single-console greenhouse overview
-- Build the mocked slider-driven simulation flow
-- Restore the center `Greenhouse` / `Astronauts` overview tabs
+Luka needs to create the dataset that will be integrated into the frontend. The goal is to prepare data that matches the product model we want to show in the UI, so the frontend can display meaningful greenhouse state, inspection context, and any other product-relevant information without relying on invented placeholder values.
 
-### Andrija
+This task should produce a dataset structure that is consistent, easy to consume, and ready for integration. It should also be clear how this data maps into the frontend components, so connecting it later does not require rethinking the format.
 
-- Keep backend and agent contracts compatible with future work
-- Do not block the mocked frontend console on real integration
+## 3. Live Camera Zoom And Inspection Selection
 
-### Luka
+Marin needs to implement zooming for the left-side live camera section. The goal is to let the user use the mouse to zoom into the camera feed and select a specific area for closer inspection.
 
-- Support believable mocked greenhouse and astronaut values for the active console
-
-### Demo Increment
-
-- screenshot-accurate greenhouse console skeleton
-
-## Milestone 2: Overview Command Center
-
-### Goal
-
-Make the main console the primary demo surface with slider-driven agent interaction.
-
-### Marin
-
-- Keep the three-column screenshot layout stable
-- Make the simulation modal update greenhouse metrics, astronauts, and agent feed
-- Keep the UI mock-driven and readable
-
-### Andrija
-
-- Leave backend integration as follow-up work
-- Keep role naming and future backend direction documented
-
-### Luka
-
-- Tune mocked agent responses so the conversation feels credible and deterministic
-
-### Demo Increment
-
-- simulation run plus visible agent conversation
-
-## Milestone 3: Module Detail And Actions
-
-### Goal
-
-Keep the detail screen as a future stub while refining the main console.
-
-### Marin
-
-- Keep the route in place as placeholder only
-- Do not let it shape the active product narrative
-
-### Andrija
-
-- Use this milestone only if the team later chooses to reactivate detailed exploration
-
-### Luka
-
-- No immediate dataset work required for the detail stub
-
-### Demo Increment
-
-- future-stub detail route remains reachable
-
-## Milestone 4: Demo Hardening
-
-### Goal
-
-Stabilize the screenshot-style console, improve clarity, and harden demo reliability.
-
-### Marin
-
-- Polish hierarchy, responsiveness, empty states, and simulation clarity
-- Reduce leftover invented command-center wording
-
-### Andrija
-
-- Add regression coverage for the simulation popup and agent feed behavior
-- Keep backend compatibility only where still useful
-
-### Luka
-
-- Finalize assumptions and presentation notes around the mocked console
-
-### Demo Increment
-
-- end-to-end simulation walkthrough on the main console
-
-## Cross-Milestone Done Criteria
-
-- Main screen renders the screenshot-style three-column layout
-- Simulation popup exposes exactly three sliders and a start action
-- Simulation updates greenhouse, astronauts, agent badges, and feed
-- Detail route remains a future stub
-- Documentation matches the pivoted product
+This interaction should feel precise and intuitive, because the selected region will later be sent to the crop agent once the backend integration is ready. The implementation should therefore support both navigation within the image and clear selection of the exact area the user wants to inspect in more detail.
