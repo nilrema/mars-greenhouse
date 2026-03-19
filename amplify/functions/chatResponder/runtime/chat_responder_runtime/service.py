@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import time
 from contextlib import AbstractContextManager
@@ -42,7 +41,7 @@ def _utc_now() -> datetime:
 
 
 def _chat_timestamp() -> int:
-    return int(time.time())
+    return int(time.time() * 1000)
 
 
 def _status_to_severity(status: str) -> str:
@@ -117,9 +116,9 @@ Available specialists:
 - astro: crew workload, nutrition, dispatch timing, human operational impact
 - resource: water recovery, irrigation, power, reserve allocation
 
-Return structured output only.
 Select the minimum set of specialists needed to solve the request, but if the request is broad or the simulation suggests coupled failures, route to multiple agents.
-Your dispatch_message should read like a real mission-control instruction to the selected specialists.
+Respond in natural language.
+Write a short dispatch note to the specialists and include a brief rationale for why you selected them.
 """
 
 
@@ -137,9 +136,9 @@ You are a real specialist agent in a multi-agent Mars greenhouse runtime.
 You have access to the Mars crop knowledge base MCP server as a tool provider.
 Use the MCP tools when you need grounding for crop, environment, Mars greenhouse, or mission reasoning.
 
-Return structured output only.
-Your response_message must sound like a direct message to the orchestrator and peer specialists.
-Make your requested_support concrete and address other specialists by role when relevant.
+Respond in natural language as a direct message to the orchestrator and peer specialists.
+State your risk level, the key evidence you are relying on, your requested support, and your next action.
+Use the MCP tools when needed, but do not force tool use when the simulation context already answers the question.
 """
 
 
@@ -149,9 +148,9 @@ You are the {_agent_name(agent_id)} specialist in a live coordination round.
 You already produced an initial assessment.
 Now you have peer updates and must respond briefly with your coordination position.
 
-Return structured output only.
+Respond in natural language.
 Do not repeat your full initial report.
-Reference peer constraints directly and update your action if needed.
+Reference peer constraints directly, mention any blockers, and update your action if needed.
 """
 
 
@@ -160,11 +159,36 @@ def _resolution_system_prompt() -> str:
 You are the Mars greenhouse orchestrator closing a specialist coordination cycle.
 You have the operator request, simulation context, route decision, specialist first-pass replies, and specialist follow-up notes.
 
-Return structured output only.
 Choose the lead agent, write a concise summary, and produce an ordered course of action.
 Every step must have an owner, an action, and a reason.
 The final success condition must be operational and concrete.
+Respond in natural language.
 """
+
+
+def _parser_system_prompt(model_name: str) -> str:
+    return f"""
+You convert a Mars greenhouse agent transcript into the structured schema {model_name}.
+
+Return structured output only.
+Use only information grounded in the provided transcript and context.
+Do not invent fields that were not implied by the transcript.
+If the transcript contains a direct natural-language message to other agents, preserve that message in the appropriate text field.
+"""
+
+
+def _extract_text_content(message: Any) -> str:
+    content = getattr(message, "get", None)
+    blocks = content("content", []) if callable(content) else message.get("content", [])
+    text_chunks: list[str] = []
+    for block in blocks:
+        if isinstance(block, dict) and block.get("text"):
+            text_chunks.append(str(block["text"]).strip())
+    return "\n".join(chunk for chunk in text_chunks if chunk).strip()
+
+
+def _is_invalid_tool_sequence_error(error: Exception) -> bool:
+    return "invalid sequence as part of ToolUse" in str(error)
 
 
 def _headers_for_mcp() -> dict[str, str]:
@@ -247,10 +271,38 @@ class StrandsBackend(AbstractContextManager):
             self.mcp_client.stop(exc_type, exc, tb)
             self._mcp_started = False
 
+    def _invoke_text(self, *, name: str, system_prompt: str, prompt: str, use_mcp: bool = True) -> str:
+        attempts = 2 if use_mcp else 1
+        last_error: Exception | None = None
+
+        for attempt in range(attempts):
+            agent = Agent(
+                model=self.model,
+                tools=[self.mcp_client] if use_mcp else [],
+                system_prompt=system_prompt,
+                name=name,
+                description=name,
+            )
+            try:
+                result = agent(prompt)
+                text = _extract_text_content(result.message)
+                if not text:
+                    raise RuntimeError(f"{name} did not return any text output")
+                return text
+            except Exception as error:
+                last_error = error
+                if not use_mcp or attempt == attempts - 1 or not _is_invalid_tool_sequence_error(error):
+                    raise
+            finally:
+                self._mcp_started = bool(getattr(self.mcp_client, "_tool_provider_started", False))
+                agent.cleanup()
+
+        raise RuntimeError(f"{name} failed without returning text") from last_error
+
     def _invoke_structured(self, *, name: str, system_prompt: str, prompt: str, output_model: type[BaseModel]) -> BaseModel:
         agent = Agent(
             model=self.model,
-            tools=[self.mcp_client],
+            tools=[],
             system_prompt=system_prompt,
             name=name,
             description=name,
@@ -258,7 +310,7 @@ class StrandsBackend(AbstractContextManager):
         try:
             result = agent(prompt, structured_output_model=output_model)
         finally:
-            self._mcp_started = bool(getattr(self.mcp_client, "_tool_provider_started", False))
+            agent.cleanup()
         if result.structured_output is None:
             raise RuntimeError(f"{name} did not return structured output")
         return result.structured_output
@@ -269,10 +321,20 @@ class StrandsBackend(AbstractContextManager):
             f"{context.simulation_summary}\n"
             "Decide which specialists should be routed right now."
         )
-        return self._invoke_structured(
+        route_message = self._invoke_text(
             name="orchestrator_router",
             system_prompt=_route_system_prompt(),
             prompt=prompt,
+            use_mcp=True,
+        )
+        return self._invoke_structured(
+            name="orchestrator_router_parser",
+            system_prompt=_parser_system_prompt("RouteDecision"),
+            prompt=(
+                f"Context:\n{context.simulation_summary}\n\n"
+                f"Operator message:\n{context.user_message}\n\n"
+                f"Orchestrator routing transcript:\n{route_message}"
+            ),
             output_model=RouteDecision,
         )
 
@@ -283,12 +345,24 @@ class StrandsBackend(AbstractContextManager):
             f"Orchestrator routing rationale:\n{route.rationale}\n\n"
             "Produce your specialist assessment."
         )
-        return self._invoke_structured(
+        assessment_message = self._invoke_text(
             name=f"{agent_id}_specialist",
             system_prompt=_specialist_system_prompt(agent_id),
             prompt=prompt,
+            use_mcp=True,
+        )
+        assessment = self._invoke_structured(
+            name=f"{agent_id}_specialist_parser",
+            system_prompt=_parser_system_prompt("SpecialistAssessment"),
+            prompt=(
+                f"Agent role: {agent_id}\n"
+                f"Simulation context:\n{context.simulation_summary}\n\n"
+                f"Routing rationale:\n{route.rationale}\n\n"
+                f"Specialist transcript:\n{assessment_message}"
+            ),
             output_model=SpecialistAssessment,
         )
+        return assessment.model_copy(update={"response_message": assessment_message})
 
     def follow_up(
         self,
@@ -314,12 +388,25 @@ class StrandsBackend(AbstractContextManager):
             + "\n\n".join(peer_notes)
             + "\n\nRespond with your coordination update."
         )
-        return self._invoke_structured(
+        follow_up_message = self._invoke_text(
             name=f"{agent_id}_follow_up",
             system_prompt=_follow_up_system_prompt(agent_id),
             prompt=prompt,
+            use_mcp=True,
+        )
+        follow_up = self._invoke_structured(
+            name=f"{agent_id}_follow_up_parser",
+            system_prompt=_parser_system_prompt("SpecialistFollowUp"),
+            prompt=(
+                f"Agent role: {agent_id}\n"
+                f"Simulation context:\n{context.simulation_summary}\n\n"
+                f"Initial assessment:\n{initial_assessments[agent_id].response_message}\n\n"
+                f"Peer notes:\n{chr(10).join(peer_notes)}\n\n"
+                f"Follow-up transcript:\n{follow_up_message}"
+            ),
             output_model=SpecialistFollowUp,
         )
+        return follow_up.model_copy(update={"alignment_message": follow_up_message})
 
     def resolve(
         self,
@@ -345,10 +432,22 @@ class StrandsBackend(AbstractContextManager):
             + "\n\n".join(specialist_bundle)
             + "\n\nResolve the coordination cycle."
         )
-        return self._invoke_structured(
+        resolution_message = self._invoke_text(
             name="orchestrator_resolver",
             system_prompt=_resolution_system_prompt(),
             prompt=prompt,
+            use_mcp=True,
+        )
+        return self._invoke_structured(
+            name="orchestrator_resolver_parser",
+            system_prompt=_parser_system_prompt("OrchestratorResolution"),
+            prompt=(
+                f"Operator request:\n{context.user_message}\n\n"
+                f"Simulation context:\n{context.simulation_summary}\n\n"
+                f"Routing rationale:\n{route.rationale}\n\n"
+                f"Specialist bundle:\n{chr(10).join(specialist_bundle)}\n\n"
+                f"Resolution transcript:\n{resolution_message}"
+            ),
             output_model=OrchestratorResolution,
         )
 

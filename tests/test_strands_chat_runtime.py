@@ -122,6 +122,7 @@ def test_runtime_can_route_to_a_single_specialist():
 
 def test_strands_backend_does_not_double_start_mcp_client(monkeypatch):
     events: list[str] = []
+    tool_invocations: list[tuple[str, bool, bool]] = []
 
     class FakeMCPClient:
         def __init__(self, *args, **kwargs):
@@ -142,11 +143,27 @@ def test_strands_backend_does_not_double_start_mcp_client(monkeypatch):
             self.tools = tools
             self.name = name
 
-        def __call__(self, prompt, structured_output_model):
+        def __call__(self, prompt, structured_output_model=None):
+            tool_invocations.append((self.name, bool(self.tools), structured_output_model is not None))
             for tool in self.tools:
                 if not getattr(tool, "_tool_provider_started", False):
                     tool.start()
                     tool._tool_provider_started = True
+            if structured_output_model is None:
+                return SimpleNamespace(
+                    message={
+                        "role": "assistant",
+                        "content": [
+                            {
+                                "text": (
+                                    "Route only ENV_AGENT because this is a contained thermal drift. "
+                                    "Dispatch Environment to assess and confirm the temperature."
+                                )
+                            }
+                        ],
+                    },
+                    structured_output=None,
+                )
             return SimpleNamespace(
                 structured_output=structured_output_model(
                     selected_agents=["environment"],
@@ -154,6 +171,9 @@ def test_strands_backend_does_not_double_start_mcp_client(monkeypatch):
                     dispatch_message="Environment, assess the thermal drift.",
                 )
             )
+
+        def cleanup(self):
+            return None
 
     monkeypatch.setattr(runtime_service, "BedrockModel", lambda *args, **kwargs: object())
     monkeypatch.setattr(runtime_service, "MCPClient", FakeMCPClient)
@@ -172,3 +192,67 @@ def test_strands_backend_does_not_double_start_mcp_client(monkeypatch):
 
     assert result.selected_agents == ["environment"]
     assert events == ["start", "stop"]
+    assert tool_invocations == [
+        ("orchestrator_router", True, False),
+        ("orchestrator_router_parser", False, True),
+    ]
+
+
+def test_strands_backend_retries_invalid_tool_sequence_once(monkeypatch):
+    attempts: list[str] = []
+
+    class FakeMCPClient:
+        def __init__(self, *args, **kwargs):
+            self._tool_provider_started = False
+
+        def start(self):
+            self._tool_provider_started = True
+
+        def stop(self, exc_type, exc, tb):
+            self._tool_provider_started = False
+
+    class FakeAgent:
+        def __init__(self, *, model, tools, system_prompt, name, description):
+            self.tools = tools
+            self.name = name
+
+        def __call__(self, prompt, structured_output_model=None):
+            attempts.append(self.name)
+            if self.tools and structured_output_model is None and len(attempts) == 1:
+                raise RuntimeError(
+                    "An error occurred (modelStreamErrorException) when calling the ConverseStream "
+                    "operation: Model produced invalid sequence as part of ToolUse."
+                )
+            if structured_output_model is None:
+                return SimpleNamespace(
+                    message={"role": "assistant", "content": [{"text": "Environment only. Route ENV_AGENT."}]},
+                    structured_output=None,
+                )
+            return SimpleNamespace(
+                structured_output=structured_output_model(
+                    selected_agents=["environment"],
+                    rationale="Climate-only issue.",
+                    dispatch_message="Environment, assess the thermal drift.",
+                )
+            )
+
+        def cleanup(self):
+            return None
+
+    monkeypatch.setattr(runtime_service, "BedrockModel", lambda *args, **kwargs: object())
+    monkeypatch.setattr(runtime_service, "MCPClient", FakeMCPClient)
+    monkeypatch.setattr(runtime_service, "Agent", FakeAgent)
+
+    with runtime_service.StrandsBackend(model_id="test-model") as backend:
+        result = backend.route(
+            RuntimeContext(
+                user_message="Assess the cold drift.",
+                conversation_id="conv-2",
+                request_id="req-2",
+                simulation_context={"temperatureDrift": -5.0, "waterRecycling": 95.0, "powerAvailability": 96.0},
+                simulation_summary="Cold drift only.",
+            )
+        )
+
+    assert result.selected_agents == ["environment"]
+    assert attempts == ["orchestrator_router", "orchestrator_router", "orchestrator_router_parser"]

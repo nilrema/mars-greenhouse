@@ -68,6 +68,7 @@ export function SimulationPanel({ params, onConfirm }: Props) {
           ].map((preset) => (
             <motion.button
               key={preset.label}
+              type="button"
               onClick={() => applyPreset(preset.values)}
               className="px-2 py-1 border border-border rounded text-[10px] text-foreground bg-background hover:bg-accent transition-colors"
               whileTap={{ scale: 0.95 }}
@@ -79,6 +80,7 @@ export function SimulationPanel({ params, onConfirm }: Props) {
       </div>
 
       <motion.button
+        type="button"
         onClick={() => onConfirm(staged)}
         className="w-full py-2 bg-primary text-primary-foreground text-[12px] font-semibold rounded hover:bg-primary/90 transition-colors"
         whileTap={{ scale: 0.97 }}

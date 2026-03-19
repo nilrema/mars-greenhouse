@@ -74,6 +74,14 @@ describe('chat integration', () => {
       expect(screen.getByText('Orchestrator resolution: mission summary ready from the backend.')).toBeInTheDocument();
     });
 
+    const operatorMessage = screen.getByText('Give me a mission summary.').closest('div');
+    const agentMessage = screen.getByText('Environment agent report from the backend.').closest('div');
+    expect(operatorMessage).not.toBeNull();
+    expect(agentMessage).not.toBeNull();
+    expect(
+      operatorMessage?.compareDocumentPosition(agentMessage as Node) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
     expect(screen.queryByText('Awaiting backend agent response…')).not.toBeInTheDocument();
   });
 
