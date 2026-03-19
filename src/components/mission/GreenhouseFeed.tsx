@@ -411,7 +411,7 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
             />
           )}
 
-          <div className="pointer-events-none absolute left-3 top-3 rounded-full border border-white/10 bg-slate-950/55 px-3 py-1.5 text-[9px] font-mono text-white/82">
+          <div className="pointer-events-none absolute left-3 top-3 max-w-[82%] rounded-2xl border border-white/15 bg-slate-950/82 px-3.5 py-2 text-[10px] font-mono font-medium leading-relaxed text-white shadow-[0_12px_24px_rgba(0,0,0,0.28)] backdrop-blur-sm">
             Wheel to zoom. Drag to pan. Use Inspect area to define the analysis frame.
           </div>
 
