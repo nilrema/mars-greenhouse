@@ -77,7 +77,7 @@ def _utc_now() -> datetime:
 
 
 def _chat_timestamp() -> int:
-    return int(time.time() * 1000)
+    return int(time.time())
 
 
 def _status_to_severity(status: str) -> str:

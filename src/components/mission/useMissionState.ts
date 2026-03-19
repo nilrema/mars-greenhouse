@@ -248,7 +248,7 @@ export function useMissionState() {
       source: 'user' | 'system';
       visibleMessage?: string;
     }) => {
-      const timestamp = Date.now();
+      const timestamp = Math.floor(Date.now() / 1000);
       const pendingMessageId =
         source === 'user' || visibleMessage
           ? `${source}-${timestamp}`
