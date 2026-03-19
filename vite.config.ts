@@ -9,6 +9,13 @@ export default defineConfig(() => ({
     hmr: {
       overlay: false,
     },
+    watch: {
+      ignored: [
+        "**/.amplify/**",
+        "**/amplify_outputs.json",
+        "**/amplify_outputs.*.json",
+      ],
+    },
   },
   plugins: [react()],
   resolve: {
