@@ -5,6 +5,7 @@ const ddb = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-2' }
 const ACTUATOR_TABLE = process.env.ACTUATOR_TABLE || 'ActuatorCommand';
 
 interface ActuatorCommand {
+  id: string;
   commandId: string;
   type: 'TEMPERATURE_ADJUST' | 'HUMIDITY_ADJUST' | 'IRRIGATION_TRIGGER' | 'LIGHTING_ADJUST' | 'CO2_ADJUST';
   targetValue?: number;
@@ -13,6 +14,7 @@ interface ActuatorCommand {
   durationSeconds?: number;
   status: 'PENDING' | 'EXECUTING' | 'COMPLETED' | 'FAILED';
   createdAt: string;
+  updatedAt: string;
   executedAt?: string;
   result?: string;
 }
@@ -46,6 +48,7 @@ async function createCommand(command: Partial<ActuatorCommand>) {
   const now = new Date().toISOString();
 
   const fullCommand: ActuatorCommand = {
+    id: commandId,
     commandId,
     type: command.type!,
     targetValue: command.targetValue,
@@ -54,13 +57,17 @@ async function createCommand(command: Partial<ActuatorCommand>) {
     durationSeconds: command.durationSeconds,
     status: 'PENDING',
     createdAt: now,
+    updatedAt: now,
     executedAt: undefined,
     result: undefined,
   };
 
   await ddb.send(new PutItemCommand({
     TableName: ACTUATOR_TABLE,
-    Item: marshall(fullCommand),
+    Item: marshall({
+      ...fullCommand,
+      __typename: 'ActuatorCommand',
+    }),
   }));
 
   console.log(`Command created: ${commandId} - ${command.type} for zone ${command.zone}`);
@@ -85,6 +92,8 @@ async function executeCommand(command: ActuatorCommand) {
       ...command,
       status: 'EXECUTING',
       executedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      __typename: 'ActuatorCommand',
     }),
   }));
 
@@ -130,6 +139,8 @@ async function executeCommand(command: ActuatorCommand) {
         ...command,
         status: 'COMPLETED',
         result,
+        updatedAt: new Date().toISOString(),
+        __typename: 'ActuatorCommand',
       }),
     }));
 
@@ -152,6 +163,8 @@ async function executeCommand(command: ActuatorCommand) {
         ...command,
         status: 'FAILED',
         result: `Execution failed: ${error}`,
+        updatedAt: new Date().toISOString(),
+        __typename: 'ActuatorCommand',
       }),
     }));
 
@@ -174,6 +187,7 @@ async function processPendingCommands() {
   
   const simulatedCommands: ActuatorCommand[] = [
     {
+      id: 'sim-1',
       commandId: 'sim-1',
       type: 'TEMPERATURE_ADJUST',
       targetValue: 22.5,
@@ -181,14 +195,17 @@ async function processPendingCommands() {
       unit: 'celsius',
       status: 'PENDING',
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     },
     {
+      id: 'sim-2',
       commandId: 'sim-2',
       type: 'IRRIGATION_TRIGGER',
       zone: 'zone-a',
       durationSeconds: 300,
       status: 'PENDING',
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     },
   ];
 
@@ -206,7 +223,7 @@ async function processPendingCommands() {
       results.push({
         commandId: command.commandId,
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -225,7 +242,7 @@ async function processPendingCommands() {
 export async function getCommandStatus(commandId: string) {
   const response = await ddb.send(new GetItemCommand({
     TableName: ACTUATOR_TABLE,
-    Key: marshall({ commandId }),
+    Key: marshall({ id: commandId }),
   }));
 
   if (!response.Item) {

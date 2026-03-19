@@ -1,7 +1,7 @@
 const SEVERITY_COLORS = {
   INFO:    '#58a6ff',
-  WARNING: '#d29922',
-  ERROR:   '#f85149',
+  WARN:    '#d29922',
+  CRITICAL:'#f85149',
   DEBUG:   '#8b949e',
 };
 

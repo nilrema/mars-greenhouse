@@ -3,63 +3,103 @@ import { generateClient } from 'aws-amplify/data';
 import MetricCard from '../components/MetricCard';
 import AgentLog from '../components/AgentLog';
 import CropTable from '../components/CropTable';
+import {
+  mockAgentEvents,
+  mockCrops,
+  mockSensorReading,
+} from '../lib/mockData';
 
-const client = generateClient();
-
-// Ordered list of sensor fields to display in the 2x4 grid
 const SENSOR_METRICS = [
-  { key: 'temperature',  label: 'Temperature',  unit: '°C' },
-  { key: 'humidity',     label: 'Humidity',      unit: '%'  },
-  { key: 'co2Ppm',       label: 'CO₂',           unit: 'ppm'},
-  { key: 'lightPpfd',    label: 'Light PPFD',    unit: 'µmol/m²/s' },
-  { key: 'phLevel',      label: 'pH Level',      unit: 'pH' },
-  { key: 'nutrientEc',   label: 'Nutrient EC',   unit: 'mS/cm' },
-  { key: 'waterLitres',  label: 'Water',         unit: 'L'  },
+  { key: 'temperature', label: 'Temperature', unit: '°C' },
+  { key: 'humidity', label: 'Humidity', unit: '%' },
+  { key: 'co2Ppm', label: 'CO₂', unit: 'ppm' },
+  { key: 'lightPpfd', label: 'Light PPFD', unit: 'µmol/m²/s' },
+  { key: 'phLevel', label: 'pH Level', unit: 'pH' },
+  { key: 'nutrientEc', label: 'Nutrient EC', unit: 'mS/cm' },
+  { key: 'waterLitres', label: 'Water', unit: 'L' },
 ];
 
-export default function Dashboard() {
+export default function Dashboard({ amplifyConfigured = false }) {
   const [latestReading, setLatestReading] = useState(null);
   const [agentEvents, setAgentEvents] = useState([]);
   const [crops, setCrops] = useState([]);
+  const [loadError, setLoadError] = useState(null);
 
-  // Fetch latest sensor reading
   useEffect(() => {
-    async function fetchLatestReading() {
-      const { data } = await client.models.SensorReading.list({
-        limit: 1,
-        sortDirection: 'DESC',
-      });
-      if (data?.length) setLatestReading(data[0]);
+    if (!amplifyConfigured) {
+      setLatestReading(mockSensorReading);
+      setAgentEvents(mockAgentEvents);
+      setCrops(mockCrops);
+      setLoadError(null);
+      return undefined;
     }
-    fetchLatestReading();
-  }, []);
 
-  // Subscribe to new AgentEvents in real time
-  useEffect(() => {
-    const sub = client.models.AgentEvent.observeQuery({
+    const client = generateClient();
+    let cancelled = false;
+
+    const agentSubscription = client.models.AgentEvent.observeQuery({
+      authMode: 'apiKey',
       limit: 50,
       sortDirection: 'DESC',
     }).subscribe({
-      next: ({ items }) => setAgentEvents(items),
-      error: (err) => console.error('AgentEvent subscription error:', err),
+      next: ({ items }) => {
+        if (!cancelled) {
+          setAgentEvents(items);
+        }
+      },
+      error: (error) => {
+        if (!cancelled) {
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : 'Agent event subscription failed.'
+          );
+        }
+      },
     });
-    return () => sub.unsubscribe();
-  }, []);
 
-  // Fetch crop records
-  useEffect(() => {
-    async function fetchCrops() {
-      const { data } = await client.models.CropRecord.list();
-      if (data) setCrops(data);
+    async function loadDashboard() {
+      try {
+        const [sensorResult, cropResult] = await Promise.all([
+          client.models.SensorReading.list({
+            authMode: 'apiKey',
+            limit: 1,
+            sortDirection: 'DESC',
+          }),
+          client.models.CropRecord.list({
+            authMode: 'apiKey',
+          }),
+        ]);
+
+        if (!cancelled) {
+          setLatestReading(sensorResult.data?.[0] ?? null);
+          setCrops(cropResult.data ?? []);
+          setLoadError(null);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : 'Failed to load dashboard data from Amplify.'
+          );
+        }
+      }
     }
-    fetchCrops();
-  }, []);
+
+    loadDashboard();
+
+    return () => {
+      cancelled = true;
+      agentSubscription.unsubscribe();
+    };
+  }, [amplifyConfigured]);
 
   return (
     <div style={styles.page}>
       <h1 style={styles.heading}>Mars Greenhouse Dashboard</h1>
+      {loadError ? <p style={styles.error}>{loadError}</p> : null}
 
-      {/* 2x4 sensor metric grid (7 metrics + 1 empty cell) */}
       <section aria-label="Sensor Readings" style={styles.grid}>
         {SENSOR_METRICS.map(({ key, label, unit }) => (
           <MetricCard
@@ -69,7 +109,6 @@ export default function Dashboard() {
             unit={unit}
           />
         ))}
-        {/* 8th cell — timestamp */}
         <MetricCard
           label="Last Updated"
           value={
@@ -129,5 +168,9 @@ const styles = {
     color: '#8b949e',
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
+  },
+  error: {
+    color: '#f85149',
+    marginBottom: '1rem',
   },
 };

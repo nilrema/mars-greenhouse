@@ -13,29 +13,16 @@ const backend = defineBackend({
 
 // Grant the sensor simulator Lambda write access to the SensorReading table
 const sensorReadingTable = backend.data.resources.tables['SensorReading'];
-backend.sensorSimulator.resources.lambda.addEnvironment(
+backend.sensorSimulator.addEnvironment(
   'SENSOR_READING_TABLE_NAME',
   sensorReadingTable.tableName
 );
 sensorReadingTable.grantWriteData(backend.sensorSimulator.resources.lambda);
 
-// Create ActuatorCommand table and grant permissions to actuator control Lambda
-const actuatorCommandTable = backend.data.resources.cfnResources.dynamoDbTables['ActuatorCommand'] = 
-  backend.data.stack.addDynamoDBTable('ActuatorCommand', {
-    partitionKey: {
-      name: 'commandId',
-      type: 'S',
-    },
-    timeToLiveAttribute: 'ttl',
-  });
-
-backend.actuatorControl.resources.lambda.addEnvironment(
+const actuatorCommandTable = backend.data.resources.tables['ActuatorCommand'];
+backend.actuatorControl.addEnvironment(
   'ACTUATOR_TABLE',
   actuatorCommandTable.tableName
 );
 
-// Grant read/write permissions to actuator control Lambda
 actuatorCommandTable.grantReadWriteData(backend.actuatorControl.resources.lambda);
-
-// Also grant read access to the orchestrator agent (via IAM role that would be attached)
-// In a real deployment, this would be a separate IAM role for the ECS task

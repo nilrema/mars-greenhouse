@@ -1,6 +1,6 @@
 const HEALTH_COLORS = {
   healthy:   '#3fb950',
-  stressed:  '#d29922',
+  monitor:   '#d29922',
   critical:  '#f85149',
 };
 

@@ -5,7 +5,6 @@ export const actuatorControl = defineFunction({
   entry: './handler.ts',
   environment: {
     ACTUATOR_TABLE: 'ActuatorCommand',
-    AWS_REGION: 'us-east-2',
   },
   timeoutSeconds: 30,
   memoryMB: 256,

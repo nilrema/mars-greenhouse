@@ -1,53 +1,39 @@
 import React from 'react';
-import { Amplify } from 'aws-amplify';
-import { Authenticator } from '@aws-amplify/ui-react';
-import '@aws-amplify/ui-react/styles.css';
 import Dashboard from './pages/Dashboard';
 
-// Configure Amplify (this will be replaced with actual config from amplify/backend.ts)
-Amplify.configure({
-  API: {
-    GraphQL: {
-      endpoint: 'https://your-graphql-endpoint.appsync-api.us-east-2.amazonaws.com/graphql',
-      region: 'us-east-2',
-      defaultAuthMode: 'apiKey',
-      apiKey: 'your-api-key'
-    }
-  }
-});
-
-function App() {
+function App({ amplifyState = { configured: false, message: null } }) {
   return (
-    <Authenticator>
-      {({ signOut, user }) => (
-        <div style={styles.app}>
-          <header style={styles.header}>
-            <div style={styles.headerContent}>
-              <h1 style={styles.logo}>Mars Greenhouse</h1>
-              <div style={styles.userInfo}>
-                <span style={styles.userName}>{user?.username || 'Operator'}</span>
-                <button onClick={signOut} style={styles.signOutButton}>
-                  Sign Out
-                </button>
-              </div>
-            </div>
-          </header>
-          <main style={styles.main}>
-            <Dashboard />
-          </main>
-          <footer style={styles.footer}>
-            <div style={styles.footerContent}>
-              <span style={styles.footerText}>
-                Syngenta × AWS START Hack 2026 • Martian Greenhouse Management System
-              </span>
-              <span style={styles.footerStatus}>
-                System Status: <span style={styles.statusOnline}>● Online</span>
-              </span>
-            </div>
-          </footer>
+    <div style={styles.app}>
+      <header style={styles.header}>
+        <div style={styles.headerContent}>
+          <div>
+            <h1 style={styles.logo}>Mars Greenhouse</h1>
+            <p style={styles.subtitle}>Syngenta x AWS START Hack 2026 dashboard</p>
+          </div>
+          <div style={styles.environmentTag}>
+            {amplifyState.configured ? 'Amplify Connected' : 'Mock Mode'}
+          </div>
         </div>
-      )}
-    </Authenticator>
+      </header>
+      {!amplifyState.configured && amplifyState.message ? (
+        <div style={styles.notice}>
+          <strong>Amplify backend not connected.</strong> {amplifyState.message}
+        </div>
+      ) : null}
+      <main style={styles.main}>
+        <Dashboard amplifyConfigured={amplifyState.configured} />
+      </main>
+      <footer style={styles.footer}>
+        <div style={styles.footerContent}>
+          <span style={styles.footerText}>
+            Syngenta x AWS START Hack 2026 • Martian Greenhouse Management System
+          </span>
+          <span style={styles.footerStatus}>
+            System Status: <span style={styles.statusOnline}>● Online</span>
+          </span>
+        </div>
+      </footer>
+    </div>
   );
 }
 
@@ -77,24 +63,30 @@ const styles = {
     color: '#58a6ff',
     fontWeight: '600',
   },
-  userInfo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '1rem',
-  },
-  userName: {
+  subtitle: {
+    margin: '0.3rem 0 0',
     color: '#8b949e',
     fontSize: '0.9rem',
   },
-  signOutButton: {
-    backgroundColor: 'transparent',
-    color: '#f85149',
-    border: '1px solid #f85149',
-    padding: '0.4rem 0.8rem',
-    borderRadius: '6px',
-    fontSize: '0.85rem',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
+  environmentTag: {
+    backgroundColor: '#0d1117',
+    border: '1px solid #30363d',
+    borderRadius: '999px',
+    color: '#e6edf3',
+    fontSize: '0.8rem',
+    fontWeight: '600',
+    padding: '0.45rem 0.9rem',
+  },
+  notice: {
+    maxWidth: '1400px',
+    margin: '1rem auto 0',
+    backgroundColor: '#261a00',
+    color: '#f2cc60',
+    border: '1px solid #5e4420',
+    borderRadius: '10px',
+    padding: '0.85rem 1rem',
+    width: 'calc(100% - 3rem)',
+    boxSizing: 'border-box',
   },
   main: {
     flex: 1,

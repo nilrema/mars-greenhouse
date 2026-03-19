@@ -38,6 +38,26 @@ const schema = a.schema({
       actionTaken: a.string(),
     })
     .authorization((allow) => [allow.publicApiKey()]),
+
+  ActuatorCommand: a
+    .model({
+      commandId: a.string().required(),
+      type: a.enum([
+        'TEMPERATURE_ADJUST',
+        'HUMIDITY_ADJUST',
+        'IRRIGATION_TRIGGER',
+        'LIGHTING_ADJUST',
+        'CO2_ADJUST',
+      ]),
+      targetValue: a.float(),
+      zone: a.string().required(),
+      unit: a.string(),
+      durationSeconds: a.integer(),
+      status: a.enum(['PENDING', 'EXECUTING', 'COMPLETED', 'FAILED']),
+      executedAt: a.datetime(),
+      result: a.string(),
+    })
+    .authorization((allow) => [allow.publicApiKey()]),
 });
 
 export type Schema = ClientSchema<typeof schema>;
