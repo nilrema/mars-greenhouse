@@ -8,6 +8,26 @@ vi.mock('./chatApi', () => ({
   }),
 }));
 
+vi.mock('./telemetryApi', () => ({
+  GREENHOUSE_ID: 'mars-greenhouse-1',
+  createSensorReading: vi.fn().mockResolvedValue({}),
+  createUiInputEvent: vi.fn().mockResolvedValue({}),
+  fetchLatestSensorReading: vi.fn().mockResolvedValue({
+    greenhouseId: 'mars-greenhouse-1',
+    timestamp: new Date().toISOString(),
+    temperature: 24,
+    recycleRatePercent: 100,
+    powerKw: 9.2,
+  }),
+  waitForSensorFreshness: vi.fn().mockImplementation(async ({ freshAfterTimestamp }: { freshAfterTimestamp: string }) => ({
+    greenhouseId: 'mars-greenhouse-1',
+    timestamp: freshAfterTimestamp,
+    temperature: 16,
+    recycleRatePercent: 60,
+    powerKw: 2.76,
+  })),
+}));
+
 import { useMissionState } from './useMissionState';
 
 describe('useMissionState', () => {
@@ -16,7 +36,7 @@ describe('useMissionState', () => {
 
     await act(async () => {
       await result.current.runSimulation({
-        temperatureDrift: -8,
+          temperature: 16,
         waterRecycling: 60,
         powerAvailability: 30,
       });

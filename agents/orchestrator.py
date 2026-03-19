@@ -8,6 +8,7 @@ from typing import Any
 from strands import Agent
 
 from .bedrock_config import resolve_bedrock_model
+from .greenhouse_data import clear_required_fresh_after_timestamp, set_required_fresh_after_timestamp
 from .mcp import build_mars_kb_tools
 from .specialized_agents import (
     astro_agent,
@@ -63,16 +64,19 @@ def create_orchestrator_agent() -> Agent:
     )
 
 
-def handle_chat(query: str) -> str:
+def handle_chat(query: str, *, fresh_after_timestamp: str | None = None) -> str:
     """Handle one frontend chat turn and return a plain-text response."""
     cleaned_query = query.strip()
     if not cleaned_query:
         return "Please enter a question for the agent system."
 
     try:
+        set_required_fresh_after_timestamp(fresh_after_timestamp)
         return str(create_orchestrator_agent()(cleaned_query)).strip()
     except Exception as exc:
         return f"Sorry, the agent orchestrator is unavailable right now: {exc}"
+    finally:
+        clear_required_fresh_after_timestamp()
 
 
 def preview_agent_usage(query: str) -> list[str]:
@@ -86,7 +90,12 @@ def preview_agent_usage(query: str) -> list[str]:
     return matched_agents or ["environment"]
 
 
-def handle_chat_turn(query: str) -> dict[str, Any]:
+def handle_chat_turn(
+    query: str,
+    *,
+    fresh_after_timestamp: str | None = None,
+    greenhouse_id: str | None = None,
+) -> dict[str, Any]:
     """Return a simple chat payload with visible routing steps and the final response."""
     cleaned_query = query.strip()
     if not cleaned_query:
@@ -111,7 +120,11 @@ def handle_chat_turn(query: str) -> dict[str, Any]:
 
     return {
         "steps": steps,
-        "response": handle_chat(cleaned_query),
+        "response": handle_chat(cleaned_query, fresh_after_timestamp=fresh_after_timestamp),
+        "telemetryContext": {
+            "greenhouseId": greenhouse_id or os.getenv("GREENHOUSE_ID", "mars-greenhouse-1"),
+            "freshAfterTimestamp": fresh_after_timestamp,
+        },
     }
 
 

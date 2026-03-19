@@ -6,7 +6,7 @@ export type CloneRole = 'harvester' | 'inspector' | 'technician';
 export type AgentId = 'environment' | 'crop' | 'astro' | 'resource' | 'orchestrator';
 
 export interface SimulationParams {
-  temperatureDrift: number;
+  temperature: number;
   waterRecycling: number;
   powerAvailability: number;
 }

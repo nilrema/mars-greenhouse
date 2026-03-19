@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig, type Plugin } from 'vite';
@@ -21,9 +22,29 @@ function readJsonBody(request: NodeJS.ReadableStream): Promise<Record<string, un
   });
 }
 
-function callPythonChat(query: string): Promise<string> {
+function resolvePythonExecutable() {
+  const localCandidates = [
+    path.join(__dirname, '.venv311', 'bin', 'python3'),
+    path.join(__dirname, '.venv311', 'bin', 'python'),
+    path.join(__dirname, '.venv311', 'Scripts', 'python.exe'),
+    path.join(__dirname, '.venv', 'bin', 'python3'),
+    path.join(__dirname, '.venv', 'bin', 'python'),
+    path.join(__dirname, '.venv', 'Scripts', 'python.exe'),
+  ];
+
+  const local = localCandidates.find((candidate) => existsSync(candidate));
+  if (local) {
+    return local;
+  }
+
+  // Prefer python3 to avoid macOS xcode-select prompts for missing legacy `python`.
+  return process.env.PYTHON || 'python3';
+}
+
+function callPythonChat(payload: { query: string; greenhouseId?: string; freshAfterTimestamp?: string }): Promise<string> {
   return new Promise((resolve, reject) => {
-    const process = spawn('.venv/bin/python', ['-m', 'agents.chat_api'], {
+    const pythonExecutable = resolvePythonExecutable();
+    const process = spawn(pythonExecutable, ['-m', 'agents.chat_api'], {
       cwd: __dirname,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
@@ -36,7 +57,13 @@ function callPythonChat(query: string): Promise<string> {
     process.stderr.on('data', (chunk) => {
       stderr += chunk.toString();
     });
-    process.on('error', reject);
+    process.on('error', () => {
+      reject(
+        new Error(
+          `Unable to start Python chat bridge using '${pythonExecutable}'. Install Python 3 or create a .venv and install agents dependencies.`
+        )
+      );
+    });
     process.on('close', (code) => {
       if (code === 0) {
         try {
@@ -52,7 +79,7 @@ function callPythonChat(query: string): Promise<string> {
       reject(new Error(stderr.trim() || `Python chat bridge exited with code ${code}`));
     });
 
-    process.stdin.write(JSON.stringify({ query }));
+    process.stdin.write(JSON.stringify(payload));
     process.stdin.end();
   });
 }
@@ -70,7 +97,10 @@ function chatBridgePlugin(): Plugin {
         try {
           const payload = await readJsonBody(request);
           const query = typeof payload.query === 'string' ? payload.query : '';
-          const result = await callPythonChat(query);
+          const greenhouseId = typeof payload.greenhouseId === 'string' ? payload.greenhouseId : undefined;
+          const freshAfterTimestamp =
+            typeof payload.freshAfterTimestamp === 'string' ? payload.freshAfterTimestamp : undefined;
+          const result = await callPythonChat({ query, greenhouseId, freshAfterTimestamp });
           response.statusCode = 200;
           response.setHeader('Content-Type', 'application/json');
           response.end(result);

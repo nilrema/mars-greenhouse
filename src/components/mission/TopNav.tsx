@@ -13,10 +13,11 @@ import {
 interface TopNavProps {
   chaosActive: boolean;
   simParams: SimulationParams;
+  temperatureRange: [number, number];
   onSimChange: (params: SimulationParams) => void | Promise<void>;
 }
 
-export function TopNav({ chaosActive, simParams, onSimChange }: TopNavProps) {
+export function TopNav({ chaosActive, simParams, temperatureRange, onSimChange }: TopNavProps) {
   const [solTime, setSolTime] = useState('14:22:07');
   const [simOpen, setSimOpen] = useState(false);
 
@@ -68,6 +69,7 @@ export function TopNav({ chaosActive, simParams, onSimChange }: TopNavProps) {
               </DialogHeader>
               <SimulationPanel
                 params={simParams}
+                temperatureRange={temperatureRange}
                 onConfirm={(params) => {
                   onSimChange(params);
                   setSimOpen(false);
@@ -75,6 +77,7 @@ export function TopNav({ chaosActive, simParams, onSimChange }: TopNavProps) {
               />
             </DialogContent>
           </Dialog>
+          <TelemetryItem label="Crew" value="6" />
           <TelemetryItem label="O₂" value="21.3%" />
           <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
             <div className={`status-led ${chaosActive ? 'bg-destructive' : 'bg-success'}`} />

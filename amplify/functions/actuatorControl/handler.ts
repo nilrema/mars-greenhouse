@@ -29,7 +29,8 @@ export const handler = async (event: any) => {
       return await processPendingCommands();
     } else if (event.commandId) {
       // Direct command execution
-      return await executeCommand(event);
+      const command = await resolveCommand(event);
+      return await executeCommand(command);
     } else {
       // New command submission
       return await createCommand(event);
@@ -42,6 +43,19 @@ export const handler = async (event: any) => {
     };
   }
 };
+
+async function resolveCommand(event: any): Promise<ActuatorCommand> {
+  if (event.type && event.zone) {
+    return event as ActuatorCommand;
+  }
+
+  const existing = await getCommandStatus(String(event.commandId));
+  if (!existing) {
+    throw new Error(`Command not found: ${event.commandId}`);
+  }
+
+  return existing as ActuatorCommand;
+}
 
 async function createCommand(command: Partial<ActuatorCommand>) {
   const commandId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -83,6 +97,10 @@ async function createCommand(command: Partial<ActuatorCommand>) {
 }
 
 async function executeCommand(command: ActuatorCommand) {
+  if (!command.type || !command.zone || !command.commandId) {
+    throw new Error('Command payload is missing required fields: type, zone, or commandId');
+  }
+
   console.log(`Executing command: ${command.commandId} - ${command.type}`);
 
   // Update command status to EXECUTING

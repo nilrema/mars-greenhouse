@@ -5,13 +5,13 @@ import { AgentChatPanel } from '@/components/mission/AgentChatPanel';
 import { useMissionState } from '@/components/mission/useMissionState';
 
 const Index = () => {
-  const { base, astronauts, agents, chatMessages, isChatLoading, runSimulation, simParams, sendChatMessage } = useMissionState();
+  const { base, astronauts, agents, chatMessages, isChatLoading, runSimulation, simParams, temperatureRange, sendChatMessage } = useMissionState();
   const chaosActive =
-    simParams.temperatureDrift !== 0 || simParams.waterRecycling !== 100 || simParams.powerAvailability !== 100;
+    simParams.temperature !== 24 || simParams.waterRecycling !== 100 || simParams.powerAvailability !== 100;
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-background">
-      <TopNav chaosActive={chaosActive} simParams={simParams} onSimChange={runSimulation} />
+      <TopNav chaosActive={chaosActive} simParams={simParams} temperatureRange={temperatureRange} onSimChange={runSimulation} />
 
       <div className="flex-1 flex min-h-0 gap-2 p-2">
         <div className="w-[24%] min-h-0">

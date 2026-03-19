@@ -1,213 +1,332 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, PutCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
-import { randomUUID } from 'crypto';
+import amplifyOutputs from '../../../amplify_outputs.json';
 
-const client = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+const dataConfig = (amplifyOutputs as { data?: { url?: string; api_key?: string } }).data ?? {};
 
-// ── State table for drift & sol tracking ─────────────────────────────────────
+const graphQlEndpoint = dataConfig.url;
+const apiKey = dataConfig.api_key;
 
-const STATE_TABLE = process.env.STATE_TABLE_NAME;
-
-interface SimState {
-  sol: number;
-  tempDrift: number;
-  humidityDrift: number;
-  co2Drift: number;
-  ppfdDrift: number;
-  waterReserve: number;
-  activeEvent: string | null;
-  eventSolsRemaining: number;
-}
-
-const DEFAULT_STATE: SimState = {
-  sol: 1,
-  tempDrift: 0,
-  humidityDrift: 0,
-  co2Drift: 0,
-  ppfdDrift: 0,
-  waterReserve: 150,
-  activeEvent: null,
-  eventSolsRemaining: 0,
-};
-
-// ── Gaussian-like jitter ─────────────────────────────────────────────────────
-
-function jitter(range: number): number {
-  return (Math.random() + Math.random() + Math.random() - 1.5) * range;
-}
-
-function round(val: number, decimals = 2): number {
-  return Math.round(val * 10 ** decimals) / 10 ** decimals;
-}
-
-function clamp(val: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, val));
-}
-
-// ── Martian failure scenarios ────────────────────────────────────────────────
-
-interface MartianEvent {
-  name: string;
-  probability: number;  // per invocation (~every 5 min)
-  durationSols: number;
-  apply: (state: SimState) => void;
-}
-
-const MARTIAN_EVENTS: MartianEvent[] = [
-  {
-    name: 'dust_storm',
-    probability: 0.005,  // ~0.5% per reading
-    durationSols: 7,
-    apply: (s) => {
-      s.ppfdDrift -= 250;     // massive light reduction
-      s.tempDrift -= 4;       // temperature drop from reduced solar
-    },
-  },
-  {
-    name: 'co2_scrubber_fault',
-    probability: 0.003,
-    durationSols: 2,
-    apply: (s) => {
-      s.co2Drift += 400;     // CO₂ builds up fast
-    },
-  },
-  {
-    name: 'water_pump_failure',
-    probability: 0.002,
-    durationSols: 1,
-    apply: (s) => {
-      s.waterReserve -= 20;  // water level drops without circulation
-    },
-  },
-  {
-    name: 'heater_malfunction',
-    probability: 0.002,
-    durationSols: 2,
-    apply: (s) => {
-      s.tempDrift -= 8;
-    },
-  },
-];
-
-// ── Natural drift model ──────────────────────────────────────────────────────
-
-function applyNaturalDrift(state: SimState): void {
-  // Each metric drifts slowly (random walk), simulating imperfect control systems
-  state.tempDrift += jitter(0.3);
-  state.humidityDrift += jitter(0.5);
-  state.co2Drift += jitter(15);
-  state.ppfdDrift += jitter(5);
-
-  // Mean reversion — drifts tend back towards zero over time
-  state.tempDrift *= 0.95;
-  state.humidityDrift *= 0.95;
-  state.co2Drift *= 0.95;
-  state.ppfdDrift *= 0.95;
-
-  // Water slowly consumed and partially recycled
-  state.waterReserve -= 0.3 + jitter(0.1);
-  state.waterReserve = Math.max(50, state.waterReserve);
-}
-
-// ── Handler ──────────────────────────────────────────────────────────────────
-
-export const handler = async (): Promise<void> => {
-  const tableName = process.env.SENSOR_READING_TABLE_NAME;
-  if (!tableName) throw new Error('SENSOR_READING_TABLE_NAME env var not set');
-
-  // Load or initialise state
-  let state: SimState = { ...DEFAULT_STATE };
-  if (STATE_TABLE) {
-    try {
-      const existing = await client.send(
-        new GetCommand({ TableName: STATE_TABLE, Key: { id: 'sim-state' } })
-      );
-      if (existing.Item) {
-        state = existing.Item as unknown as SimState;
-      }
-    } catch {
-      // First run — use defaults
+const SENSOR_QUERY = `
+query ListSensorReadings($filter: ModelSensorReadingFilterInput, $limit: Int) {
+  listSensorReadings(filter: $filter, limit: $limit) {
+    items {
+      id
+      greenhouseId
+      timestamp
+      temperature
+      humidity
+      co2Ppm
+      lightPpfd
+      phLevel
+      nutrientEc
+      waterLitres
+      radiationMsv
+      pressureKpa
+      oxygenPercent
+      rootZoneOxygenPct
+      recycleRatePercent
+      powerKw
+      cropStressIndex
+      foodSecurityDays
+      sol
+      activeEvent
+      controlMode
+      targetProfile
+      notes
+      createdAt
+      updatedAt
     }
   }
+}
+`;
 
-  // ── Advance sol counter (every ~288 invocations = 1 sol at 5-min intervals) ──
-  // For demo: advance sol every 12 invocations (~1 hour = 1 sol)
-  state.sol = Math.min(450, state.sol + (1 / 12));
-
-  // ── Natural drift ──
-  applyNaturalDrift(state);
-
-  // ── Roll for Martian events ──
-  if (!state.activeEvent) {
-    for (const event of MARTIAN_EVENTS) {
-      if (Math.random() < event.probability) {
-        state.activeEvent = event.name;
-        state.eventSolsRemaining = event.durationSols * 12; // in invocation counts
-        console.log(`🚨 Martian event: ${event.name} (${event.durationSols} sols)`);
-        break;
-      }
+const CROP_QUERY = `
+query ListCropRecords($limit: Int) {
+  listCropRecords(limit: $limit) {
+    items {
+      id
+      cropId
+      name
+      variety
+      plantedAt
+      growthStage
+      daysToHarvest
+      healthStatus
+      zone
+      cropType
+      missionRole
+      growthCycleDays
+      harvestIndex
+      caloriesPer100g
+      proteinPer100g
+      expectedYieldKgM2
+      waterDemandLevel
+      stressSensitivity
+      targetTempMinC
+      targetTempMaxC
+      targetHumidityMinPct
+      targetHumidityMaxPct
+      targetCo2MinPpm
+      targetCo2MaxPpm
+      targetPpfdMin
+      targetPpfdMax
+      targetPhMin
+      targetPhMax
+      targetEcMin
+      targetEcMax
+      createdAt
+      updatedAt
     }
   }
+}
+`;
 
-  // ── Apply active event ──
-  if (state.activeEvent) {
-    const event = MARTIAN_EVENTS.find((e) => e.name === state.activeEvent);
-    if (event) {
-      event.apply(state);
-    }
-    state.eventSolsRemaining -= 1;
-    if (state.eventSolsRemaining <= 0) {
-      console.log(`✅ Event ended: ${state.activeEvent}`);
-      state.activeEvent = null;
-      state.eventSolsRemaining = 0;
+const ASTRONAUT_QUERY = `
+query ListAstronautProfiles($limit: Int) {
+  listAstronautProfiles(limit: $limit) {
+    items {
+      id
+      astronautId
+      name
+      role
+      dailyCalorieTarget
+      dailyProteinTargetG
+      dailyHydrationTargetL
+      dailyKcalIntake
+      dailyProteinIntakeG
+      dailyHydrationIntakeL
+      micronutrientRisk
+      fatigueScore
+      workloadIndex
+      healthStatus
+      notes
+      lastAssessmentAt
+      createdAt
+      updatedAt
     }
   }
+}
+`;
 
-  const now = new Date().toISOString();
-  const currentSol = Math.floor(state.sol);
+const AGENT_EVENT_QUERY = `
+query ListAgentEvents($limit: Int) {
+  listAgentEvents(limit: $limit) {
+    items {
+      id
+      agentId
+      timestamp
+      severity
+      message
+      actionTaken
+      greenhouseId
+      confidence
+      createdAt
+      updatedAt
+    }
+  }
+}
+`;
 
-  const reading = {
-    id: randomUUID(),
-    greenhouseId: 'mars-greenhouse-1',
-    timestamp: now,
-    // Base targets + drift + jitter
-    temperature:  round(clamp(22 + state.tempDrift + jitter(0.5), 5, 40)),
-    humidity:     round(clamp(65 + state.humidityDrift + jitter(1.5), 10, 98)),
-    co2Ppm:       Math.round(clamp(1200 + state.co2Drift + jitter(30), 300, 5000)),
-    lightPpfd:    round(clamp(400 + state.ppfdDrift + jitter(10), 0, 900)),
-    phLevel:      round(clamp(6.2 + jitter(0.15), 4.0, 9.0)),
-    nutrientEc:   round(clamp(2.1 + jitter(0.15), 0.2, 5.0)),
-    waterLitres:  round(clamp(state.waterReserve + jitter(2), 20, 250)),
-    radiationMsv: round(0.07 + jitter(0.01), 3),
-    // Extra metadata
-    sol: currentSol,
-    activeEvent: state.activeEvent || 'none',
-    createdAt: now,
-    updatedAt: now,
-    __typename: 'SensorReading',
+const ACTUATOR_QUERY = `
+query ListActuatorCommands($limit: Int) {
+  listActuatorCommands(limit: $limit) {
+    items {
+      id
+      commandId
+      type
+      targetValue
+      zone
+      unit
+      durationSeconds
+      status
+      executedAt
+      result
+      requestedBy
+      rationale
+      confidence
+      safetyCheckPassed
+      createdAt
+      updatedAt
+    }
+  }
+}
+`;
+
+interface GraphQlEnvelope<T> {
+  data?: T;
+  errors?: Array<{ message?: string }>;
+}
+
+export interface SensorReadingRecord {
+  id: string;
+  greenhouseId: string;
+  timestamp?: string;
+  temperature?: number;
+  humidity?: number;
+  co2Ppm?: number;
+  lightPpfd?: number;
+  phLevel?: number;
+  nutrientEc?: number;
+  waterLitres?: number;
+  radiationMsv?: number;
+  pressureKpa?: number;
+  oxygenPercent?: number;
+  rootZoneOxygenPct?: number;
+  recycleRatePercent?: number;
+  powerKw?: number;
+  cropStressIndex?: number;
+  foodSecurityDays?: number;
+  sol?: number;
+  activeEvent?: string;
+  controlMode?: string;
+  targetProfile?: Record<string, unknown>;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CropRecord {
+  id: string;
+  cropId?: string;
+  name?: string;
+  variety?: string;
+  plantedAt?: string;
+  growthStage?: number;
+  daysToHarvest?: number;
+  healthStatus?: string;
+  zone?: string;
+  cropType?: string;
+  missionRole?: string;
+  growthCycleDays?: number;
+  harvestIndex?: number;
+  caloriesPer100g?: number;
+  proteinPer100g?: number;
+  expectedYieldKgM2?: number;
+  waterDemandLevel?: string;
+  stressSensitivity?: unknown;
+}
+
+export interface AstronautProfileRecord {
+  id: string;
+  astronautId?: string;
+  name?: string;
+  role?: string;
+  dailyCalorieTarget?: number;
+  dailyProteinTargetG?: number;
+  dailyHydrationTargetL?: number;
+  dailyKcalIntake?: number;
+  dailyProteinIntakeG?: number;
+  dailyHydrationIntakeL?: number;
+  micronutrientRisk?: string;
+  fatigueScore?: number;
+  workloadIndex?: number;
+  healthStatus?: string;
+  notes?: string;
+}
+
+export interface AgentEventRecord {
+  id: string;
+  agentId?: string;
+  timestamp?: string;
+  severity?: string;
+  message?: string;
+  actionTaken?: string;
+  greenhouseId?: string;
+  confidence?: number;
+  createdAt?: string;
+}
+
+export interface ActuatorCommandRecord {
+  id: string;
+  commandId?: string;
+  type?: string;
+  targetValue?: number;
+  zone?: string;
+  unit?: string;
+  durationSeconds?: number;
+  status?: string;
+  executedAt?: string;
+  result?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface BackendMissionSnapshot {
+  sensorReadings: SensorReadingRecord[];
+  cropRecords: CropRecord[];
+  astronautProfiles: AstronautProfileRecord[];
+  agentEvents: AgentEventRecord[];
+  actuatorCommands: ActuatorCommandRecord[];
+}
+
+function normalizeItems<T>(items: Array<T | null | undefined> | null | undefined): T[] {
+  return (items ?? []).filter((item): item is T => Boolean(item));
+}
+
+async function executeGraphQl<TData>(
+  query: string,
+  variables: Record<string, unknown> = {}
+): Promise<TData> {
+  if (!graphQlEndpoint || !apiKey) {
+    throw new Error('Amplify GraphQL endpoint is not configured.');
+  }
+
+  const response = await fetch(graphQlEndpoint, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': apiKey,
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`GraphQL request failed with status ${response.status}.`);
+  }
+
+  const payload = (await response.json()) as GraphQlEnvelope<TData>;
+  if (payload.errors?.length) {
+    const message = payload.errors.map((error) => error.message).filter(Boolean).join('; ');
+    throw new Error(message || 'GraphQL returned errors.');
+  }
+
+  if (!payload.data) {
+    throw new Error('GraphQL response contained no data.');
+  }
+
+  return payload.data;
+}
+
+export function isBackendConfigured(): boolean {
+  return Boolean(graphQlEndpoint && apiKey);
+}
+
+export async function fetchMissionBackendSnapshot(
+  greenhouseId = 'mars-greenhouse-1'
+): Promise<BackendMissionSnapshot> {
+  const [sensorData, cropData, astronautData, eventData, actuatorData] = await Promise.all([
+    executeGraphQl<{ listSensorReadings?: { items?: Array<SensorReadingRecord | null> | null } }>(
+      SENSOR_QUERY,
+      { filter: { greenhouseId: { eq: greenhouseId } }, limit: 120 }
+    ),
+    executeGraphQl<{ listCropRecords?: { items?: Array<CropRecord | null> | null } }>(CROP_QUERY, { limit: 100 }),
+    executeGraphQl<{ listAstronautProfiles?: { items?: Array<AstronautProfileRecord | null> | null } }>(
+      ASTRONAUT_QUERY,
+      { limit: 30 }
+    ),
+    executeGraphQl<{ listAgentEvents?: { items?: Array<AgentEventRecord | null> | null } }>(AGENT_EVENT_QUERY, {
+      limit: 80,
+    }),
+    executeGraphQl<{ listActuatorCommands?: { items?: Array<ActuatorCommandRecord | null> | null } }>(
+      ACTUATOR_QUERY,
+      { limit: 80 }
+    ),
+  ]);
+
+  return {
+    sensorReadings: normalizeItems(sensorData.listSensorReadings?.items),
+    cropRecords: normalizeItems(cropData.listCropRecords?.items),
+    astronautProfiles: normalizeItems(astronautData.listAstronautProfiles?.items),
+    agentEvents: normalizeItems(eventData.listAgentEvents?.items),
+    actuatorCommands: normalizeItems(actuatorData.listActuatorCommands?.items),
   };
-
-  await client.send(
-    new PutCommand({ TableName: tableName, Item: reading })
-  );
-
-  // ── Persist state ──
-  if (STATE_TABLE) {
-    try {
-      await client.send(
-        new PutCommand({
-          TableName: STATE_TABLE,
-          Item: { id: 'sim-state', ...state },
-        })
-      );
-    } catch (err) {
-      console.warn('Could not persist sim state:', err);
-    }
-  }
-
-  console.log(
-    `Sol ${currentSol} | Event: ${state.activeEvent || 'none'} | ` +
-    `T:${reading.temperature}°C H:${reading.humidity}% CO₂:${reading.co2Ppm}ppm ` +
-    `PPFD:${reading.lightPpfd} Water:${reading.waterLitres}L`
-  );
-};
+}

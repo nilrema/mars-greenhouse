@@ -8,13 +8,22 @@ export interface ChatResponsePayload {
   response: string;
 }
 
-export async function sendChatQuery(query: string): Promise<ChatResponsePayload> {
+export interface ChatQueryOptions {
+  greenhouseId?: string;
+  freshAfterTimestamp?: string;
+}
+
+export async function sendChatQuery(query: string, options: ChatQueryOptions = {}): Promise<ChatResponsePayload> {
   const response = await fetch('/api/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ query }),
+    body: JSON.stringify({
+      query,
+      greenhouseId: options.greenhouseId,
+      freshAfterTimestamp: options.freshAfterTimestamp,
+    }),
   });
 
   const payload = (await response.json()) as Partial<ChatResponsePayload> & { error?: string };

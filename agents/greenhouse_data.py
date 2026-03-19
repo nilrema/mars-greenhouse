@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -12,6 +13,7 @@ from urllib.request import Request, urlopen
 from strands import tool
 
 AMPLIFY_OUTPUTS_PATH = Path(__file__).resolve().parents[1] / "amplify_outputs.json"
+_REQUIRED_FRESH_AFTER_TIMESTAMP: str | None = None
 
 GREENHOUSE_QUERY = """
 query GreenhouseSnapshot($greenhouseId: String!) {
@@ -133,23 +135,77 @@ def _sort_by_timestamp(items: list[dict[str, Any]], field: str) -> list[dict[str
     return sorted((item for item in items if item), key=parse_timestamp, reverse=True)
 
 
-def get_greenhouse_snapshot(greenhouse_id: str = "mars-greenhouse-1") -> dict[str, Any]:
+def _parse_iso_timestamp(value: str | None) -> datetime | None:
+    if not value:
+        return None
+
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def set_required_fresh_after_timestamp(timestamp: str | None) -> None:
+    global _REQUIRED_FRESH_AFTER_TIMESTAMP
+    _REQUIRED_FRESH_AFTER_TIMESTAMP = timestamp
+
+
+def clear_required_fresh_after_timestamp() -> None:
+    set_required_fresh_after_timestamp(None)
+
+
+def _snapshot_is_fresh_enough(snapshot: dict[str, Any], required_timestamp: str | None) -> bool:
+    if not required_timestamp:
+        return True
+
+    required = _parse_iso_timestamp(required_timestamp)
+    latest_timestamp = (snapshot.get("latestSensorReading") or {}).get("timestamp")
+    latest = _parse_iso_timestamp(latest_timestamp)
+
+    if not required or not latest:
+        return False
+
+    return latest >= required
+
+
+def get_greenhouse_snapshot(
+    greenhouse_id: str = "mars-greenhouse-1",
+    *,
+    fresh_after_timestamp: str | None = None,
+    freshness_retries: int = 7,
+    freshness_sleep_seconds: float = 0.35,
+) -> dict[str, Any]:
     """Return current greenhouse, crop, and actuator state from AppSync."""
-    data = _post_graphql(GREENHOUSE_QUERY, {"greenhouseId": greenhouse_id})
+    effective_fresh_after = fresh_after_timestamp or _REQUIRED_FRESH_AFTER_TIMESTAMP
+    last_snapshot: dict[str, Any] | None = None
 
-    sensor_items = _sort_by_timestamp(data.get("listSensorReadings", {}).get("items", []), "timestamp")
-    actuator_items = _sort_by_timestamp(data.get("listActuatorCommands", {}).get("items", []), "executedAt")
-    snapshot_items = _sort_by_timestamp(data.get("listAgentSnapshots", {}).get("items", []), "timestamp")
+    for _ in range(max(1, freshness_retries)):
+        data = _post_graphql(GREENHOUSE_QUERY, {"greenhouseId": greenhouse_id})
 
-    return {
-        "greenhouseId": greenhouse_id,
-        "latestSensorReading": sensor_items[0] if sensor_items else None,
-        "cropRecords": data.get("listCropRecords", {}).get("items", []),
-        "moduleSummaries": data.get("listModuleSummaries", {}).get("items", []),
-        "agentSnapshots": snapshot_items[:8],
-        "actionRequests": data.get("listActionRequests", {}).get("items", [])[:8],
-        "actuatorCommands": actuator_items[:8],
-    }
+        sensor_items = _sort_by_timestamp(data.get("listSensorReadings", {}).get("items", []), "timestamp")
+        actuator_items = _sort_by_timestamp(data.get("listActuatorCommands", {}).get("items", []), "executedAt")
+        snapshot_items = _sort_by_timestamp(data.get("listAgentSnapshots", {}).get("items", []), "timestamp")
+
+        snapshot = {
+            "greenhouseId": greenhouse_id,
+            "latestSensorReading": sensor_items[0] if sensor_items else None,
+            "cropRecords": data.get("listCropRecords", {}).get("items", []),
+            "moduleSummaries": data.get("listModuleSummaries", {}).get("items", []),
+            "agentSnapshots": snapshot_items[:8],
+            "actionRequests": data.get("listActionRequests", {}).get("items", [])[:8],
+            "actuatorCommands": actuator_items[:8],
+        }
+
+        last_snapshot = snapshot
+        if _snapshot_is_fresh_enough(snapshot, effective_fresh_after):
+            return snapshot
+
+        time.sleep(freshness_sleep_seconds)
+
+    if last_snapshot is None:
+        raise RuntimeError("Unable to fetch greenhouse snapshot.")
+
+    return last_snapshot
 
 
 def format_greenhouse_snapshot(snapshot: dict[str, Any]) -> str:

@@ -1,5 +1,13 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { sendChatQuery } from './chatApi';
+import {
+  GREENHOUSE_ID,
+  createSensorReading,
+  createUiInputEvent,
+  fetchLatestSensorReading,
+  waitForSensorFreshness,
+  type SensorReading,
+} from './telemetryApi';
 import type {
   ActivityFeedItem,
   AgentStatusCard,
@@ -10,7 +18,8 @@ import type {
   SimulationParams,
 } from './types';
 
-const BASELINE_TEMP = 24;
+const NOMINAL_TEMPERATURE = 24;
+const DEFAULT_TEMPERATURE_RANGE: [number, number] = [6, 32];
 
 const initialBase: MarsBase = {
   id: 'alpha',
@@ -26,7 +35,7 @@ const initialBase: MarsBase = {
     { name: 'Radishes', growthStage: 71, daysToHarvest: 14, health: 96, stressStatus: 'Healthy', projectedYield: 280, anomaly: false },
     { name: 'Herbs', growthStage: 55, daysToHarvest: 21, health: 90, stressStatus: 'Healthy', projectedYield: 150, anomaly: false },
   ],
-  environment: { temperature: 24, humidity: 68, co2: 1200, light: 92, water: 85 },
+  environment: { temperature: 24, humidity: 68, co2: 1200, light: 100, water: 85 },
   hardware: { heaterActive: false, heaterPower: 0, irrigationPumpFlow: 45, ledBrightness: 92 },
 };
 
@@ -88,7 +97,7 @@ const initialMetrics: HumanMetrics = {
 };
 
 const defaultSimParams: SimulationParams = {
-  temperatureDrift: 0,
+  temperature: NOMINAL_TEMPERATURE,
   waterRecycling: 100,
   powerAvailability: 100,
 };
@@ -110,15 +119,114 @@ function createChatMessageId(prefix: string) {
 function buildSimulationAgentPrompt(params: SimulationParams) {
   return [
     'Analyze this Mars greenhouse simulation update and explain the operational impact.',
-    `Temperature drift: ${params.temperatureDrift}°C`,
+    `Temperature: ${params.temperature}°C`,
     `Water recycling: ${params.waterRecycling}%`,
     `Power availability: ${params.powerAvailability}%`,
     'Use the current greenhouse telemetry plus your specialist agents to explain what is happening and what actions matter most right now.',
   ].join('\n');
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function parseDateToSol(timestamp: string) {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) {
+    return 0;
+  }
+
+  const start = Date.UTC(2035, 0, 1);
+  const elapsedDays = Math.floor((date.getTime() - start) / (1000 * 60 * 60 * 24));
+  return Math.max(0, elapsedDays);
+}
+
+function deriveParamsFromSensor(sensor: SensorReading): SimulationParams {
+  const temperature = sensor.temperature ?? NOMINAL_TEMPERATURE;
+  const recycle = sensor.recycleRatePercent ?? 100;
+  const powerKw = sensor.powerKw ?? 9.2;
+
+  return {
+    temperature: Math.round(temperature * 10) / 10,
+    waterRecycling: clamp(Math.round(recycle), 0, 100),
+    powerAvailability: clamp(Math.round((powerKw / 9.2) * 100), 0, 100),
+  };
+}
+
+function deriveTemperatureRange(sensor: SensorReading | null): [number, number] {
+  if (!sensor?.targetProfile) {
+    return DEFAULT_TEMPERATURE_RANGE;
+  }
+
+  let profile: Record<string, unknown> | null = null;
+  if (typeof sensor.targetProfile === 'string') {
+    try {
+      profile = JSON.parse(sensor.targetProfile) as Record<string, unknown>;
+    } catch {
+      profile = null;
+    }
+  } else {
+    profile = sensor.targetProfile;
+  }
+
+  const raw = profile?.temperatureC;
+  if (!Array.isArray(raw) || raw.length < 2) {
+    return DEFAULT_TEMPERATURE_RANGE;
+  }
+
+  const min = Number(raw[0]);
+  const max = Number(raw[1]);
+  if (!Number.isFinite(min) || !Number.isFinite(max) || min >= max) {
+    return DEFAULT_TEMPERATURE_RANGE;
+  }
+
+  return [Math.floor(min), Math.ceil(max)];
+}
+
+function createSensorReadingInput(params: SimulationParams, timestamp: string): SensorReading {
+  const effectiveTemp = params.temperature;
+  const humidity = Math.max(20, 68 - Math.round(Math.max(0, (15 - effectiveTemp) * 0.5)) + Math.round((100 - params.waterRecycling) * 0.1));
+  const stress = getStress(params);
+
+  return {
+    greenhouseId: GREENHOUSE_ID,
+    timestamp,
+    temperature: effectiveTemp,
+    humidity,
+    co2Ppm: 1200,
+    lightPpfd: Math.round(params.powerAvailability * 9.2),
+    phLevel: 6.2,
+    nutrientEc: 1.8,
+    waterLitres: Math.round((params.waterRecycling / 100) * 4200),
+    radiationMsv: 0.7,
+    pressureKpa: 101.3,
+    oxygenPercent: 21.0,
+    rootZoneOxygenPct: 19.4,
+    recycleRatePercent: params.waterRecycling,
+    powerKw: Math.round((params.powerAvailability / 100) * 9.2 * 100) / 100,
+    cropStressIndex: Math.round(stress),
+    foodSecurityDays: Math.max(20, Math.round(142 - stress * 1.2)),
+    sol: parseDateToSol(timestamp),
+    activeEvent:
+      params.temperature <= 18
+        ? 'HEATER_MALFUNCTION'
+        : params.waterRecycling < 50
+          ? 'WATER_PUMP_FAILURE'
+          : params.powerAvailability < 45
+            ? 'DUST_STORM'
+            : 'NONE',
+    controlMode: 'MANUAL',
+    targetProfile: {
+      temperatureC: [15, 22],
+      humidityPct: [50, 70],
+      co2Ppm: [800, 1200],
+    },
+    notes: 'UI simulation input persisted before agent analysis.',
+  };
+}
+
 function computeHardware(params: SimulationParams) {
-  const effectiveTemp = BASELINE_TEMP + params.temperatureDrift;
+  const effectiveTemp = params.temperature;
   const heaterNeeded = effectiveTemp < 18;
   const heaterPower = heaterNeeded ? Math.min(100, Math.round((18 - effectiveTemp) * 10)) : 0;
   const waterDeficit = 100 - params.waterRecycling;
@@ -134,7 +242,7 @@ function computeHardware(params: SimulationParams) {
 }
 
 function getStress(params: SimulationParams) {
-  const effectiveTemp = BASELINE_TEMP + params.temperatureDrift;
+  const effectiveTemp = params.temperature;
   const tempStress = Math.max(0, (15 - effectiveTemp) * 5);
   const waterStress = Math.max(0, (60 - params.waterRecycling) * 0.8);
   const powerStress = Math.max(0, (50 - params.powerAvailability) * 0.6);
@@ -149,7 +257,7 @@ function stressLabel(stress: number) {
 }
 
 function computeBaseFromParams(params: SimulationParams): MarsBase {
-  const effectiveTemp = BASELINE_TEMP + params.temperatureDrift;
+  const effectiveTemp = params.temperature;
   const totalStress = getStress(params);
   const status = totalStress > 50 ? 'critical' : totalStress > 20 ? 'warning' : 'nominal';
 
@@ -174,7 +282,7 @@ function computeBaseFromParams(params: SimulationParams): MarsBase {
       temperature: effectiveTemp,
       humidity: Math.max(20, 68 - Math.round(Math.max(0, (15 - effectiveTemp) * 0.5)) + Math.round((100 - params.waterRecycling) * 0.1)),
       co2: 1200,
-      light: Math.round(params.powerAvailability * 0.92),
+      light: params.powerAvailability,
       water: params.waterRecycling,
     },
     hardware: computeHardware(params),
@@ -210,15 +318,15 @@ function computeMetricsFromStress(stress: number): HumanMetrics {
 
 function createLogs(params: SimulationParams, stress: number): ActivityFeedItem[] {
   const now = Date.now();
-  const effectiveTemp = BASELINE_TEMP + params.temperatureDrift;
+  const effectiveTemp = params.temperature;
   const entries: ActivityFeedItem[] = [];
 
-  if (params.temperatureDrift < -2) {
+  if (params.temperature < 22) {
     entries.push({
       agent: 'environment',
-      message: `Temperature drift detected at ${effectiveTemp}°C. Adjusting greenhouse climate controls and protecting the crop envelope.`,
+      message: `Temperature drop detected at ${effectiveTemp}°C. Adjusting greenhouse climate controls and protecting the crop envelope.`,
       timestamp: now,
-      type: params.temperatureDrift < -5 ? 'critical' : 'warning',
+      type: params.temperature < 18 ? 'critical' : 'warning',
     });
   }
 
@@ -263,15 +371,15 @@ function createLogs(params: SimulationParams, stress: number): ActivityFeedItem[
 }
 
 function computeAgents(params: SimulationParams, stress: number): AgentStatusCard[] {
-  const effectiveTemp = BASELINE_TEMP + params.temperatureDrift;
+  const effectiveTemp = params.temperature;
   return [
     {
       id: 'environment',
       name: 'ENV_AGENT',
       role: 'Environment Control',
       icon: 'ENV',
-      status: params.temperatureDrift < -5 || params.powerAvailability < 40 ? 'warning' : 'nominal',
-      currentAction: params.temperatureDrift < -2 ? `Counteracting temperature drift at ${effectiveTemp}°C.` : 'CO₂ and climate conditions stable.',
+      status: params.temperature < 18 || params.powerAvailability < 40 ? 'warning' : 'nominal',
+      currentAction: params.temperature < 22 ? `Stabilizing greenhouse temperature at ${effectiveTemp}°C.` : 'CO₂ and climate conditions stable.',
     },
     {
       id: 'crop',
@@ -312,6 +420,7 @@ export function useMissionState() {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [metrics, setMetrics] = useState<HumanMetrics>({ ...initialMetrics });
   const [simParams, setSimParams] = useState<SimulationParams>({ ...defaultSimParams });
+  const [temperatureRange, setTemperatureRange] = useState<[number, number]>(DEFAULT_TEMPERATURE_RANGE);
 
   const updateSimulation = useCallback((params: SimulationParams) => {
     const stress = getStress(params);
@@ -323,8 +432,35 @@ export function useMissionState() {
     setLogs(createLogs(params, stress));
   }, []);
 
-  const requestAgentResponse = useCallback(async (query: string) => {
-    const payload = await sendChatQuery(query);
+  useEffect(() => {
+    let cancelled = false;
+
+    const bootstrapFromBackend = async () => {
+      try {
+        const latest = await fetchLatestSensorReading(GREENHOUSE_ID);
+        if (!latest || cancelled) {
+          return;
+        }
+
+        updateSimulation(deriveParamsFromSensor(latest));
+        setTemperatureRange(deriveTemperatureRange(latest));
+      } catch {
+        // Keep local defaults if backend is temporarily unreachable.
+      }
+    };
+
+    void bootstrapFromBackend();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [updateSimulation]);
+
+  const requestAgentResponse = useCallback(async (query: string, freshAfterTimestamp?: string) => {
+    const payload = await sendChatQuery(query, {
+      greenhouseId: GREENHOUSE_ID,
+      freshAfterTimestamp,
+    });
     setChatMessages((currentMessages) => [
       ...currentMessages,
       ...payload.steps.map((step) => ({
@@ -363,7 +499,14 @@ export function useMissionState() {
     setIsChatLoading(true);
 
     try {
-      await requestAgentResponse(cleanedQuery);
+      const timestamp = new Date().toISOString();
+      await createUiInputEvent({
+        timestamp,
+        greenhouseId: GREENHOUSE_ID,
+        message: `Operator chat input: ${cleanedQuery}`,
+        evidence: { kind: 'chat-input' },
+      });
+      await requestAgentResponse(cleanedQuery, timestamp);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'The backend chat bridge is unavailable.';
       setChatMessages((currentMessages) => [
@@ -382,7 +525,6 @@ export function useMissionState() {
   }, [isChatLoading, requestAgentResponse]);
 
   const runSimulation = useCallback(async (params: SimulationParams) => {
-    updateSimulation(params);
     setChatMessages((currentMessages) => [
       ...currentMessages,
       {
@@ -390,13 +532,36 @@ export function useMissionState() {
         role: 'system',
         author: 'simulation',
         agent: 'system',
-        message: `Simulation started: temperature drift ${params.temperatureDrift}°C, water recycling ${params.waterRecycling}%, power availability ${params.powerAvailability}%.`,
+        message: `Simulation started: temperature ${params.temperature}°C, water recycling ${params.waterRecycling}%, power availability ${params.powerAvailability}%.`,
       },
     ]);
     setIsChatLoading(true);
 
     try {
-      await requestAgentResponse(buildSimulationAgentPrompt(params));
+      const timestamp = new Date().toISOString();
+      const inputRow = createSensorReadingInput(params, timestamp);
+
+      const createdReading = await createSensorReading(inputRow);
+      await createUiInputEvent({
+        timestamp,
+        greenhouseId: GREENHOUSE_ID,
+        message: 'Operator applied simulation controls from UI.',
+        evidence: {
+          kind: 'simulation-input',
+          params,
+        },
+      });
+
+      const confirmedLatest = await waitForSensorFreshness({
+        greenhouseId: GREENHOUSE_ID,
+        freshAfterTimestamp: timestamp,
+        createdReadingId: createdReading?.id,
+      });
+
+      const syncedParams = deriveParamsFromSensor(confirmedLatest);
+      updateSimulation(syncedParams);
+      setTemperatureRange(deriveTemperatureRange(confirmedLatest));
+      await requestAgentResponse(buildSimulationAgentPrompt(syncedParams), timestamp);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'The backend chat bridge is unavailable.';
       setChatMessages((currentMessages) => [
@@ -424,6 +589,7 @@ export function useMissionState() {
     metrics,
     runSimulation,
     simParams,
+    temperatureRange,
     sendChatMessage,
     updateSimulation,
   };

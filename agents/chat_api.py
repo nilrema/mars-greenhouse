@@ -18,12 +18,20 @@ def main() -> None:
         payload = {}
 
     query = str(payload.get("query", ""))
+    greenhouse_id = payload.get("greenhouseId")
+    fresh_after_timestamp = payload.get("freshAfterTimestamp")
+    greenhouse_id = str(greenhouse_id) if isinstance(greenhouse_id, str) else None
+    fresh_after_timestamp = str(fresh_after_timestamp) if isinstance(fresh_after_timestamp, str) else None
     captured_stdout = io.StringIO()
     captured_stderr = io.StringIO()
 
     # Strands can emit streamed text to stdout during execution; keep the bridge response JSON-only.
     with redirect_stdout(captured_stdout), redirect_stderr(captured_stderr):
-        result = handle_chat_turn(query)
+        result = handle_chat_turn(
+            query,
+            fresh_after_timestamp=fresh_after_timestamp,
+            greenhouse_id=greenhouse_id,
+        )
 
     sys.stdout.write(json.dumps(result))
 

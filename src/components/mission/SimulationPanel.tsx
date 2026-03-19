@@ -5,10 +5,11 @@ import type { SimulationParams } from './types';
 
 interface Props {
   params: SimulationParams;
+  temperatureRange: [number, number];
   onConfirm: (params: SimulationParams) => void;
 }
 
-export function SimulationPanel({ params, onConfirm }: Props) {
+export function SimulationPanel({ params, temperatureRange, onConfirm }: Props) {
   const [staged, setStaged] = useState<SimulationParams>({ ...params });
 
   useEffect(() => {
@@ -26,13 +27,13 @@ export function SimulationPanel({ params, onConfirm }: Props) {
   return (
     <div className="space-y-4">
       <SimSlider
-        label="Temperature Drift"
-        value={staged.temperatureDrift}
-        min={-20}
-        max={5}
+        label="Temperature"
+        value={staged.temperature}
+        min={temperatureRange[0]}
+        max={temperatureRange[1]}
         unit="°C"
-        description="Storm reduces temperature"
-        onChange={(value) => update('temperatureDrift', value)}
+        description="Greenhouse air temperature"
+        onChange={(value) => update('temperature', value)}
       />
 
       <SimSlider
@@ -61,10 +62,10 @@ export function SimulationPanel({ params, onConfirm }: Props) {
         </div>
         <div className="flex flex-wrap gap-1.5">
           {[
-            { label: 'Dust Storm', values: { temperatureDrift: -8, waterRecycling: 60, powerAvailability: 30 } },
-            { label: 'Solar Flare', values: { temperatureDrift: 2, waterRecycling: 100, powerAvailability: 20 } },
-            { label: 'Deep Cold', values: { temperatureDrift: -18, waterRecycling: 30, powerAvailability: 50 } },
-            { label: 'Nominal', values: { temperatureDrift: 0, waterRecycling: 100, powerAvailability: 100 } },
+            { label: '🌪 Dust Storm', values: { temperature: 16, waterRecycling: 60, powerAvailability: 30 } },
+            { label: '☀ Solar Flare', values: { temperature: 26, waterRecycling: 100, powerAvailability: 20 } },
+            { label: '🧊 Antarctica', values: { temperature: 6, waterRecycling: 30, powerAvailability: 50 } },
+            { label: '✅ Nominal', values: { temperature: 24, waterRecycling: 100, powerAvailability: 100 } },
           ].map((preset) => (
             <motion.button
               key={preset.label}

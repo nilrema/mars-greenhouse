@@ -13,6 +13,24 @@ const schema = a.schema({
       nutrientEc: a.float(),
       waterLitres: a.float(),
       radiationMsv: a.float(),
+      pressureKpa: a.float(),
+      oxygenPercent: a.float(),
+      rootZoneOxygenPct: a.float(),
+      recycleRatePercent: a.float(),
+      powerKw: a.float(),
+      cropStressIndex: a.float(),
+      foodSecurityDays: a.float(),
+      sol: a.integer(),
+      activeEvent: a.enum([
+        'NONE',
+        'DUST_STORM',
+        'CO2_SCRUBBER_FAULT',
+        'WATER_PUMP_FAILURE',
+        'HEATER_MALFUNCTION',
+      ]),
+      controlMode: a.enum(['AUTO', 'MANUAL', 'SAFE_MODE']),
+      targetProfile: a.json(),
+      notes: a.string(),
     })
     .authorization((allow) => [allow.publicApiKey()]),
 
@@ -26,6 +44,50 @@ const schema = a.schema({
       daysToHarvest: a.integer(),
       healthStatus: a.enum(['HEALTHY', 'MONITOR', 'CRITICAL']),
       zone: a.string(),
+      cropType: a.enum(['LEAFY_GREEN', 'ROOT_TUBER', 'LEGUME', 'FRUITING_CROP', 'HERB']),
+      missionRole: a.enum(['MICRONUTRIENT', 'ENERGY_BACKBONE', 'PROTEIN_SECURITY', 'MORALE']),
+      growthCycleDays: a.integer(),
+      harvestIndex: a.float(),
+      targetTempMinC: a.float(),
+      targetTempMaxC: a.float(),
+      targetHumidityMinPct: a.float(),
+      targetHumidityMaxPct: a.float(),
+      targetCo2MinPpm: a.integer(),
+      targetCo2MaxPpm: a.integer(),
+      targetPpfdMin: a.float(),
+      targetPpfdMax: a.float(),
+      targetPhMin: a.float(),
+      targetPhMax: a.float(),
+      targetEcMin: a.float(),
+      targetEcMax: a.float(),
+      caloriesPer100g: a.float(),
+      proteinPer100g: a.float(),
+      expectedYieldKgM2: a.float(),
+      waterDemandLevel: a.enum(['LOW', 'MODERATE', 'HIGH']),
+      stressSensitivity: a.json(),
+    })
+    .authorization((allow) => [allow.publicApiKey()]),
+
+  AstronautProfile: a
+    .model({
+      astronautId: a.string().required(),
+      name: a.string().required(),
+      role: a.enum(['COMMANDER', 'ENGINEER', 'BIOLOGIST', 'MEDICAL_OFFICER']),
+      bodyMassKg: a.float(),
+      activityLevel: a.enum(['LOW', 'MODERATE', 'HIGH']),
+      dailyCalorieTarget: a.integer(),
+      dailyProteinTargetG: a.float(),
+      dailyHydrationTargetL: a.float(),
+      dailyKcalIntake: a.integer(),
+      dailyProteinIntakeG: a.float(),
+      dailyHydrationIntakeL: a.float(),
+      micronutrientRisk: a.enum(['LOW', 'MEDIUM', 'HIGH']),
+      fatigueScore: a.integer(),
+      workloadIndex: a.integer(),
+      healthStatus: a.enum(['NOMINAL', 'WATCH', 'ALERT']),
+      preferences: a.json(),
+      notes: a.string(),
+      lastAssessmentAt: a.datetime(),
     })
     .authorization((allow) => [allow.publicApiKey()]),
 
@@ -36,6 +98,10 @@ const schema = a.schema({
       severity: a.enum(['INFO', 'WARN', 'CRITICAL']),
       message: a.string(),
       actionTaken: a.string(),
+      greenhouseId: a.string(),
+      confidence: a.float(),
+      linkedCommandId: a.string(),
+      evidence: a.json(),
     })
     .authorization((allow) => [allow.publicApiKey()]),
 
@@ -53,6 +119,9 @@ const schema = a.schema({
       orchestratorSummary: a.string(),
       leadAgent: a.string(),
       updatedAtLabel: a.string(),
+      confidence: a.float(),
+      nutritionalCoverageScore: a.float(),
+      kpiSnapshot: a.json(),
     })
     .authorization((allow) => [allow.publicApiKey()]),
 
@@ -66,6 +135,8 @@ const schema = a.schema({
       recommendations: a.json(),
       affectedModules: a.json(),
       timestamp: a.datetime(),
+      confidence: a.float(),
+      evidence: a.json(),
     })
     .authorization((allow) => [allow.publicApiKey()]),
 
@@ -78,6 +149,8 @@ const schema = a.schema({
       affectedModules: a.json(),
       severity: a.enum(['INFO', 'WARN', 'CRITICAL']),
       triggeredAt: a.datetime(),
+      expectedDurationHours: a.integer(),
+      mitigationPlaybook: a.json(),
     })
     .authorization((allow) => [allow.publicApiKey()]),
 
@@ -91,6 +164,9 @@ const schema = a.schema({
       status: a.enum(['QUEUED', 'IN_PROGRESS', 'COMPLETED', 'FAILED']),
       summary: a.string(),
       createdAtLabel: a.string(),
+      priority: a.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
+      dueBy: a.datetime(),
+      context: a.json(),
     })
     .authorization((allow) => [allow.publicApiKey()]),
 
@@ -111,6 +187,10 @@ const schema = a.schema({
       status: a.enum(['PENDING', 'EXECUTING', 'COMPLETED', 'FAILED']),
       executedAt: a.datetime(),
       result: a.string(),
+      requestedBy: a.string(),
+      rationale: a.string(),
+      confidence: a.float(),
+      safetyCheckPassed: a.boolean(),
     })
     .authorization((allow) => [allow.publicApiKey()]),
 });
