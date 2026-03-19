@@ -55,19 +55,30 @@ const technologyDevices: TechnologyDevice[] = [
   },
 ];
 
-const metricLabels: Array<keyof Omit<TechnologyDevice, 'name' | 'category' | 'status'>> = [
-  'power',
-  'connectivity',
-  'componentHealth',
-  'failureRisk',
-];
-
-const labelMap: Record<(typeof metricLabels)[number], string> = {
+const labelMap: Record<'power' | 'connectivity' | 'componentHealth' | 'failureRisk', string> = {
   power: 'Power',
   connectivity: 'Connectivity',
   componentHealth: 'Component Health',
   failureRisk: 'Failure Risk',
 };
+
+function parsePercent(value: string) {
+  return Number.parseInt(value.replace('%', ''), 10);
+}
+
+function metricTone(value: number, inverse = false) {
+  const normalized = inverse ? 100 - value : value;
+  if (normalized >= 80) return 'text-success';
+  if (normalized >= 60) return 'text-warning';
+  return 'text-destructive';
+}
+
+function metricBarTone(value: number, inverse = false) {
+  const normalized = inverse ? 100 - value : value;
+  if (normalized >= 80) return 'bg-success';
+  if (normalized >= 60) return 'bg-warning';
+  return 'bg-destructive';
+}
 
 export function TechnologyPanel() {
   return (
@@ -93,18 +104,56 @@ export function TechnologyPanel() {
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded bg-muted/50 p-2">
               <div className="text-[8px] text-muted-foreground mb-1">Status</div>
-              <div className="text-[13px] font-mono font-semibold text-foreground uppercase">{device.status}</div>
+              <div className="flex items-center gap-2">
+                <div className={`status-led ${device.status === 'online' ? 'bg-success' : device.status === 'standby' ? 'bg-warning' : 'bg-destructive'}`} />
+                <div className="text-[13px] font-mono font-semibold text-foreground uppercase">{device.status}</div>
+              </div>
             </div>
 
-            {metricLabels.map((metric) => (
-              <div key={metric} className="rounded bg-muted/50 p-2">
-                <div className="text-[8px] text-muted-foreground mb-1">{labelMap[metric]}</div>
-                <div className="text-[13px] font-mono font-semibold text-foreground">{device[metric]}</div>
-              </div>
-            ))}
+            <GaugeMetric label={labelMap.power} value={parsePercent(device.power)} unit="%" />
+            <TextMetric label={labelMap.connectivity} value={device.connectivity} />
+            <TextMetric label={labelMap.componentHealth} value={device.componentHealth} />
+            <GaugeMetric label={labelMap.failureRisk} value={parsePercent(device.failureRisk)} unit="%" inverse />
           </div>
         </motion.div>
       ))}
+    </div>
+  );
+}
+
+function GaugeMetric({
+  label,
+  value,
+  unit,
+  inverse = false,
+}: {
+  label: string;
+  value: number;
+  unit: string;
+  inverse?: boolean;
+}) {
+  return (
+    <div className="bg-muted/50 rounded p-2">
+      <div className="text-[8px] text-muted-foreground mb-1">{label}</div>
+      <div className={`text-[13px] font-mono font-semibold ${metricTone(value, inverse)}`}>
+        {value}
+        <span className="text-[9px] text-muted-foreground font-normal">{unit}</span>
+      </div>
+      <div className="w-full h-1 bg-muted rounded-full mt-1">
+        <div
+          className={`h-full rounded-full transition-all ${metricBarTone(value, inverse)}`}
+          style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function TextMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-muted/50 rounded p-2">
+      <div className="text-[8px] text-muted-foreground mb-1">{label}</div>
+      <div className="text-[13px] font-mono font-semibold text-foreground">{value}</div>
     </div>
   );
 }
