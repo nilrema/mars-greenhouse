@@ -97,6 +97,6 @@ Status: completed on `feature/chat-backend-integration`
 Notes:
 - Narrowed the active `agents/` runtime to `environment_agent.py`, `crop_agent.py`, `astro_agent.py`, `resource_agent.py`, `mission_orchestrator.py`, and the new `chat_runtime.py` bridge.
 - Archived older experimental entry points under `agents/archive/` so the product path no longer has parallel specialist or orchestrator aliases.
-- Replaced the TypeScript-only chat coordination shim with a Lambda bridge that invokes the retained Python orchestrator/specialist runtime.
+- Replaced the TypeScript-only chat coordination shim with a deployed Python Lambda that runs Strands-based orchestration and specialist agents.
 - Standardized Mars crop knowledge base access through `agents/mcp_support.py`, with `agents/tools/kb_tools.py` now wrapping the shared helper instead of owning separate MCP logic.
 - Added smoke and regression coverage for retained-agent execution, orchestrator output, chat runtime flow, and MCP error handling.

@@ -1,6 +1,6 @@
 # Agents Runtime
 
-The active runtime keeps five agent roles:
+The retained specialist runtime keeps five agent roles:
 
 - `environment_agent.py`
 - `crop_agent.py`
@@ -8,9 +8,12 @@ The active runtime keeps five agent roles:
 - `resource_agent.py`
 - `mission_orchestrator.py`
 
-`chat_runtime.py` is the backend bridge that maps UI chat requests into the
-retained specialist/orchestrator flow and returns the structured response
-contract used by the frontend.
+The deployed chat path now lives in the Python Lambda runtime under
+[`amplify/functions/chatResponder/runtime`](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/amplify/functions/chatResponder/runtime),
+where Strands orchestrates real LLM-based routing and specialist coordination.
+
+`chat_runtime.py` remains a local compatibility bridge for the older
+non-deployed Python flow, but it is no longer the active backend entry point.
 
 ## Shared MCP Access
 

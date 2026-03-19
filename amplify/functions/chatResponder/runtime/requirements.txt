@@ -1,0 +1,3 @@
+strands-agents
+httpx
+boto3

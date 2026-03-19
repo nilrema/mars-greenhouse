@@ -1,4 +1,5 @@
 import { defineBackend } from '@aws-amplify/backend';
+import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { auth } from './auth/resource';
 import { data } from './data/resource';
 import { sensorSimulator } from './functions/sensorSimulator/resource';
@@ -28,3 +29,15 @@ backend.actuatorControl.addEnvironment(
 );
 
 actuatorCommandTable.grantReadWriteData(backend.actuatorControl.resources.lambda);
+
+backend.chatResponder.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: [
+      'bedrock:InvokeModel',
+      'bedrock:InvokeModelWithResponseStream',
+      'bedrock:Converse',
+      'bedrock:ConverseStream',
+    ],
+    resources: ['*'],
+  }),
+);

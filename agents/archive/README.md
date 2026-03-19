@@ -9,7 +9,9 @@ Active retained runtime:
 - `astro_agent.py`
 - `resource_agent.py`
 - `mission_orchestrator.py`
-- `chat_runtime.py`
+
+Deployed chat runtime:
+- `amplify/functions/chatResponder/runtime/`
 
 Archived legacy entry points:
 - `crew_nutrition_agent.py`

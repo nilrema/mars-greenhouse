@@ -30,10 +30,14 @@ Responsibilities:
 Primary path:
 
 - [amplify/data/resource.ts](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/amplify/data/resource.ts)
+- [amplify/functions/chatResponder/resource.ts](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/amplify/functions/chatResponder/resource.ts)
+- [handler.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/amplify/functions/chatResponder/runtime/handler.py)
+- [service.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/amplify/functions/chatResponder/runtime/chat_responder_runtime/service.py)
 
 Responsibilities:
 
 - expose the chat mutation contract consumed by the active frontend
+- run the active chat path in a Python Lambda bundled with Strands
 - keep the backend response structured enough for the UI to render reliably
 
 ### Agents
@@ -51,8 +55,8 @@ Primary paths:
 Responsibilities:
 
 - execute the retained five-agent product runtime
-- let backend chat resolve through the real orchestrator plus specialist reports
-- share one MCP configuration and query path for Mars crop knowledge access
+- let backend chat resolve through a Strands-powered orchestrator and Strands-powered specialists
+- give specialist agents direct MCP-backed access to the Mars crop knowledge base
 - keep archived experiments outside the active entry-point set
 
 ## 3. Active Frontend State
@@ -75,9 +79,11 @@ Responsibilities:
 3. Operator adjusts temperature drift, water recycling, and power availability.
 4. Starting the simulation updates metrics and local system status.
 5. Frontend requests a backend specialist review for the updated simulation state.
-6. The `chatResponder` Lambda invokes the Python chat runtime bridge instead of a TypeScript-only coordination shim.
-7. `chat_runtime.py` builds explicit runtime inputs, runs the retained specialist agents through `mission_orchestrator.py`, and returns structured specialist messages plus a final orchestrator resolution.
-8. Operator can continue the same coordination thread from the right-side panel.
+6. The `chatResponder` mutation invokes a custom Python Lambda.
+7. The Python Lambda starts a Strands orchestration cycle, routes the request to one or more Strands specialist agents, and gives those agents direct MCP access to the Mars crop knowledge base.
+8. Selected specialists return first-pass assessments, then a follow-up coordination round runs using peer outputs.
+9. The orchestrator resolves the final lead agent, ordered actions, and success condition for the UI.
+10. Operator can continue the same coordination thread from the right-side panel.
 
 ### Detail Route
 
@@ -88,7 +94,7 @@ Responsibilities:
 
 - the active frontend should stay close to the screenshots
 - local simulation state is still acceptable for greenhouse visuals
-- operator chat now flows through the backend and the retained Python orchestration runtime
+- operator chat now flows through the backend and the deployed Strands orchestration runtime
 
 ## 6. Reversion Strategy
 

@@ -1,0 +1,469 @@
+from __future__ import annotations
+
+import json
+import os
+import time
+from contextlib import AbstractContextManager
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
+from typing import Any, Protocol
+
+import boto3
+import httpx
+from mcp.client.streamable_http import streamablehttp_client
+from pydantic import BaseModel
+from strands import Agent
+from strands.models import BedrockModel
+from strands.tools.mcp.mcp_client import MCPClient
+
+from .models import (
+    OrchestratorResolution,
+    ResolutionStep,
+    RouteDecision,
+    RuntimeContext,
+    SpecialistAssessment,
+    SpecialistFollowUp,
+)
+
+BASELINE_TEMP = 24.0
+DEFAULT_MODEL_ID = os.environ.get("STRANDS_MODEL_ID", "us.amazon.nova-pro-v1:0")
+DEFAULT_MCP_URL = os.environ.get(
+    "KB_MCP_URL",
+    "https://kb-start-hack-gateway-buyjtibfpg.gateway.bedrock-agentcore.us-east-2.amazonaws.com/mcp",
+)
+DEFAULT_GREENHOUSE_ID = "mars-greenhouse-1"
+AGENT_ORDER = ["environment", "crop", "astro", "resource"]
+
+_TOKEN_CACHE: dict[str, Any] = {"token": None, "expires_at": None}
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _chat_timestamp() -> int:
+    return int(time.time())
+
+
+def _status_to_severity(status: str) -> str:
+    return "critical" if status == "critical" else "warning" if status == "warning" else "success"
+
+
+def _agent_name(agent_id: str) -> str:
+    return {
+        "environment": "ENV_AGENT",
+        "crop": "CROP_AGENT",
+        "astro": "ASTRO_AGENT",
+        "resource": "RESOURCE_AGENT",
+        "orchestrator": "ORCH_AGENT",
+    }[agent_id]
+
+
+def _agent_role(agent_id: str) -> str:
+    return {
+        "environment": "Environment Control",
+        "crop": "Crop Management",
+        "astro": "Astronaut Welfare",
+        "resource": "Resource Management",
+        "orchestrator": "Mission Orchestration",
+    }[agent_id]
+
+
+def _agent_icon(agent_id: str) -> str:
+    return {
+        "environment": "🌡️",
+        "crop": "🌱",
+        "astro": "🧑‍🚀",
+        "resource": "⚡",
+        "orchestrator": "🧭",
+    }[agent_id]
+
+
+def _normalize_context(context: dict[str, Any] | None) -> dict[str, float]:
+    context = context or {}
+    return {
+        "temperatureDrift": float(context.get("temperatureDrift") or 0.0),
+        "waterRecycling": float(context.get("waterRecycling") or 100.0),
+        "powerAvailability": float(context.get("powerAvailability") or 100.0),
+    }
+
+
+def _context_summary(context: dict[str, float]) -> str:
+    effective_temp = BASELINE_TEMP + context["temperatureDrift"]
+    humidity = max(22.0, 68.0 - max(0.0, 15.0 - effective_temp) * 0.5 + (100.0 - context["waterRecycling"]) * 0.1)
+    return (
+        f"Simulation context for {DEFAULT_GREENHOUSE_ID}: "
+        f"temperature drift {context['temperatureDrift']:+.1f}C "
+        f"(effective canopy temperature {effective_temp:.1f}C), "
+        f"water recycling {context['waterRecycling']:.0f}%, "
+        f"power availability {context['powerAvailability']:.0f}%, "
+        f"estimated humidity {humidity:.0f}%."
+    )
+
+
+def _route_system_prompt() -> str:
+    return """
+You are the Mars greenhouse orchestrator.
+You receive the operator request and greenhouse simulation context.
+
+Decide whether the request needs:
+- one specialist only
+- several specialists
+- all four specialists
+
+Available specialists:
+- environment: climate, temperature, humidity, CO2, lighting stability
+- crop: plant stress, disease risk, yield protection, inspection priorities
+- astro: crew workload, nutrition, dispatch timing, human operational impact
+- resource: water recovery, irrigation, power, reserve allocation
+
+Return structured output only.
+Select the minimum set of specialists needed to solve the request, but if the request is broad or the simulation suggests coupled failures, route to multiple agents.
+Your dispatch_message should read like a real mission-control instruction to the selected specialists.
+"""
+
+
+def _specialist_system_prompt(agent_id: str) -> str:
+    role_brief = {
+        "environment": "You are the Environment Agent. Focus on climate stabilization, greenhouse envelope recovery, and risks from temperature, humidity, CO2, and lighting drift.",
+        "crop": "You are the Crop Agent. Focus on crop stress, disease risk, inspection priorities, and harvest protection.",
+        "astro": "You are the Astro Agent. Focus on crew workload, nutrition continuity, inspection labor, and astronaut operational impact.",
+        "resource": "You are the Resource Agent. Focus on water recovery, irrigation scheduling, power limits, and reserve preservation.",
+    }[agent_id]
+    return f"""
+{role_brief}
+
+You are a real specialist agent in a multi-agent Mars greenhouse runtime.
+You have access to the Mars crop knowledge base MCP server as a tool provider.
+Use the MCP tools when you need grounding for crop, environment, Mars greenhouse, or mission reasoning.
+
+Return structured output only.
+Your response_message must sound like a direct message to the orchestrator and peer specialists.
+Make your requested_support concrete and address other specialists by role when relevant.
+"""
+
+
+def _follow_up_system_prompt(agent_id: str) -> str:
+    return f"""
+You are the {_agent_name(agent_id)} specialist in a live coordination round.
+You already produced an initial assessment.
+Now you have peer updates and must respond briefly with your coordination position.
+
+Return structured output only.
+Do not repeat your full initial report.
+Reference peer constraints directly and update your action if needed.
+"""
+
+
+def _resolution_system_prompt() -> str:
+    return """
+You are the Mars greenhouse orchestrator closing a specialist coordination cycle.
+You have the operator request, simulation context, route decision, specialist first-pass replies, and specialist follow-up notes.
+
+Return structured output only.
+Choose the lead agent, write a concise summary, and produce an ordered course of action.
+Every step must have an owner, an action, and a reason.
+The final success condition must be operational and concrete.
+"""
+
+
+def _headers_for_mcp() -> dict[str, str]:
+    client_id = os.environ.get("GATEWAY_CLIENT_ID", "").strip()
+    client_secret = os.environ.get("GATEWAY_CLIENT_SECRET", "").strip()
+    token_endpoint = os.environ.get("GATEWAY_TOKEN_ENDPOINT", "").strip()
+    scope = os.environ.get("GATEWAY_SCOPE", "").strip()
+
+    if not all([client_id, client_secret, token_endpoint]):
+        return {}
+
+    now = _utc_now()
+    if _TOKEN_CACHE["token"] and _TOKEN_CACHE["expires_at"] and now < _TOKEN_CACHE["expires_at"]:
+        return {"Authorization": f"Bearer {_TOKEN_CACHE['token']}"}
+
+    response = httpx.post(
+        token_endpoint,
+        data={
+            "grant_type": "client_credentials",
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "scope": scope,
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        timeout=10,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    _TOKEN_CACHE["token"] = payload["access_token"]
+    _TOKEN_CACHE["expires_at"] = now + timedelta(seconds=max(60, int(payload.get("expires_in", 3600)) - 300))
+    return {"Authorization": f"Bearer {_TOKEN_CACHE['token']}"}
+
+
+def _mcp_transport():
+    return streamablehttp_client(
+        url=DEFAULT_MCP_URL,
+        headers=_headers_for_mcp() or None,
+        timeout=30,
+        sse_read_timeout=300,
+    )
+
+
+class AgentBackend(Protocol):
+    def route(self, context: RuntimeContext) -> RouteDecision: ...
+
+    def assess(self, agent_id: str, context: RuntimeContext, route: RouteDecision) -> SpecialistAssessment: ...
+
+    def follow_up(
+        self,
+        agent_id: str,
+        context: RuntimeContext,
+        route: RouteDecision,
+        initial_assessments: dict[str, SpecialistAssessment],
+    ) -> SpecialistFollowUp: ...
+
+    def resolve(
+        self,
+        context: RuntimeContext,
+        route: RouteDecision,
+        initial_assessments: dict[str, SpecialistAssessment],
+        follow_ups: dict[str, SpecialistFollowUp],
+    ) -> OrchestratorResolution: ...
+
+
+@dataclass
+class StrandsBackend(AbstractContextManager):
+    model_id: str = DEFAULT_MODEL_ID
+
+    def __post_init__(self) -> None:
+        session = boto3.Session(region_name=os.environ.get("AWS_REGION"))
+        self.model = BedrockModel(boto_session=session, model_id=self.model_id)
+        self.mcp_client = MCPClient(_mcp_transport, startup_timeout=30, prefix="mars_kb")
+
+    def __enter__(self) -> "StrandsBackend":
+        self.mcp_client.start()
+        self.mcp_client.list_tools_sync()
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        self.mcp_client.stop(exc_type, exc, tb)
+
+    def _invoke_structured(self, *, name: str, system_prompt: str, prompt: str, output_model: type[BaseModel]) -> BaseModel:
+        agent = Agent(
+            model=self.model,
+            tools=[self.mcp_client],
+            system_prompt=system_prompt,
+            name=name,
+            description=name,
+        )
+        result = agent(prompt, structured_output_model=output_model)
+        if result.structured_output is None:
+            raise RuntimeError(f"{name} did not return structured output")
+        return result.structured_output
+
+    def route(self, context: RuntimeContext) -> RouteDecision:
+        prompt = (
+            f"Operator message: {context.user_message}\n"
+            f"{context.simulation_summary}\n"
+            "Decide which specialists should be routed right now."
+        )
+        return self._invoke_structured(
+            name="orchestrator_router",
+            system_prompt=_route_system_prompt(),
+            prompt=prompt,
+            output_model=RouteDecision,
+        )
+
+    def assess(self, agent_id: str, context: RuntimeContext, route: RouteDecision) -> SpecialistAssessment:
+        prompt = (
+            f"Operator request:\n{context.user_message}\n\n"
+            f"Simulation context:\n{context.simulation_summary}\n\n"
+            f"Orchestrator routing rationale:\n{route.rationale}\n\n"
+            "Produce your specialist assessment."
+        )
+        return self._invoke_structured(
+            name=f"{agent_id}_specialist",
+            system_prompt=_specialist_system_prompt(agent_id),
+            prompt=prompt,
+            output_model=SpecialistAssessment,
+        )
+
+    def follow_up(
+        self,
+        agent_id: str,
+        context: RuntimeContext,
+        route: RouteDecision,
+        initial_assessments: dict[str, SpecialistAssessment],
+    ) -> SpecialistFollowUp:
+        peer_notes = []
+        for peer_id, assessment in initial_assessments.items():
+            if peer_id == agent_id:
+                continue
+            peer_notes.append(
+                f"{_agent_name(peer_id)} summary: {assessment.summary}\n"
+                f"{_agent_name(peer_id)} asks: {', '.join(assessment.requested_support) or 'none'}\n"
+                f"{_agent_name(peer_id)} actions: {', '.join(assessment.proposed_actions) or 'none'}"
+            )
+        prompt = (
+            f"Operator request:\n{context.user_message}\n\n"
+            f"Simulation context:\n{context.simulation_summary}\n\n"
+            f"Your initial assessment:\n{initial_assessments[agent_id].response_message}\n\n"
+            "Peer assessments:\n"
+            + "\n\n".join(peer_notes)
+            + "\n\nRespond with your coordination update."
+        )
+        return self._invoke_structured(
+            name=f"{agent_id}_follow_up",
+            system_prompt=_follow_up_system_prompt(agent_id),
+            prompt=prompt,
+            output_model=SpecialistFollowUp,
+        )
+
+    def resolve(
+        self,
+        context: RuntimeContext,
+        route: RouteDecision,
+        initial_assessments: dict[str, SpecialistAssessment],
+        follow_ups: dict[str, SpecialistFollowUp],
+    ) -> OrchestratorResolution:
+        specialist_bundle = []
+        for agent_id, assessment in initial_assessments.items():
+            specialist_bundle.append(
+                f"{_agent_name(agent_id)} initial summary: {assessment.summary}\n"
+                f"risk: {assessment.risk_level}\n"
+                f"requested_support: {assessment.requested_support}\n"
+                f"proposed_actions: {assessment.proposed_actions}\n"
+                f"follow_up: {follow_ups[agent_id].alignment_message}"
+            )
+        prompt = (
+            f"Operator request:\n{context.user_message}\n\n"
+            f"Simulation context:\n{context.simulation_summary}\n\n"
+            f"Routing rationale:\n{route.rationale}\n\n"
+            "Specialist outputs:\n"
+            + "\n\n".join(specialist_bundle)
+            + "\n\nResolve the coordination cycle."
+        )
+        return self._invoke_structured(
+            name="orchestrator_resolver",
+            system_prompt=_resolution_system_prompt(),
+            prompt=prompt,
+            output_model=OrchestratorResolution,
+        )
+
+
+def _message(agent_id: str, severity: str, body: str, timestamp: int) -> dict[str, Any]:
+    return {
+        "id": f"{agent_id}-{timestamp}",
+        "agentId": agent_id,
+        "agentName": _agent_name(agent_id),
+        "agentRole": _agent_role(agent_id),
+        "severity": severity,
+        "message": body,
+        "timestamp": timestamp,
+    }
+
+
+def build_chat_response(payload: dict[str, Any], backend: AgentBackend) -> dict[str, Any]:
+    message_text = str(payload.get("message") or "").strip()
+    if not message_text:
+        raise ValueError("Message is required.")
+
+    timestamp = _chat_timestamp()
+    context = _normalize_context(payload.get("context"))
+    conversation_id = payload.get("conversationId") or f"conv-{timestamp}"
+    request_id = f"req-{timestamp}"
+    runtime_context = RuntimeContext(
+        user_message=message_text,
+        conversation_id=conversation_id,
+        request_id=request_id,
+        simulation_context=context,
+        simulation_summary=_context_summary(context),
+    )
+
+    route = backend.route(runtime_context)
+    selected_agents = [agent for agent in route.selected_agents if agent in AGENT_ORDER]
+    if not selected_agents:
+        raise RuntimeError("Orchestrator did not select any specialist agents.")
+    runtime_context.selected_agents = selected_agents
+
+    initial_assessments = {agent_id: backend.assess(agent_id, runtime_context, route) for agent_id in selected_agents}
+    follow_ups = {
+        agent_id: backend.follow_up(agent_id, runtime_context, route, initial_assessments) for agent_id in selected_agents
+    }
+    resolution = backend.resolve(runtime_context, route, initial_assessments, follow_ups)
+
+    messages: list[dict[str, Any]] = [
+        _message("orchestrator", "info", route.dispatch_message, timestamp),
+    ]
+    next_timestamp = timestamp + 1
+    for agent_id in selected_agents:
+        assessment = initial_assessments[agent_id]
+        messages.append(
+            _message(agent_id, _status_to_severity(assessment.risk_level), assessment.response_message, next_timestamp)
+        )
+        next_timestamp += 1
+    for agent_id in selected_agents:
+        follow_up = follow_ups[agent_id]
+        severity = _status_to_severity(initial_assessments[agent_id].risk_level)
+        messages.append(_message(agent_id, severity, follow_up.alignment_message, next_timestamp))
+        next_timestamp += 1
+
+    plan_parts = [
+        f"{index + 1}. {_agent_name(step.owner)}: {step.action} ({step.reason})"
+        for index, step in enumerate(resolution.course_of_action)
+    ]
+    messages.append(
+        _message(
+            "orchestrator",
+            _status_to_severity("critical" if resolution.lead_agent != "orchestrator" else "nominal"),
+            (
+                f"Orchestrator resolution: {resolution.summary} "
+                f"Course of action: {' '.join(plan_parts)} "
+                f"Success condition: {resolution.success_condition}"
+            ),
+            next_timestamp,
+        )
+    )
+
+    statuses = []
+    for agent_id in AGENT_ORDER:
+        if agent_id in initial_assessments:
+            assessment = initial_assessments[agent_id]
+            follow_up = follow_ups[agent_id]
+            statuses.append(
+                {
+                    "id": agent_id,
+                    "name": _agent_name(agent_id),
+                    "role": _agent_role(agent_id),
+                    "icon": _agent_icon(agent_id),
+                    "status": assessment.risk_level,
+                    "currentAction": follow_up.updated_action or assessment.current_action,
+                }
+            )
+        else:
+            statuses.append(
+                {
+                    "id": agent_id,
+                    "name": _agent_name(agent_id),
+                    "role": _agent_role(agent_id),
+                    "icon": _agent_icon(agent_id),
+                    "status": "nominal",
+                    "currentAction": "Standing by for orchestrator routing.",
+                }
+            )
+    statuses.append(
+        {
+            "id": "orchestrator",
+            "name": _agent_name("orchestrator"),
+            "role": _agent_role("orchestrator"),
+            "icon": _agent_icon("orchestrator"),
+            "status": "warning" if resolution.lead_agent != "orchestrator" else "nominal",
+            "currentAction": resolution.course_of_action[0].action,
+        }
+    )
+
+    return {
+        "conversationId": conversation_id,
+        "requestId": request_id,
+        "agentStatuses": statuses,
+        "messages": messages,
+    }
+
