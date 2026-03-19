@@ -49,6 +49,7 @@ Create the product foundation for the two-screen experience and align the backen
 ### Milestone 1 Progress Notes
 
 - 2026-03-19: Added explicit top-level view state for `Mars Overview` and `Greenhouse Detail`, preserving selected greenhouse context between the two screens.
+- 2026-03-19: Built the high-level `Mars Overview` shell with intentional regions for the 3D mission panel, selected-module summary, agent chat/reasoning, crew strip, and chaos control scaffolding.
 
 ## Milestone 2: Mars Overview End-to-End
 
