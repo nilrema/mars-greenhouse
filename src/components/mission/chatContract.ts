@@ -11,9 +11,9 @@ export const simulationContextSchema = z.object({
 });
 
 export const submitChatMessageRequestSchema = z.object({
-  conversationId: z.string().min(1).optional(),
+  conversationId: z.string().min(1).nullish(),
   message: z.string().trim().min(1, 'Message is required.').max(1000, 'Message is too long.'),
-  context: simulationContextSchema.optional(),
+  context: simulationContextSchema.nullish(),
 });
 
 export const agentStatusSnapshotSchema = z.object({

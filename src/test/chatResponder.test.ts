@@ -32,4 +32,15 @@ describe('buildChatResponse', () => {
       }),
     ).toThrow('Message is required.');
   });
+
+  it('accepts null optional GraphQL arguments from AppSync', () => {
+    const response = buildChatResponse({
+      conversationId: null,
+      context: null,
+      message: 'Give me a nominal status update.',
+    });
+
+    expect(response.conversationId).toMatch(/^conv-/);
+    expect(response.messages.at(-1)?.message).toContain('Orchestrator resolution:');
+  });
 });

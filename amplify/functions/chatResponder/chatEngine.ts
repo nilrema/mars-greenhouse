@@ -343,11 +343,12 @@ export function buildChatResponse(input: SubmitChatMessageRequest): SubmitChatMe
   const requestId = `req-${timestamp}`;
   const conversationId = request.conversationId ?? `conv-${timestamp}`;
   const focus = inferFocus(request.message);
+  const context = request.context ?? undefined;
 
-  const environment = analyzeEnvironment(request.context, focus);
-  const crop = analyzeCrop(request.context, focus);
-  const astro = analyzeAstro(request.context, focus);
-  const resource = analyzeResource(request.context, focus);
+  const environment = analyzeEnvironment(context, focus);
+  const crop = analyzeCrop(context, focus);
+  const astro = analyzeAstro(context, focus);
+  const resource = analyzeResource(context, focus);
   const reports = [environment, crop, astro, resource];
   const resolution = resolveMission(reports, focus, request.message);
 
