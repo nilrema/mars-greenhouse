@@ -118,3 +118,25 @@ export interface AgentRecommendation {
   icon: string;
   message: string;
 }
+
+export interface NormalizedInspectionBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  centerX: number;
+  centerY: number;
+}
+
+export interface CameraViewportState {
+  zoom: number;
+  panX: number;
+  panY: number;
+}
+
+export interface InspectionSelection {
+  cameraId: string;
+  createdAt: string;
+  normalizedBounds: NormalizedInspectionBounds;
+  viewport: CameraViewportState;
+}
