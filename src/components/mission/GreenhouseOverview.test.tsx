@@ -39,7 +39,7 @@ const base: MarsBase = {
 const astronauts: AstronautRecord[] = [
   {
     name: 'Cmdr. Vasquez',
-    avatar: '👩‍🚀',
+    avatar: 'CV',
     role: 'Mission Commander',
     calories: { current: 1820, target: 2200 },
     protein: { current: 72, target: 90 },
@@ -49,7 +49,7 @@ const astronauts: AstronautRecord[] = [
   },
   {
     name: 'Dr. Okafor',
-    avatar: '👨‍🔬',
+    avatar: 'DO',
     role: 'Botanist',
     calories: { current: 1950, target: 2100 },
     protein: { current: 85, target: 85 },
@@ -79,7 +79,7 @@ describe('GreenhouseOverview', () => {
   it('shows a crew overview and compact astronaut cards', () => {
     render(<GreenhouseOverview base={base} astronauts={astronauts} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /astronauts/i }));
+    fireEvent.click(screen.getByRole('button', { name: /crew/i }));
 
     expect(screen.getByText('Crew Overview')).toBeInTheDocument();
     expect(screen.getByText(/2 active crew/i)).toBeInTheDocument();

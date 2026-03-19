@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,58 +6,58 @@
 
 @layer base {
   :root {
-    --background: 220 20% 97%;
-    --foreground: 220 20% 12%;
+    --background: 140 18% 92%;
+    --foreground: 164 18% 14%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 220 20% 12%;
+    --card: 0 0% 98%;
+    --card-foreground: 164 18% 14%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 12%;
+    --popover: 0 0% 98%;
+    --popover-foreground: 164 18% 14%;
 
-    --primary: 238 44% 38%;
+    --primary: 153 45% 28%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 16% 93%;
-    --secondary-foreground: 220 20% 12%;
+    --secondary: 210 16% 90%;
+    --secondary-foreground: 205 20% 24%;
 
-    --muted: 220 14% 92%;
-    --muted-foreground: 215 10% 42%;
+    --muted: 210 14% 87%;
+    --muted-foreground: 200 10% 40%;
 
-    --accent: 220 16% 93%;
-    --accent-foreground: 220 20% 12%;
+    --accent: 199 20% 84%;
+    --accent-foreground: 198 22% 20%;
 
     --destructive: 0 65% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 143 100% 31%;
+    --success: 149 60% 33%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 40 80% 50%;
+    --warning: 37 82% 44%;
     --warning-foreground: 0 0% 0%;
 
-    --border: 220 12% 85%;
-    --input: 220 12% 85%;
-    --ring: 238 44% 38%;
+    --border: 201 13% 77%;
+    --input: 201 13% 77%;
+    --ring: 153 45% 28%;
 
-    --radius: 4px;
+    --radius: 14px;
 
-    --sidebar-background: 220 20% 95%;
-    --sidebar-foreground: 220 20% 20%;
-    --sidebar-primary: 238 44% 38%;
+    --sidebar-background: 201 16% 91%;
+    --sidebar-foreground: 164 18% 18%;
+    --sidebar-primary: 153 45% 28%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 92%;
-    --sidebar-accent-foreground: 220 20% 12%;
-    --sidebar-border: 220 12% 85%;
-    --sidebar-ring: 238 44% 38%;
+    --sidebar-accent: 204 16% 86%;
+    --sidebar-accent-foreground: 164 18% 16%;
+    --sidebar-border: 201 13% 77%;
+    --sidebar-ring: 153 45% 28%;
 
-    --syngenta-blue: 238 44% 38%;
-    --syngenta-green: 143 100% 31%;
-    --syngenta-blue-light: 238 40% 52%;
-    --syngenta-green-light: 148 70% 40%;
+    --syngenta-blue: 167 34% 26%;
+    --syngenta-green: 149 60% 33%;
+    --syngenta-blue-light: 165 28% 41%;
+    --syngenta-green-light: 146 41% 48%;
 
     --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
-    --font-sans: 'IBM Plex Sans', -apple-system, sans-serif;
+    --font-sans: 'Plus Jakarta Sans', -apple-system, sans-serif;
   }
 }
 
@@ -69,8 +69,15 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.45;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background-image:
+      radial-gradient(circle at top left, hsl(142 35% 86% / 0.8), transparent 34%),
+      radial-gradient(circle at top right, hsl(208 28% 85% / 0.65), transparent 30%),
+      linear-gradient(180deg, hsl(var(--background)), hsl(205 20% 89%));
+    background-attachment: fixed;
   }
 
   ::-webkit-scrollbar {
@@ -101,20 +108,23 @@
   }
 
   .panel {
-    @apply border border-border bg-card p-3 rounded-md;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    @apply border border-border bg-card p-4 rounded-2xl;
+    box-shadow:
+      0 16px 40px rgba(43, 58, 70, 0.09),
+      inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(10px);
   }
 
   .panel-header {
-    @apply text-[11px] font-sans font-medium uppercase tracking-wide text-muted-foreground mb-2;
+    @apply text-[12px] font-sans font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-2;
   }
 
   .metric-value {
-    @apply text-2xl font-sans font-light tabular-nums tracking-tight;
+    @apply text-3xl font-sans font-semibold tabular-nums tracking-tight;
   }
 
   .metric-label {
-    @apply text-[10px] font-sans uppercase tracking-wide text-muted-foreground;
+    @apply text-[11px] font-sans uppercase tracking-wide text-muted-foreground;
   }
 
   .tactical-grid {
@@ -122,5 +132,16 @@
       linear-gradient(hsl(var(--border) / 0.25) 1px, transparent 1px),
       linear-gradient(90deg, hsl(var(--border) / 0.25) 1px, transparent 1px);
     background-size: 24px 24px;
+  }
+
+  .data-pill {
+    @apply inline-flex items-center justify-center rounded-full border border-border/80 bg-secondary/75 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground;
+  }
+
+  .contrast-surface {
+    @apply border border-slate-800/10 bg-slate-900 text-slate-50;
+    box-shadow:
+      0 18px 36px rgba(15, 23, 42, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
 }
