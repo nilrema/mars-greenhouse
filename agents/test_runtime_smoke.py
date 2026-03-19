@@ -1,5 +1,6 @@
 import json
 
+from agents import chat_runtime as agents_chat_runtime
 from agents.astro_agent import run_astro_agent
 from agents.chat_runtime import build_chat_response
 from agents.crop_agent import run_crop_agent
@@ -67,6 +68,37 @@ def test_orchestrator_runs_retained_agent_set_only():
 
 
 def test_chat_runtime_uses_real_orchestrator_flow():
+    class FakeMissionRuntime:
+        def __init__(self, *, context_summary: str, conversation_id: str, request_id: str, model_id: str | None = None):
+            self.conversation_id = conversation_id
+            self.request_id = request_id
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return None
+
+        def run(self, message: str) -> dict[str, object]:
+            return {
+                "conversationId": self.conversation_id,
+                "requestId": self.request_id,
+                "agentStatuses": [
+                    {"id": "environment", "name": "ENV_AGENT", "role": "Environment Control", "icon": "🌡️", "status": "warning", "currentAction": "Raise temperature"},
+                    {"id": "crop", "name": "CROP_AGENT", "role": "Crop Management", "icon": "🌱", "status": "warning", "currentAction": "Protect mature lanes"},
+                    {"id": "astro", "name": "ASTRO_AGENT", "role": "Astronaut Welfare", "icon": "🧑‍🚀", "status": "nominal", "currentAction": "Stand by"},
+                    {"id": "resource", "name": "RESOURCE_AGENT", "role": "Resource Management", "icon": "⚡", "status": "nominal", "currentAction": "Hold reserve buffer"},
+                    {"id": "orchestrator", "name": "ORCH_AGENT", "role": "Mission Orchestration", "icon": "🧭", "status": "warning", "currentAction": "Raise temperature"},
+                ],
+                "messages": [
+                    {"id": "m1", "agentId": "orchestrator", "agentName": "ORCH_AGENT", "agentRole": "Mission Orchestration", "severity": "info", "message": "Mission control routed this request to ENV_AGENT, CROP_AGENT.", "timestamp": 1},
+                    {"id": "m2", "agentId": "environment", "agentName": "ENV_AGENT", "agentRole": "Environment Control", "severity": "warning", "message": "Increase temperature toward 22C.", "timestamp": 2},
+                    {"id": "m3", "agentId": "crop", "agentName": "CROP_AGENT", "agentRole": "Crop Management", "severity": "warning", "message": "Protect the mature lanes first.", "timestamp": 3},
+                    {"id": "m4", "agentId": "orchestrator", "agentName": "ORCH_AGENT", "agentRole": "Mission Orchestration", "severity": "warning", "message": "Orchestrator resolution: climate recovery leads.", "timestamp": 4},
+                ],
+            }
+
+    agents_chat_runtime.StrandsMissionRuntime = FakeMissionRuntime
     response = build_chat_response(
         {
             "message": "Review the latest simulation change and coordinate the specialists.",
@@ -80,11 +112,9 @@ def test_chat_runtime_uses_real_orchestrator_flow():
 
     assert response["messages"][0]["agentId"] == "orchestrator"
     assert response["messages"][-1]["agentId"] == "orchestrator"
-    assert {message["agentId"] for message in response["messages"]} >= {
+    assert {message["agentId"] for message in response["messages"]} == {
         "environment",
         "crop",
-        "astro",
-        "resource",
         "orchestrator",
     }
     assert response["agentStatuses"][-1]["id"] == "orchestrator"

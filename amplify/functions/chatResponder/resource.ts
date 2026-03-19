@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const runtimeDir = path.join(__dirname, 'runtime');
+const repoRoot = path.join(__dirname, '..', '..', '..');
 
 export const chatResponder = defineFunction(
   (scope) =>
@@ -15,15 +16,16 @@ export const chatResponder = defineFunction(
       handler: 'handler.handler',
       timeout: Duration.seconds(60),
       memorySize: 1024,
-      code: Code.fromAsset(runtimeDir, {
+      code: Code.fromAsset(repoRoot, {
         bundling: {
           image: Runtime.PYTHON_3_12.bundlingImage,
           command: [
             'bash',
             '-lc',
             [
-              'pip install --no-cache-dir -r /asset-input/requirements.txt -t /asset-output',
-              'cp -r /asset-input/* /asset-output/',
+              `pip install --no-cache-dir -r /asset-input/${path.relative(repoRoot, runtimeDir)}/requirements.txt -t /asset-output`,
+              `cp -r /asset-input/${path.relative(repoRoot, runtimeDir)}/* /asset-output/`,
+              'cp -r /asset-input/agents /asset-output/agents',
             ].join(' && '),
           ],
         },

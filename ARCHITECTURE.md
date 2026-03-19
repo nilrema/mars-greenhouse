@@ -50,13 +50,15 @@ Primary paths:
 - [agents/astro_agent.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/astro_agent.py)
 - [agents/resource_agent.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/resource_agent.py)
 - [agents/chat_runtime.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/chat_runtime.py)
+- [agents/strands_runtime.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/strands_runtime.py)
 - [agents/mcp_support.py](/home/mmestrov/Desktop/natjecanja/mars-greenhouse/agents/mcp_support.py)
 
 Responsibilities:
 
 - execute the retained five-agent product runtime
-- let backend chat resolve through a Strands-powered orchestrator and Strands-powered specialists
-- give specialist agents direct MCP-backed access to the Mars crop knowledge base
+- let backend chat resolve through a Strands-powered orchestrator using the official `agents-as-tools` pattern
+- wrap each retained specialist as a callable Strands tool owned by the orchestrator
+- give specialist agents direct MCP-backed access to the Mars crop knowledge base when the query needs external knowledge grounding
 - keep archived experiments outside the active entry-point set
 
 ## 3. Active Frontend State
@@ -80,10 +82,11 @@ Responsibilities:
 4. Starting the simulation updates metrics and local system status.
 5. Frontend requests a backend specialist review for the updated simulation state.
 6. The `chatResponder` mutation invokes a custom Python Lambda.
-7. The Python Lambda starts a Strands orchestration cycle, routes the request to one or more Strands specialist agents, and gives those agents direct MCP access to the Mars crop knowledge base.
-8. Selected specialists return first-pass assessments, then a follow-up coordination round runs using peer outputs.
-9. The orchestrator resolves the final lead agent, ordered actions, and success condition for the UI.
-10. Operator can continue the same coordination thread from the right-side panel.
+7. The Python Lambda delegates into the `agents/` runtime and starts a Strands orchestration cycle.
+8. `ORCH_AGENT` decides whether to answer directly or call one or more retained specialist-agent tools.
+9. Selected specialists run as focused Strands agents and use MCP-discovered Mars crop knowledge tools only when their query needs external guidance.
+10. The orchestrator synthesizes the specialist tool outputs into the final mission resolution for the UI.
+11. Operator can continue the same coordination thread from the right-side panel.
 
 ### Detail Route
 
