@@ -35,6 +35,21 @@ const PLACEHOLDER_TRACKS = [
   'Operator prompt input and reply composer',
 ];
 
+function PlaceholderCallout({ label, items }) {
+  return (
+    <div style={styles.placeholderCallout}>
+      <div style={styles.placeholderCalloutLabel}>{label}</div>
+      <div style={styles.placeholderCalloutList}>
+        {items.map((item) => (
+          <span key={item} style={styles.placeholderCalloutItem}>
+            {item}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function MarsOverview({
   amplifyConfigured = false,
   selectedModuleId,
@@ -197,6 +212,11 @@ export default function MarsOverview({
             <div style={styles.inlineBadge}>Future interactive globe</div>
           </div>
 
+          <PlaceholderCallout
+            label="Placeholder scope"
+            items={['3D renderer', 'site markers', 'selection overlays']}
+          />
+
           <div style={styles.sceneCard}>
             <div style={styles.sceneBackdrop}>
               <div style={styles.scenePlanet} />
@@ -294,6 +314,11 @@ export default function MarsOverview({
             </button>
           </div>
 
+          <PlaceholderCallout
+            label="Placeholder scope"
+            items={['module summary', 'nutrition contribution', 'detail handoff']}
+          />
+
           <div style={styles.summaryBanner}>
             <div style={styles.summaryHeadline}>
               <span
@@ -362,6 +387,11 @@ export default function MarsOverview({
             <div style={styles.inlineBadge}>Context follows selected module</div>
           </div>
 
+          <PlaceholderCallout
+            label="Placeholder scope"
+            items={['reasoning log', 'prompt composer', 'agent response stream']}
+          />
+
           <div style={styles.chatComposerPlaceholder}>
             <div>
               <p style={styles.inlineMetaLabel}>Operator input region</p>
@@ -384,6 +414,11 @@ export default function MarsOverview({
           </div>
           <div style={styles.inlineBadge}>Bottom strip prepared for richer crew cards</div>
         </div>
+
+        <PlaceholderCallout
+          label="Placeholder scope"
+          items={['crew health cards', 'nutrition coverage', 'mission resilience view']}
+        />
 
         <div className="mars-overview-crew-grid" style={styles.crewGrid}>
           <MissionViabilityPanel />
@@ -532,6 +567,37 @@ const styles = {
     color: '#c9d1d9',
     fontSize: '0.8rem',
     background: 'rgba(13, 17, 23, 0.7)',
+  },
+  placeholderCallout: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: '0.75rem',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    border: '1px dashed #30363d',
+    borderRadius: '14px',
+    background: 'rgba(13, 17, 23, 0.58)',
+    padding: '0.7rem 0.85rem',
+  },
+  placeholderCalloutLabel: {
+    color: '#8b949e',
+    fontSize: '0.72rem',
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+  },
+  placeholderCalloutList: {
+    display: 'flex',
+    gap: '0.45rem',
+    flexWrap: 'wrap',
+  },
+  placeholderCalloutItem: {
+    border: '1px solid rgba(88, 166, 255, 0.18)',
+    borderRadius: '999px',
+    padding: '0.28rem 0.6rem',
+    color: '#c9d1d9',
+    background: 'rgba(88, 166, 255, 0.08)',
+    fontSize: '0.78rem',
   },
   shell: {
     display: 'grid',
