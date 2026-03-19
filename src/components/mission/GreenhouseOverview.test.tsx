@@ -47,6 +47,16 @@ const astronauts: AstronautRecord[] = [
     hydration: 'optimal',
     health: 'nominal',
   },
+  {
+    name: 'Dr. Okafor',
+    avatar: '👨‍🔬',
+    role: 'Botanist',
+    calories: { current: 1950, target: 2100 },
+    protein: { current: 85, target: 85 },
+    micronutrientScore: 92,
+    hydration: 'adequate',
+    health: 'nominal',
+  },
 ];
 
 describe('GreenhouseOverview', () => {
@@ -65,5 +75,18 @@ describe('GreenhouseOverview', () => {
     expect(screen.getAllByText('Connectivity').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Component Health').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Failure Risk').length).toBeGreaterThan(0);
+  });
+
+  it('shows a crew overview and compact astronaut cards', () => {
+    render(<GreenhouseOverview base={base} astronauts={astronauts} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /astronauts/i }));
+
+    expect(screen.getByText('Crew Overview')).toBeInTheDocument();
+    expect(screen.getByText(/2 active crew/i)).toBeInTheDocument();
+    expect(screen.getByText('Cmdr. Vasquez')).toBeInTheDocument();
+    expect(screen.getByText('Dr. Okafor')).toBeInTheDocument();
+    expect(screen.getAllByText('Hydration').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Micronutrients').length).toBeGreaterThan(0);
   });
 });
