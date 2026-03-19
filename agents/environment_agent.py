@@ -15,6 +15,7 @@ from agents.agent_support import (
     utc_now_iso,
     write_agent_event,
 )
+from agents.mcp_support import describe_mcp_access
 
 OPTIMAL_RANGES = {
     "temperature": {"min": 20.0, "max": 25.0, "target": 22.0, "label": "temperature"},
@@ -107,14 +108,23 @@ def analyze_environment(
             for recommendation in recommendations[:3]
         ],
         "affectedModules": [greenhouse_id],
+        "knowledgeBase": {
+            "access": describe_mcp_access(),
+            "queryHint": "Mars greenhouse environmental stabilization guidance",
+        },
     }
 
 
-def run_environment_agent(greenhouse_id: str = DEFAULT_GREENHOUSE_ID) -> str:
-    sensor_data = get_latest_sensor_snapshot(greenhouse_id)
-    report = analyze_environment(sensor_data, greenhouse_id=greenhouse_id)
+def run_environment_agent(
+    greenhouse_id: str = DEFAULT_GREENHOUSE_ID,
+    sensor_data: dict[str, Any] | None = None,
+    persist_event: bool = True,
+) -> str:
+    sensor_snapshot = sensor_data if sensor_data is not None else get_latest_sensor_snapshot(greenhouse_id)
+    report = analyze_environment(sensor_snapshot, greenhouse_id=greenhouse_id)
     severity = "CRITICAL" if report["status"] == "ALERT" else "WARN" if report["status"] == "WATCH" else "INFO"
-    write_agent_event("environment", severity, report["headline"], "; ".join(report["recommendations"][:2]))
+    if persist_event:
+        write_agent_event("environment", severity, report["headline"], "; ".join(report["recommendations"][:2]))
     return json.dumps(report)
 
 

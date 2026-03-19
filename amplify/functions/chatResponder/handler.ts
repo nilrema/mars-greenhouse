@@ -7,5 +7,5 @@ export const handler = async (
 ): Promise<SubmitChatMessageResponse> => {
   console.log('Chat responder invoked:', JSON.stringify(event.arguments, null, 2));
 
-  return buildChatResponse(event.arguments);
+  return await buildChatResponse(event.arguments);
 };

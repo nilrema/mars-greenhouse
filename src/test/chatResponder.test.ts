@@ -1,9 +1,41 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { buildChatResponse } from '../../amplify/functions/chatResponder/chatEngine';
 
+const runChatRuntimeMock = vi.fn();
+
+vi.mock('../../amplify/functions/chatResponder/chatRuntimeBridge', () => ({
+  runChatRuntime: (...args: unknown[]) => runChatRuntimeMock(...args),
+}));
+
 describe('buildChatResponse', () => {
-  it('returns a full specialist coordination cycle and final orchestrator resolution', () => {
-    const response = buildChatResponse({
+  it('delegates to the retained agent runtime bridge', async () => {
+    runChatRuntimeMock.mockResolvedValue({
+      conversationId: 'conv-123',
+      requestId: 'req-123',
+      agentStatuses: [
+        {
+          id: 'orchestrator',
+          name: 'ORCH_AGENT',
+          role: 'Mission Orchestration',
+          icon: '🧭',
+          status: 'warning',
+          currentAction: 'Protect the most mature crop lanes first',
+        },
+      ],
+      messages: [
+        {
+          id: 'msg-1',
+          agentId: 'orchestrator',
+          agentName: 'ORCH_AGENT',
+          agentRole: 'Mission Orchestration',
+          severity: 'warning',
+          message: 'Orchestrator resolution: retained runtime complete.',
+          timestamp: Date.now(),
+        },
+      ],
+    });
+
+    const response = await buildChatResponse({
       message: 'What is the water and power situation right now?',
       context: {
         temperatureDrift: -4,
@@ -12,35 +44,56 @@ describe('buildChatResponse', () => {
       },
     });
 
-    expect(response.conversationId).toMatch(/^conv-/);
-    expect(response.requestId).toMatch(/^req-/);
-    expect(response.messages).toHaveLength(6);
-    expect(response.messages[0]?.agentId).toBe('orchestrator');
+    expect(runChatRuntimeMock).toHaveBeenCalledWith({
+      message: 'What is the water and power situation right now?',
+      context: {
+        temperatureDrift: -4,
+        waterRecycling: 52,
+        powerAvailability: 61,
+      },
+    });
+    expect(response.conversationId).toBe('conv-123');
     expect(response.messages.at(-1)?.agentId).toBe('orchestrator');
-    expect(response.messages.some((message) => message.agentId === 'environment')).toBe(true);
-    expect(response.messages.some((message) => message.agentId === 'crop')).toBe(true);
-    expect(response.messages.some((message) => message.agentId === 'astro')).toBe(true);
-    expect(response.messages.some((message) => message.agentId === 'resource')).toBe(true);
     expect(response.messages.at(-1)?.message).toContain('Orchestrator resolution:');
-    expect(response.agentStatuses.some((status) => status.id === 'orchestrator')).toBe(true);
   });
 
-  it('rejects blank chat messages', () => {
-    expect(() =>
+  it('rejects blank chat messages', async () => {
+    await expect(() =>
       buildChatResponse({
         message: '   ',
       }),
-    ).toThrow('Message is required.');
+    ).rejects.toThrow('Message is required.');
   });
 
-  it('accepts null optional GraphQL arguments from AppSync', () => {
-    const response = buildChatResponse({
+  it('accepts null optional GraphQL arguments from AppSync', async () => {
+    runChatRuntimeMock.mockResolvedValue({
+      conversationId: 'conv-null',
+      requestId: 'req-null',
+      agentStatuses: [],
+      messages: [
+        {
+          id: 'msg-null',
+          agentId: 'orchestrator',
+          agentName: 'ORCH_AGENT',
+          agentRole: 'Mission Orchestration',
+          severity: 'success',
+          message: 'Orchestrator resolution: nominal status update.',
+          timestamp: Date.now(),
+        },
+      ],
+    });
+
+    const response = await buildChatResponse({
       conversationId: null,
       context: null,
       message: 'Give me a nominal status update.',
     });
 
-    expect(response.conversationId).toMatch(/^conv-/);
+    expect(runChatRuntimeMock).toHaveBeenCalledWith({
+      conversationId: null,
+      context: null,
+      message: 'Give me a nominal status update.',
+    });
     expect(response.messages.at(-1)?.message).toContain('Orchestrator resolution:');
   });
 });

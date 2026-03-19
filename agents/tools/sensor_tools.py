@@ -8,9 +8,8 @@ import json
 import logging
 from datetime import datetime, timedelta, timezone
 
-from strands import tool
-
 from agents.appsync_client import execute_graphql
+from agents.tools._compat import tool
 
 logger = logging.getLogger(__name__)
 

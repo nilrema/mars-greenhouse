@@ -10,6 +10,7 @@ import json
 from typing import Any
 
 from agents.agent_support import DEFAULT_GREENHOUSE_ID, get_latest_sensor_snapshot, utc_now_iso, write_agent_event
+from agents.mcp_support import describe_mcp_access
 
 
 def analyze_resources(
@@ -73,14 +74,23 @@ def analyze_resources(
             for recommendation in recommendations[:3]
         ],
         "affectedModules": [greenhouse_id],
+        "knowledgeBase": {
+            "access": describe_mcp_access(),
+            "queryHint": "Mars greenhouse resource rationing and recovery guidance",
+        },
     }
 
 
-def run_resource_agent(greenhouse_id: str = DEFAULT_GREENHOUSE_ID) -> str:
-    sensor_data = get_latest_sensor_snapshot(greenhouse_id)
-    report = analyze_resources(sensor_data, greenhouse_id=greenhouse_id)
+def run_resource_agent(
+    greenhouse_id: str = DEFAULT_GREENHOUSE_ID,
+    sensor_data: dict[str, Any] | None = None,
+    persist_event: bool = True,
+) -> str:
+    sensor_snapshot = sensor_data if sensor_data is not None else get_latest_sensor_snapshot(greenhouse_id)
+    report = analyze_resources(sensor_snapshot, greenhouse_id=greenhouse_id)
     severity = "CRITICAL" if report["status"] == "ALERT" else "WARN" if report["status"] == "WATCH" else "INFO"
-    write_agent_event("resource", severity, report["headline"], "; ".join(report["recommendations"][:2]))
+    if persist_event:
+        write_agent_event("resource", severity, report["headline"], "; ".join(report["recommendations"][:2]))
     return json.dumps(report)
 
 

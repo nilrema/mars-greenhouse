@@ -65,7 +65,7 @@ It is not part of the active demo scope and should not drive the current product
 
 ### Optional Orchestrator Summary
 
-- may appear at the end of the mocked conversation
+- should appear at the end of each backend runtime cycle
 - should not dominate the active UI
 
 ## 5. In Scope
@@ -73,6 +73,7 @@ It is not part of the active demo scope and should not drive the current product
 - mocked greenhouse metrics and astronaut overview data
 - slider-driven simulation popup
 - visible specialist agent communication after simulation start
+- backend chat driven by the retained orchestrator plus specialist runtime
 - screenshot-accurate three-column console
 
 ## 6. Out Of Scope

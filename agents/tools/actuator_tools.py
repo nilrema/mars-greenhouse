@@ -9,9 +9,8 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
-from strands import tool
-
 from agents.appsync_client import execute_graphql
+from agents.tools._compat import tool
 
 logger = logging.getLogger(__name__)
 

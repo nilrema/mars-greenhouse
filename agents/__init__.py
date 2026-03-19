@@ -9,20 +9,20 @@ from importlib import import_module
 
 __all__ = [
     "run_mission_orchestrator",
-    "run_greenhouse_operations_agent",
-    "run_crop_health_agent",
-    "run_crew_nutrition_agent",
-    "run_incident_chaos_agent",
+    "run_environment_agent",
+    "run_crop_agent",
+    "run_astro_agent",
+    "run_resource_agent",
 ]
 
 
 def __getattr__(name: str):
     mapping = {
         "run_mission_orchestrator": ("agents.mission_orchestrator", "run_mission_orchestrator"),
-        "run_greenhouse_operations_agent": ("agents.greenhouse_operations_agent", "run_greenhouse_operations_agent"),
-        "run_crop_health_agent": ("agents.crop_health_agent", "run_crop_health_agent"),
-        "run_crew_nutrition_agent": ("agents.crew_nutrition_agent", "run_crew_nutrition_agent"),
-        "run_incident_chaos_agent": ("agents.incident_chaos_agent", "run_incident_chaos_agent"),
+        "run_environment_agent": ("agents.environment_agent", "run_environment_agent"),
+        "run_crop_agent": ("agents.crop_agent", "run_crop_agent"),
+        "run_astro_agent": ("agents.astro_agent", "run_astro_agent"),
+        "run_resource_agent": ("agents.resource_agent", "run_resource_agent"),
     }
 
     if name not in mapping:

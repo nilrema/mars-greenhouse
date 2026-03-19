@@ -10,6 +10,7 @@ import json
 from typing import Any
 
 from agents.agent_support import list_crop_records, utc_now_iso, write_agent_event
+from agents.mcp_support import describe_mcp_access
 from agents.simulation.mars_sim import CropState
 from agents.simulation.nutrition import compute_mission_nutrition_status, recommend_replanting
 
@@ -111,14 +112,22 @@ def analyze_astro_workload(crop_records: list[dict[str, Any]]) -> dict[str, Any]
             for recommendation in recommendations[:3]
         ],
         "affectedModules": ["mission-wide"],
+        "knowledgeBase": {
+            "access": describe_mcp_access(),
+            "queryHint": "Mars mission nutrition and crew workload planning guidance",
+        },
     }
 
 
-def run_astro_agent() -> str:
-    crop_records = list_crop_records()
-    report = analyze_astro_workload(crop_records)
+def run_astro_agent(
+    crop_records: list[dict[str, Any]] | None = None,
+    persist_event: bool = True,
+) -> str:
+    records = crop_records if crop_records is not None else list_crop_records()
+    report = analyze_astro_workload(records)
     severity = "CRITICAL" if report["status"] == "ALERT" else "WARN" if report["status"] == "WATCH" else "INFO"
-    write_agent_event("astro", severity, report["headline"], "; ".join(report["recommendations"][:2]))
+    if persist_event:
+        write_agent_event("astro", severity, report["headline"], "; ".join(report["recommendations"][:2]))
     return json.dumps(report)
 
 

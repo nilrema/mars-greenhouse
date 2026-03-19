@@ -73,10 +73,10 @@ def test_bedrock_connection():
     
     try:
         # Import here to avoid circular imports
-        from agents.orchestrator import run_orchestrator
+        from agents.mission_orchestrator import run_mission_orchestrator
         
         print("Testing Bedrock Claude with orchestrator...")
-        result = run_orchestrator("Test prompt for Bedrock")
+        result = run_mission_orchestrator(prompt="Test prompt for Bedrock", persist_events=False)
         
         if result and "error" not in result.lower():
             print("✓ Bedrock Claude integration working")

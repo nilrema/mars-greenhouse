@@ -67,3 +67,36 @@ Each listed component should expose mocked values for:
 - Failure Risk
 
 This task should stay frontend-only for now. The data should be mocked locally, structured cleanly, and ready to swap with backend data later without redesigning the UI model.
+
+## 5. Agent Runtime Cleanup And Real Orchestration
+
+Status: done
+
+Inspect and simplify the `agents/` folder so the active runtime only keeps the agent roles we still need:
+
+- Environment agent
+- Crop agent
+- Astro agent
+- Resource agent
+- Orchestration agent
+
+This task should remove or archive leftover agent files that are no longer part of the product path, verify that the retained agents still run correctly, and ensure the active agent set has consistent access to the Mars crop knowledge base MCP server.
+
+Concise breakdown:
+
+1. Audit `agents/` and identify the exact files that belong to the retained five-agent runtime versus leftovers from older experiments.
+2. Remove, archive, or clearly de-scope unused agent entry points without breaking shared utilities, simulations, or tests that still matter.
+3. Verify each retained agent has a clear entry point, expected inputs/outputs, and passes a focused smoke test.
+4. Standardize MCP usage so the retained agents can all reach the Mars crop knowledge base through a shared helper or configuration path.
+5. Replace the current TypeScript chat coordination shim with the real orchestrator/specialist runtime so UI conversations come from actual agent interaction.
+6. Add or update tests for retained-agent execution, orchestrator resolution flow, and MCP availability/error handling.
+7. Update docs to describe the final active agent set and how the real orchestration path works.
+
+Status: completed on `feature/chat-backend-integration`
+
+Notes:
+- Narrowed the active `agents/` runtime to `environment_agent.py`, `crop_agent.py`, `astro_agent.py`, `resource_agent.py`, `mission_orchestrator.py`, and the new `chat_runtime.py` bridge.
+- Archived older experimental entry points under `agents/archive/` so the product path no longer has parallel specialist or orchestrator aliases.
+- Replaced the TypeScript-only chat coordination shim with a Lambda bridge that invokes the retained Python orchestrator/specialist runtime.
+- Standardized Mars crop knowledge base access through `agents/mcp_support.py`, with `agents/tools/kb_tools.py` now wrapping the shared helper instead of owning separate MCP logic.
+- Added smoke and regression coverage for retained-agent execution, orchestrator output, chat runtime flow, and MCP error handling.

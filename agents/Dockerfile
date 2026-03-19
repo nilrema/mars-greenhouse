@@ -9,4 +9,4 @@ COPY . .
 
 ENV PYTHONUNBUFFERED=1
 
-CMD ["python", "orchestrator.py"]
+CMD ["python", "-m", "agents.chat_runtime"]

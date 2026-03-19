@@ -1,5 +1,5 @@
 from agents.astro_agent import analyze_astro_workload
-from agents.crop_health_agent import analyze_crop_health
+from agents.crop_agent import analyze_crop_health
 from agents.environment_agent import analyze_environment
 from agents.mission_orchestrator import compose_mission_decision
 from agents.resource_agent import analyze_resources
@@ -44,8 +44,8 @@ def test_crop_agent_logic_detects_disease_risk():
         ],
     )
 
-    assert report["status"] in {"MONITOR", "CRITICAL"}
-    assert report["disease_risk_score"] > 0
+    assert report["status"] in {"WATCH", "ALERT"}
+    assert report["riskScore"] > 0
 
 
 def test_astro_agent_exposes_dispatch_and_workload():

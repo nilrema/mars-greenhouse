@@ -121,11 +121,47 @@ def compose_mission_decision(
 def run_mission_orchestrator(
     greenhouse_id: str = DEFAULT_GREENHOUSE_ID,
     prompt: str | None = None,
+    sensor_data: dict[str, Any] | None = None,
+    crop_records: list[dict[str, Any]] | None = None,
+    persist_events: bool = True,
+    include_knowledge: bool = False,
 ) -> str:
-    environment_report = _normalize_report(_safe_load(run_environment_agent(greenhouse_id)), "environment")
-    crop_report = _normalize_report(_safe_load(run_crop_agent(greenhouse_id)), "crop")
-    astro_report = _normalize_report(_safe_load(run_astro_agent()), "astro")
-    resource_report = _normalize_report(_safe_load(run_resource_agent(greenhouse_id)), "resource")
+    environment_report = _normalize_report(
+        _safe_load(
+            run_environment_agent(
+                greenhouse_id,
+                sensor_data=sensor_data,
+                persist_event=persist_events,
+            )
+        ),
+        "environment",
+    )
+    crop_report = _normalize_report(
+        _safe_load(
+            run_crop_agent(
+                greenhouse_id,
+                sensor_data=sensor_data,
+                crop_records=crop_records,
+                persist_event=persist_events,
+                include_knowledge=include_knowledge,
+            )
+        ),
+        "crop",
+    )
+    astro_report = _normalize_report(
+        _safe_load(run_astro_agent(crop_records=crop_records, persist_event=persist_events)),
+        "astro",
+    )
+    resource_report = _normalize_report(
+        _safe_load(
+            run_resource_agent(
+                greenhouse_id,
+                sensor_data=sensor_data,
+                persist_event=persist_events,
+            )
+        ),
+        "resource",
+    )
     scenario = prompt_to_scenario(prompt)
 
     decision = compose_mission_decision(
@@ -151,12 +187,13 @@ def run_mission_orchestrator(
         ],
     ]
 
-    write_agent_event(
-        "orchestrator",
-        "WARN" if decision["leadAgent"] != "orchestrator" else "INFO",
-        "Orchestrator cycle complete",
-        decision["operatorSummary"],
-    )
+    if persist_events:
+        write_agent_event(
+            "orchestrator",
+            "WARN" if decision["leadAgent"] != "orchestrator" else "INFO",
+            "Orchestrator cycle complete",
+            decision["operatorSummary"],
+        )
 
     return json.dumps(
         {

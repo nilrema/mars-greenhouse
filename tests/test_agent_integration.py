@@ -112,10 +112,10 @@ class AgentIntegrationTest:
         """Test the orchestrator agent"""
         try:
             # Import and test orchestrator
-            from agents.orchestrator import run_orchestrator
+            from agents.mission_orchestrator import run_mission_orchestrator
             
             # Run a test cycle with a simple prompt
-            result = run_orchestrator("Test the greenhouse system status")
+            result = run_mission_orchestrator(prompt="Test the greenhouse system status", persist_events=False)
             
             if result and "error" not in result.lower():
                 logger.info("✓ Orchestrator agent test passed")
