@@ -411,10 +411,6 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
             />
           )}
 
-          <div className="pointer-events-none absolute left-3 top-3 rounded-full border border-white/10 bg-slate-950/55 px-3 py-1.5 text-[9px] font-mono text-white/82">
-            Wheel to zoom. Drag to pan. Use Inspect area to define the analysis frame.
-          </div>
-
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#08110d]/90 via-[#08110d]/25 to-transparent p-3 pt-12">
             <div className="flex items-end justify-between gap-3">
               <div className="flex gap-3">
