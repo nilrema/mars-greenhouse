@@ -368,6 +368,23 @@ def test_format_action_response_drops_negative_action_bullets():
 
 
 def test_handle_chat_limits_final_output_to_four_bullets(monkeypatch):
+    monkeypatch.setattr(orchestrator, "get_greenhouse_snapshot", lambda **kwargs: {
+        "greenhouseId": "mars-greenhouse-1",
+        "latestSensorReading": {
+            "timestamp": "2026-03-20T10:00:00Z",
+            "temperature": 22.0,
+            "humidity": 64,
+            "recycleRatePercent": 100,
+            "powerKw": 9.2,
+            "cropStressIndex": 34,
+        },
+        "cropRecords": [],
+        "moduleSummaries": [],
+        "agentSnapshots": [],
+        "actionRequests": [],
+        "actuatorCommands": [],
+    })
+
     class FakeOrchestrator:
         def __call__(self, query: str) -> str:
             return """
