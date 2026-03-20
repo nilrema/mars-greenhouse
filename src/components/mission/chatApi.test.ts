@@ -22,4 +22,38 @@ describe('sendChatQuery', () => {
       response: 'Stabilization started.',
     });
   });
+
+  it('includes operator telemetry when provided', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        steps: [],
+        response: 'Stabilization started.',
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await sendChatQuery('What is the current temperature?', {
+      operatorTelemetry: {
+        timestamp: '2026-03-20T10:01:00Z',
+        temperature: 16,
+        waterRecycling: 60,
+        powerAvailability: 30,
+      },
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/chat', expect.objectContaining({
+      body: JSON.stringify({
+        query: 'What is the current temperature?',
+        greenhouseId: undefined,
+        freshAfterTimestamp: undefined,
+        operatorTelemetry: {
+          timestamp: '2026-03-20T10:01:00Z',
+          temperature: 16,
+          waterRecycling: 60,
+          powerAvailability: 30,
+        },
+      }),
+    }));
+  });
 });

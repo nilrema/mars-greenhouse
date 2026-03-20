@@ -41,7 +41,17 @@ function resolvePythonExecutable() {
   return process.env.PYTHON || 'python3';
 }
 
-function callPythonChat(payload: { query: string; greenhouseId?: string; freshAfterTimestamp?: string }): Promise<string> {
+function callPythonChat(payload: {
+  query: string;
+  greenhouseId?: string;
+  freshAfterTimestamp?: string;
+  operatorTelemetry?: {
+    timestamp: string;
+    temperature: number;
+    waterRecycling: number;
+    powerAvailability: number;
+  };
+}): Promise<string> {
   return new Promise((resolve, reject) => {
     const pythonExecutable = resolvePythonExecutable();
     const process = spawn(pythonExecutable, ['-m', 'agents.chat_api'], {
@@ -100,7 +110,31 @@ function chatBridgePlugin(): Plugin {
           const greenhouseId = typeof payload.greenhouseId === 'string' ? payload.greenhouseId : undefined;
           const freshAfterTimestamp =
             typeof payload.freshAfterTimestamp === 'string' ? payload.freshAfterTimestamp : undefined;
-          const result = await callPythonChat({ query, greenhouseId, freshAfterTimestamp });
+          const operatorTelemetry =
+            payload.operatorTelemetry && typeof payload.operatorTelemetry === 'object'
+              ? {
+                  timestamp:
+                    typeof (payload.operatorTelemetry as Record<string, unknown>).timestamp === 'string'
+                      ? ((payload.operatorTelemetry as Record<string, unknown>).timestamp as string)
+                      : '',
+                  temperature: Number((payload.operatorTelemetry as Record<string, unknown>).temperature),
+                  waterRecycling: Number((payload.operatorTelemetry as Record<string, unknown>).waterRecycling),
+                  powerAvailability: Number((payload.operatorTelemetry as Record<string, unknown>).powerAvailability),
+                }
+              : undefined;
+          const result = await callPythonChat({
+            query,
+            greenhouseId,
+            freshAfterTimestamp,
+            operatorTelemetry:
+              operatorTelemetry &&
+              operatorTelemetry.timestamp &&
+              Number.isFinite(operatorTelemetry.temperature) &&
+              Number.isFinite(operatorTelemetry.waterRecycling) &&
+              Number.isFinite(operatorTelemetry.powerAvailability)
+                ? operatorTelemetry
+                : undefined,
+          });
           response.statusCode = 200;
           response.setHeader('Content-Type', 'application/json');
           response.end(result);

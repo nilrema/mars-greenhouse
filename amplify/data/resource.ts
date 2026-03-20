@@ -32,6 +32,11 @@ const schema = a.schema({
       targetProfile: a.json(),
       notes: a.string(),
     })
+    .secondaryIndexes((index) => [
+      index('greenhouseId')
+        .sortKeys(['timestamp'])
+        .queryField('listSensorReadingsByGreenhouseAndTimestamp'),
+    ])
     .authorization((allow) => [allow.publicApiKey()]),
 
   CropRecord: a

@@ -431,6 +431,12 @@ export function useMissionState() {
   const [metrics, setMetrics] = useState<HumanMetrics>({ ...initialMetrics });
   const [simParams, setSimParams] = useState<SimulationParams>({ ...defaultSimParams });
   const [temperatureRange, setTemperatureRange] = useState<[number, number]>(DEFAULT_TEMPERATURE_RANGE);
+  const [latestOperatorTelemetry, setLatestOperatorTelemetry] = useState<{
+    timestamp: string;
+    temperature: number;
+    waterRecycling: number;
+    powerAvailability: number;
+  } | null>(null);
 
   const updateSimulation = useCallback((params: SimulationParams) => {
     const stress = getStress(params);
@@ -453,6 +459,12 @@ export function useMissionState() {
         }
 
         updateSimulation(deriveParamsFromSensor(latest));
+        setLatestOperatorTelemetry({
+          timestamp: latest.timestamp,
+          temperature: deriveParamsFromSensor(latest).temperature,
+          waterRecycling: deriveParamsFromSensor(latest).waterRecycling,
+          powerAvailability: deriveParamsFromSensor(latest).powerAvailability,
+        });
         setTemperatureRange(deriveTemperatureRange(latest));
       } catch {
         // Keep local defaults if backend is temporarily unreachable.
@@ -466,10 +478,20 @@ export function useMissionState() {
     };
   }, [updateSimulation]);
 
-  const requestAgentResponse = useCallback(async (query: string, freshAfterTimestamp?: string) => {
+  const requestAgentResponse = useCallback(async (
+    query: string,
+    freshAfterTimestamp?: string,
+    operatorTelemetryOverride?: {
+      timestamp: string;
+      temperature: number;
+      waterRecycling: number;
+      powerAvailability: number;
+    }
+  ) => {
     const payload = await sendChatQuery(query, {
       greenhouseId: GREENHOUSE_ID,
       freshAfterTimestamp,
+      operatorTelemetry: operatorTelemetryOverride ?? latestOperatorTelemetry ?? undefined,
     });
     const nextInteractions: AgentInteraction[] = payload.steps.map((step, index) => ({
       id: createChatMessageId(`interaction-${step.agent}`),
@@ -523,7 +545,7 @@ export function useMissionState() {
         message: payload.response,
       },
     ]);
-  }, []);
+  }, [latestOperatorTelemetry]);
 
   const sendChatMessage = useCallback(async (query: string) => {
     const cleanedQuery = query.trim();
@@ -624,8 +646,19 @@ export function useMissionState() {
 
       const syncedParams = deriveParamsFromSensor(confirmedLatest);
       updateSimulation(syncedParams);
+      setLatestOperatorTelemetry({
+        timestamp: confirmedLatest.timestamp,
+        temperature: syncedParams.temperature,
+        waterRecycling: syncedParams.waterRecycling,
+        powerAvailability: syncedParams.powerAvailability,
+      });
       setTemperatureRange(deriveTemperatureRange(confirmedLatest));
-      await requestAgentResponse(buildSimulationAgentPrompt(syncedParams), timestamp);
+      await requestAgentResponse(buildSimulationAgentPrompt(syncedParams), timestamp, {
+        timestamp: confirmedLatest.timestamp,
+        temperature: syncedParams.temperature,
+        waterRecycling: syncedParams.waterRecycling,
+        powerAvailability: syncedParams.powerAvailability,
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'The backend chat bridge is unavailable.';
       setChatMessages((currentMessages) => [

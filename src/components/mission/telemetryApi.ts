@@ -19,6 +19,46 @@ const apiKey = dataConfig.api_key;
 const GREENHOUSE_ID = 'mars-greenhouse-1';
 
 const LATEST_SENSOR_QUERY = `
+query ListSensorReadingsByGreenhouseAndTimestamp(
+  $greenhouseId: String!
+  $sortDirection: ModelSortDirection
+  $limit: Int
+) {
+  listSensorReadingsByGreenhouseAndTimestamp(
+    greenhouseId: $greenhouseId
+    sortDirection: $sortDirection
+    limit: $limit
+  ) {
+    items {
+      id
+      greenhouseId
+      timestamp
+      temperature
+      humidity
+      co2Ppm
+      lightPpfd
+      phLevel
+      nutrientEc
+      waterLitres
+      radiationMsv
+      pressureKpa
+      oxygenPercent
+      rootZoneOxygenPct
+      recycleRatePercent
+      powerKw
+      cropStressIndex
+      foodSecurityDays
+      sol
+      targetProfile
+      notes
+      createdAt
+      updatedAt
+    }
+  }
+}
+`;
+
+const LEGACY_LATEST_SENSOR_QUERY = `
 query ListSensorReadings($filter: ModelSensorReadingFilterInput, $limit: Int) {
   listSensorReadings(filter: $filter, limit: $limit) {
     items {
@@ -184,16 +224,36 @@ function asAwsJson(value: unknown) {
 }
 
 export async function fetchLatestSensorReading(greenhouseId: string = GREENHOUSE_ID): Promise<SensorReading | null> {
-  const data = await executeGraphQl<{
-    listSensorReadings?: { items?: Array<SensorReading | null> };
-  }>(LATEST_SENSOR_QUERY, {
-    filter: { greenhouseId: { eq: greenhouseId } },
-    limit: 50,
-  });
+  try {
+    const data = await executeGraphQl<{
+      listSensorReadingsByGreenhouseAndTimestamp?: { items?: Array<SensorReading | null> };
+    }>(LATEST_SENSOR_QUERY, {
+      greenhouseId,
+      sortDirection: 'DESC',
+      limit: 1,
+    });
 
-  const items = (data.listSensorReadings?.items ?? []).filter((item): item is SensorReading => Boolean(item));
-  const sorted = sortByTimestampDesc(items);
-  return sorted[0] ?? null;
+    const items = (data.listSensorReadingsByGreenhouseAndTimestamp?.items ?? []).filter(
+      (item): item is SensorReading => Boolean(item)
+    );
+    return items[0] ?? null;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes("Field 'listSensorReadingsByGreenhouseAndTimestamp'")) {
+      throw error;
+    }
+
+    const data = await executeGraphQl<{
+      listSensorReadings?: { items?: Array<SensorReading | null> };
+    }>(LEGACY_LATEST_SENSOR_QUERY, {
+      filter: { greenhouseId: { eq: greenhouseId } },
+      limit: 50,
+    });
+
+    const items = (data.listSensorReadings?.items ?? []).filter((item): item is SensorReading => Boolean(item));
+    const sorted = sortByTimestampDesc(items);
+    return sorted[0] ?? null;
+  }
 }
 
 export async function createSensorReading(reading: SensorReading) {
