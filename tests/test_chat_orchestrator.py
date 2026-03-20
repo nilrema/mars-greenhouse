@@ -14,7 +14,7 @@ from agents.bedrock_config import (
     resolve_bedrock_model,
 )
 from agents.mcp import DEFAULT_MARS_KB_URL, build_mars_kb_tools
-from agents.response_cleaning import clean_agent_response
+from agents.response_cleaning import clean_agent_response, format_action_response
 
 
 def test_handle_chat_rejects_blank_query():
@@ -22,13 +22,124 @@ def test_handle_chat_rejects_blank_query():
 
 
 def test_handle_chat_uses_orchestrator_agent(monkeypatch):
+    monkeypatch.setattr(orchestrator, "get_greenhouse_snapshot", lambda **kwargs: {
+        "greenhouseId": "mars-greenhouse-1",
+        "latestSensorReading": {},
+        "cropRecords": [],
+        "moduleSummaries": [],
+        "agentSnapshots": [],
+        "actionRequests": [],
+        "actuatorCommands": [],
+    })
+
     class FakeOrchestrator:
         def __call__(self, query: str) -> str:
-            assert query == "Power dropped and crops are stressed"
-            return "combined answer"
+            assert "Operator request:\nPower dropped and crops are stressed" in query
+            assert "Relevant specialists for this request:" in query
+            assert "resource_agent" in query
+            return "- Reduce LED light usage.\n- Harvest lettuce now."
 
     monkeypatch.setattr(orchestrator, "create_orchestrator_agent", lambda: FakeOrchestrator())
-    assert orchestrator.handle_chat("Power dropped and crops are stressed") == "combined answer"
+    assert orchestrator.handle_chat("Power dropped and crops are stressed") == (
+        "- Reduce LED light usage\n- Harvest lettuce now"
+    )
+
+
+def test_handle_chat_prefers_operator_telemetry_for_current_temperature(monkeypatch):
+    monkeypatch.setattr(orchestrator, "get_greenhouse_snapshot", lambda **kwargs: {
+        "greenhouseId": "mars-greenhouse-1",
+        "latestSensorReading": {
+            "timestamp": "2026-03-20T10:00:00Z",
+            "temperature": 22.09,
+            "humidity": 64,
+            "recycleRatePercent": 100,
+            "powerKw": 9.2,
+            "cropStressIndex": 34,
+        },
+        "cropRecords": [],
+        "moduleSummaries": [],
+        "agentSnapshots": [],
+        "actionRequests": [],
+        "actuatorCommands": [],
+    })
+
+    assert orchestrator.handle_chat(
+        "What is the current temperature?",
+        operator_telemetry={
+            "timestamp": "2026-03-20T10:01:00Z",
+            "temperature": 16,
+            "waterRecycling": 60,
+            "powerAvailability": 30,
+        },
+    ) == (
+        "- Current temperature: 16.00°C\n"
+        "- Current humidity: 64%\n"
+        "- Water recycling: 60%\n"
+        "- Power availability: 30%\n"
+        "- Health score: 66"
+    )
+
+
+def test_handle_chat_returns_full_current_metrics_from_effective_conditions(monkeypatch):
+    monkeypatch.setattr(orchestrator, "get_greenhouse_snapshot", lambda **kwargs: {
+        "greenhouseId": "mars-greenhouse-1",
+        "latestSensorReading": {
+            "timestamp": "2026-03-20T10:00:00Z",
+            "temperature": 21.63,
+            "humidity": 64,
+            "recycleRatePercent": 58,
+            "powerKw": 2.76,
+            "cropStressIndex": 34,
+        },
+        "cropRecords": [],
+        "moduleSummaries": [],
+        "agentSnapshots": [],
+        "actionRequests": [],
+        "actuatorCommands": [],
+    })
+
+    assert orchestrator.handle_chat(
+        "What are current: temperature, humidity, water / recycling level, power, health score?"
+    ) == (
+        "- Current temperature: 21.63°C\n"
+        "- Current humidity: 64%\n"
+        "- Water recycling: 58%\n"
+        "- Power availability: 30%\n"
+        "- Health score: 66"
+    )
+
+
+def test_handle_chat_turn_uses_telemetry_step_for_current_state():
+    payload = orchestrator.handle_chat_turn("What's the current temperature?")
+    assert payload["steps"] == [
+        {
+            "agent": "orchestrator",
+            "message": "Reading the latest greenhouse telemetry for your request.",
+        }
+    ]
+
+
+def test_handle_chat_uses_data_actions_for_simulation_telemetry(monkeypatch):
+    monkeypatch.setattr(orchestrator, "get_greenhouse_snapshot", lambda **kwargs: {
+        "greenhouseId": "mars-greenhouse-1",
+        "latestSensorReading": {
+            "timestamp": "2026-03-20T10:00:00Z",
+            "temperature": 16,
+            "recycleRatePercent": 60,
+            "powerKw": 2.76,
+        },
+        "cropRecords": [],
+        "moduleSummaries": [],
+        "agentSnapshots": [],
+        "actionRequests": [],
+        "actuatorCommands": [],
+    })
+
+    assert orchestrator.handle_chat("Analyze this simulation update for temperature, water recycling, and power.") == (
+        "- Turn on the heating because the temperature is 16.00°C\n"
+        "- Increase flow in the irrigation pump because water recycling is at 60%\n"
+        "- Reduce LED light usage because power availability is at 30%"
+    )
 
 
 def test_create_orchestrator_agent_registers_specialists_and_kb(monkeypatch):
@@ -51,7 +162,8 @@ def test_create_orchestrator_agent_registers_specialists_and_kb(monkeypatch):
         orchestrator.resource_agent,
         "mars_kb",
     ]
-    assert "multiple specialist tools" in captured["system_prompt"]
+    assert "very brief operator action list" in captured["system_prompt"]
+    assert "Do not invent new action types" in captured["system_prompt"]
 
 
 def test_environment_agent_returns_clean_response(monkeypatch):
@@ -64,7 +176,7 @@ def test_environment_agent_returns_clean_response(monkeypatch):
         def __call__(self, query: str) -> str:
             assert "The greenhouse temperature is falling fast" in query
             assert "temperature_c: 18.5" in query
-            return "  concise answer  "
+            return "Turn heating on."
 
     monkeypatch.setattr(specialized_agents, "Agent", FakeAgent)
     monkeypatch.setattr(specialized_agents, "get_greenhouse_snapshot", lambda: {
@@ -88,8 +200,117 @@ def test_environment_agent_returns_clean_response(monkeypatch):
         "actuatorCommands": [],
     })
 
-    assert specialized_agents.environment_agent("The greenhouse temperature is falling fast") == "concise answer"
+    assert specialized_agents.environment_agent("The greenhouse temperature is falling fast") == "- Turn heating on"
     assert captured["tools"] == []
+    assert "Turn heating on when the greenhouse is too cold" in captured["system_prompt"]
+
+
+def test_astro_agent_registers_mars_kb_tools(monkeypatch):
+    captured = {}
+
+    class FakeAgent:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+        def __call__(self, query: str) -> str:
+            assert "Crew hydration is low and protein intake is behind target" in query
+            return "- Plant more lentils and leafy greens."
+
+    monkeypatch.setattr(specialized_agents, "Agent", FakeAgent)
+    monkeypatch.setattr(specialized_agents, "build_mars_kb_tools", lambda: ["mars_kb"])
+    monkeypatch.setattr(specialized_agents, "get_greenhouse_snapshot", lambda: {
+        "greenhouseId": "mars-greenhouse-1",
+        "latestSensorReading": None,
+        "cropRecords": [],
+        "moduleSummaries": [],
+        "agentSnapshots": [],
+        "actionRequests": [],
+        "actuatorCommands": [],
+    })
+
+    response = specialized_agents.astro_agent("Crew hydration is low and protein intake is behind target")
+    assert response == "- Plant more lentils and leafy greens"
+    assert captured["tools"] == ["mars_kb"]
+    assert "provide a short planting plan tuned to crew needs" in captured["system_prompt"]
+
+
+def test_crop_agent_limits_to_harvest_recommendations(monkeypatch):
+    captured = {}
+
+    class FakeAgent:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+        def __call__(self, query: str) -> str:
+            assert "daysToHarvest=1" in query
+            return "Harvest the lettuce now."
+
+    monkeypatch.setattr(specialized_agents, "Agent", FakeAgent)
+    monkeypatch.setattr(specialized_agents, "get_greenhouse_snapshot", lambda: {
+        "greenhouseId": "mars-greenhouse-1",
+        "latestSensorReading": None,
+        "cropRecords": [
+            {
+                "name": "Lettuce",
+                "zone": "bay-2",
+                "healthStatus": "HEALTHY",
+                "growthStage": 98,
+                "daysToHarvest": 1,
+            }
+        ],
+        "moduleSummaries": [],
+        "agentSnapshots": [],
+        "actionRequests": [],
+        "actuatorCommands": [],
+    })
+
+    response = specialized_agents.crop_agent("This crop is harvest-ready and effectively at daysToHarvest=1.")
+    assert response == "- Harvest the lettuce now"
+    assert captured["tools"] == []
+    assert "daysToHarvest is 2 or less" in captured["system_prompt"]
+
+
+def test_resource_agent_limits_to_allowed_actions(monkeypatch):
+    captured = {}
+
+    class FakeAgent:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+        def __call__(self, query: str) -> str:
+            assert "Water recycling dropped and the humidity sensor has high failure risk." in query
+            return """
+Recommended actions:
+1. Increase flow in the irrigation pump.
+2. Replace the humidity sensor.
+"""
+
+    monkeypatch.setattr(specialized_agents, "Agent", FakeAgent)
+    monkeypatch.setattr(specialized_agents, "get_greenhouse_snapshot", lambda: {
+        "greenhouseId": "mars-greenhouse-1",
+        "latestSensorReading": None,
+        "cropRecords": [],
+        "moduleSummaries": [],
+        "agentSnapshots": [],
+        "actionRequests": [],
+        "actuatorCommands": [],
+    })
+
+    response = specialized_agents.resource_agent(
+        "Water recycling dropped and the humidity sensor has high failure risk."
+    )
+    assert response == (
+        "- Increase flow in the irrigation pump\n"
+        "- Replace the humidity sensor"
+    )
+    assert "Increase irrigation pump flow when water recycling drops" in captured["system_prompt"]
+    assert "Reduce LED light usage when power availability drops" in captured["system_prompt"]
+
+
+def test_preview_agent_usage_matches_demo_keywords():
+    assert orchestrator.preview_agent_usage("Crew hydration is low and protein intake dropped") == ["astro"]
+    assert orchestrator.preview_agent_usage("Water recycling is down and LED usage must drop") == ["resource"]
+    assert orchestrator.preview_agent_usage("Temperature is too cold for the greenhouse") == ["environment"]
 
 
 def test_specialized_agent_handles_errors(monkeypatch):
@@ -120,6 +341,68 @@ Tool #1: greenhouse_data_tool
 Keep heating active.
 """
     assert clean_agent_response(raw) == "Keep heating active."
+
+
+def test_format_action_response_normalizes_prose_into_brief_bullets():
+    raw = """
+Summary:
+Turn on the heating immediately. Reduce LED light usage in bay 2. Increase irrigation pump flow.
+"""
+    assert format_action_response(raw, max_bullets=3) == (
+        "- Turn on the heating immediately\n"
+        "- Reduce LED light usage in bay 2\n"
+        "- Increase irrigation pump flow"
+    )
+
+
+def test_format_action_response_drops_negative_action_bullets():
+    raw = """
+- Turn heating on when the greenhouse is too cold.
+- No heating action needed currently due to temperature being above the ideal range.
+- Reduce LED light usage.
+"""
+    assert format_action_response(raw, max_bullets=4) == (
+        "- Turn heating on when the greenhouse is too cold\n"
+        "- Reduce LED light usage"
+    )
+
+
+def test_handle_chat_limits_final_output_to_four_bullets(monkeypatch):
+    monkeypatch.setattr(orchestrator, "get_greenhouse_snapshot", lambda **kwargs: {
+        "greenhouseId": "mars-greenhouse-1",
+        "latestSensorReading": {
+            "timestamp": "2026-03-20T10:00:00Z",
+            "temperature": 22.0,
+            "humidity": 64,
+            "recycleRatePercent": 100,
+            "powerKw": 9.2,
+            "cropStressIndex": 34,
+        },
+        "cropRecords": [],
+        "moduleSummaries": [],
+        "agentSnapshots": [],
+        "actionRequests": [],
+        "actuatorCommands": [],
+    })
+
+    class FakeOrchestrator:
+        def __call__(self, query: str) -> str:
+            return """
+Actions needed:
+- Turn on heating.
+- Increase irrigation pump flow.
+- Reduce LED light usage.
+- Replace the humidity sensor.
+- Harvest the lettuce.
+"""
+
+    monkeypatch.setattr(orchestrator, "create_orchestrator_agent", lambda: FakeOrchestrator())
+    assert orchestrator.handle_chat("Complex scenario") == (
+        "- Turn on heating\n"
+        "- Increase irrigation pump flow\n"
+        "- Reduce LED light usage\n"
+        "- Replace the humidity sensor"
+    )
 
 
 def test_resolve_bedrock_model_defaults_to_us_west_2(monkeypatch):

@@ -20,8 +20,10 @@ def main() -> None:
     query = str(payload.get("query", ""))
     greenhouse_id = payload.get("greenhouseId")
     fresh_after_timestamp = payload.get("freshAfterTimestamp")
+    operator_telemetry = payload.get("operatorTelemetry")
     greenhouse_id = str(greenhouse_id) if isinstance(greenhouse_id, str) else None
     fresh_after_timestamp = str(fresh_after_timestamp) if isinstance(fresh_after_timestamp, str) else None
+    operator_telemetry = operator_telemetry if isinstance(operator_telemetry, dict) else None
     captured_stdout = io.StringIO()
     captured_stderr = io.StringIO()
 
@@ -31,6 +33,7 @@ def main() -> None:
             query,
             fresh_after_timestamp=fresh_after_timestamp,
             greenhouse_id=greenhouse_id,
+            operator_telemetry=operator_telemetry,
         )
 
     sys.stdout.write(json.dumps(result))

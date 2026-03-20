@@ -11,6 +11,12 @@ export interface ChatResponsePayload {
 export interface ChatQueryOptions {
   greenhouseId?: string;
   freshAfterTimestamp?: string;
+  operatorTelemetry?: {
+    timestamp: string;
+    temperature: number;
+    waterRecycling: number;
+    powerAvailability: number;
+  };
 }
 
 export async function sendChatQuery(query: string, options: ChatQueryOptions = {}): Promise<ChatResponsePayload> {
@@ -23,6 +29,7 @@ export async function sendChatQuery(query: string, options: ChatQueryOptions = {
       query,
       greenhouseId: options.greenhouseId,
       freshAfterTimestamp: options.freshAfterTimestamp,
+      operatorTelemetry: options.operatorTelemetry,
     }),
   });
 

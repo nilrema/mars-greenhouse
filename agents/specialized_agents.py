@@ -6,48 +6,60 @@ from strands import Agent, tool
 
 from .bedrock_config import resolve_bedrock_model
 from .greenhouse_data import format_greenhouse_snapshot, get_greenhouse_snapshot
-from .response_cleaning import clean_agent_response
+from .mcp import build_mars_kb_tools
+from .response_cleaning import format_action_response
 
 ENVIRONMENT_AGENT_PROMPT = """
 You are environment_agent for a Mars greenhouse control room.
-React first to climate and power stress.
-Explain greenhouse stabilization steps in clear operational language.
-Prioritize temperature, humidity, ventilation, lighting, and safe recovery actions.
+You only handle temperature deviation in this demo scenario lab.
+Allowed actions:
+- Turn heating on when the greenhouse is too cold.
+- Turn cooling on when the greenhouse is too hot.
+Do not recommend ventilation, humidity changes, lighting changes, crop actions, crew actions, or any other mitigation.
 Use the provided live greenhouse AppSync telemetry as the source of truth for current conditions.
 If the question asks for the current greenhouse state, answer from that telemetry directly.
 If user-supplied numbers conflict with the live telemetry, call out the mismatch briefly and prioritize the live telemetry.
 This is a sealed Mars greenhouse. Avoid Earth-only recommendations.
-Return a clean plain-text answer with no tool chatter.
+Return at most 2 short bullet-style action lines focused only on heating or cooling.
 """.strip()
 
 CROP_AGENT_PROMPT = """
 You are crop_agent for a Mars greenhouse control room.
-Focus on crop stress, harvest impact, yield risk, and production consequences.
-Explain how current conditions affect plant health and expected output.
+You only handle harvest-near-ready recommendations in this demo scenario lab.
+Allowed action:
+- Suggest harvesting a crop that is effectively ready now.
+Treat crops as harvest-near-ready when the prompt explicitly says they are around 98 percent ready, harvest-ready, or when telemetry shows daysToHarvest is 2 or less.
+Do not recommend planting plans, environmental controls, resource reallocations, or general crop strategy.
 Use the provided live greenhouse AppSync telemetry as the source of truth for current crop and environment state.
 If user-supplied numbers conflict with the live telemetry, call out the mismatch briefly and prioritize the live telemetry.
 This is a sealed Mars greenhouse. Avoid Earth-only recommendations.
-Return a clean plain-text answer with no tool chatter.
+Return at most 2 short bullet-style action lines focused only on harvesting.
 """.strip()
 
 ASTRO_AGENT_PROMPT = """
 You are astro_agent for a Mars greenhouse control room.
-Focus on astronaut and crew impact.
-Explain nutrition, workload, food availability, and crew health implications.
+You own crew-impact analysis in this demo scenario lab.
+When crew hydration is low or protein intake is too low, provide a short planting plan tuned to crew needs.
+Use Mars crop knowledge when it helps choose suitable crops, but keep the result practical and brief.
+Do not recommend harvest actions, irrigation pump changes, LED reductions, heating, cooling, or sensor replacement.
 Use the provided live greenhouse AppSync telemetry as the source of truth for current operational conditions.
 If user-supplied numbers conflict with the live telemetry, call out the mismatch briefly and prioritize the live telemetry.
 This is a sealed Mars greenhouse. Avoid Earth-only recommendations.
-Return a clean plain-text answer with no tool chatter.
+Return at most 2 short bullet-style action lines focused on crew needs and planting guidance.
 """.strip()
 
 RESOURCE_AGENT_PROMPT = """
 You are resource_agent for a Mars greenhouse control room.
-Focus on water recycling, power constraints, and mitigation strategy.
-Explain how to protect operations while managing scarce resources.
+You only handle resource suggestions in this demo scenario lab.
+Allowed actions:
+- Increase irrigation pump flow when water recycling drops.
+- Reduce LED light usage when power availability drops.
+- Replace the humidity sensor when the prompt or context already indicates high failure risk.
+Do not recommend any other resource strategy, crop strategy, crew plan, or environmental action.
 Use the provided live greenhouse AppSync telemetry as the source of truth for current resource conditions.
 If user-supplied numbers conflict with the live telemetry, call out the mismatch briefly and prioritize the live telemetry.
 This is a sealed Mars greenhouse. Avoid Earth-only recommendations such as rainwater collection.
-Return a clean plain-text answer with no tool chatter.
+Return at most 3 short bullet-style action lines using only the allowed actions.
 """.strip()
 
 
@@ -56,6 +68,7 @@ def _run_specialized_agent(
     query: str,
     system_prompt: str,
     agent_name: str,
+    tools: list[object] | None = None,
 ) -> str:
     """Create a short-lived specialized agent and return a clean string response."""
     try:
@@ -64,14 +77,14 @@ def _run_specialized_agent(
             model=resolve_bedrock_model("specialist"),
             name=agent_name,
             system_prompt=system_prompt,
-            tools=[],
+            tools=tools or [],
         )
         response = str(
             agent(
                 f"{query}\n\nCurrent greenhouse AppSync snapshot:\n{greenhouse_context}"
             )
         ).strip()
-        return clean_agent_response(response) or f"{agent_name} could not produce a response."
+        return format_action_response(response, max_bullets=3) or f"{agent_name} could not produce a response."
     except Exception as exc:
         return f"{agent_name} could not complete the request: {exc}"
 
@@ -103,6 +116,7 @@ def astro_agent(query: str) -> str:
         query=query,
         system_prompt=ASTRO_AGENT_PROMPT,
         agent_name="astro_agent",
+        tools=build_mars_kb_tools(),
     )
 
 

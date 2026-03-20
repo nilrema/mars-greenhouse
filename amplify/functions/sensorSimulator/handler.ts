@@ -6,6 +6,48 @@ const graphQlEndpoint = dataConfig.url;
 const apiKey = dataConfig.api_key;
 
 const SENSOR_QUERY = `
+query ListSensorReadingsByGreenhouseAndTimestamp(
+  $greenhouseId: String!
+  $sortDirection: ModelSortDirection
+  $limit: Int
+) {
+  listSensorReadingsByGreenhouseAndTimestamp(
+    greenhouseId: $greenhouseId
+    sortDirection: $sortDirection
+    limit: $limit
+  ) {
+    items {
+      id
+      greenhouseId
+      timestamp
+      temperature
+      humidity
+      co2Ppm
+      lightPpfd
+      phLevel
+      nutrientEc
+      waterLitres
+      radiationMsv
+      pressureKpa
+      oxygenPercent
+      rootZoneOxygenPct
+      recycleRatePercent
+      powerKw
+      cropStressIndex
+      foodSecurityDays
+      sol
+      activeEvent
+      controlMode
+      targetProfile
+      notes
+      createdAt
+      updatedAt
+    }
+  }
+}
+`;
+
+const LEGACY_SENSOR_QUERY = `
 query ListSensorReadings($filter: ModelSensorReadingFilterInput, $limit: Int) {
   listSensorReadings(filter: $filter, limit: $limit) {
     items {
@@ -303,11 +345,26 @@ export function isBackendConfigured(): boolean {
 export async function fetchMissionBackendSnapshot(
   greenhouseId = 'mars-greenhouse-1'
 ): Promise<BackendMissionSnapshot> {
-  const [sensorData, cropData, astronautData, eventData, actuatorData] = await Promise.all([
-    executeGraphQl<{ listSensorReadings?: { items?: Array<SensorReadingRecord | null> | null } }>(
-      SENSOR_QUERY,
+  const sensorPromise = executeGraphQl<{
+    listSensorReadingsByGreenhouseAndTimestamp?: { items?: Array<SensorReadingRecord | null> | null };
+  }>(SENSOR_QUERY, {
+    greenhouseId,
+    sortDirection: 'DESC',
+    limit: 120,
+  }).catch(async (error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes("Field 'listSensorReadingsByGreenhouseAndTimestamp'")) {
+      throw error;
+    }
+
+    return executeGraphQl<{ listSensorReadings?: { items?: Array<SensorReadingRecord | null> | null } }>(
+      LEGACY_SENSOR_QUERY,
       { filter: { greenhouseId: { eq: greenhouseId } }, limit: 120 }
-    ),
+    );
+  });
+
+  const [sensorData, cropData, astronautData, eventData, actuatorData] = await Promise.all([
+    sensorPromise,
     executeGraphQl<{ listCropRecords?: { items?: Array<CropRecord | null> | null } }>(CROP_QUERY, { limit: 100 }),
     executeGraphQl<{ listAstronautProfiles?: { items?: Array<AstronautProfileRecord | null> | null } }>(
       ASTRONAUT_QUERY,
@@ -323,7 +380,11 @@ export async function fetchMissionBackendSnapshot(
   ]);
 
   return {
-    sensorReadings: normalizeItems(sensorData.listSensorReadings?.items),
+    sensorReadings: normalizeItems(
+      'listSensorReadingsByGreenhouseAndTimestamp' in sensorData
+        ? sensorData.listSensorReadingsByGreenhouseAndTimestamp?.items
+        : sensorData.listSensorReadings?.items
+    ),
     cropRecords: normalizeItems(cropData.listCropRecords?.items),
     astronautProfiles: normalizeItems(astronautData.listAstronautProfiles?.items),
     agentEvents: normalizeItems(eventData.listAgentEvents?.items),

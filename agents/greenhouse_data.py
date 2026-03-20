@@ -17,7 +17,11 @@ _REQUIRED_FRESH_AFTER_TIMESTAMP: str | None = None
 
 GREENHOUSE_QUERY = """
 query GreenhouseSnapshot($greenhouseId: String!) {
-  listSensorReadings(filter: { greenhouseId: { eq: $greenhouseId } }, limit: 20) {
+  listSensorReadingsByGreenhouseAndTimestamp(
+    greenhouseId: $greenhouseId
+    sortDirection: DESC
+    limit: 20
+  ) {
     items {
       greenhouseId
       timestamp
@@ -29,6 +33,89 @@ query GreenhouseSnapshot($greenhouseId: String!) {
       nutrientEc
       waterLitres
       radiationMsv
+      recycleRatePercent
+      powerKw
+      cropStressIndex
+    }
+  }
+  listCropRecords(limit: 50) {
+    items {
+      cropId
+      name
+      variety
+      growthStage
+      daysToHarvest
+      healthStatus
+      zone
+    }
+  }
+  listModuleSummaries(limit: 10) {
+    items {
+      moduleId
+      name
+      status
+      alert
+      harvestScore
+      resourcePressure
+      astroImpact
+      orchestratorSummary
+      leadAgent
+      updatedAtLabel
+    }
+  }
+  listAgentSnapshots(limit: 20) {
+    items {
+      moduleId
+      agentId
+      status
+      headline
+      riskScore
+      timestamp
+    }
+  }
+  listActionRequests(limit: 20) {
+    items {
+      type
+      moduleId
+      assignedAgent
+      status
+      summary
+      createdAtLabel
+    }
+  }
+  listActuatorCommands(limit: 20) {
+    items {
+      commandId
+      type
+      targetValue
+      zone
+      unit
+      durationSeconds
+      status
+      executedAt
+      result
+    }
+  }
+}
+""".strip()
+
+LEGACY_GREENHOUSE_QUERY = """
+query GreenhouseSnapshot($greenhouseId: String!) {
+  listSensorReadings(filter: { greenhouseId: { eq: $greenhouseId } }, limit: 50) {
+    items {
+      greenhouseId
+      timestamp
+      temperature
+      humidity
+      co2Ppm
+      lightPpfd
+      phLevel
+      nutrientEc
+      waterLitres
+      radiationMsv
+      recycleRatePercent
+      powerKw
+      cropStressIndex
     }
   }
   listCropRecords(limit: 50) {
@@ -127,6 +214,15 @@ def _post_graphql(query: str, variables: dict[str, Any]) -> dict[str, Any]:
     return payload.get("data") or {}
 
 
+def _fetch_greenhouse_graphql(variables: dict[str, Any]) -> tuple[dict[str, Any], str]:
+    try:
+        return _post_graphql(GREENHOUSE_QUERY, variables), "indexed"
+    except RuntimeError as exc:
+        if "Field 'listSensorReadingsByGreenhouseAndTimestamp' in type 'Query' is undefined" not in str(exc):
+            raise
+        return _post_graphql(LEGACY_GREENHOUSE_QUERY, variables), "legacy"
+
+
 def _sort_by_timestamp(items: list[dict[str, Any]], field: str) -> list[dict[str, Any]]:
     def parse_timestamp(item: dict[str, Any]) -> datetime:
         value = item.get(field) or ""
@@ -180,9 +276,16 @@ def get_greenhouse_snapshot(
     last_snapshot: dict[str, Any] | None = None
 
     for _ in range(max(1, freshness_retries)):
-        data = _post_graphql(GREENHOUSE_QUERY, {"greenhouseId": greenhouse_id})
+        data, sensor_query_mode = _fetch_greenhouse_graphql({"greenhouseId": greenhouse_id})
 
-        sensor_items = _sort_by_timestamp(data.get("listSensorReadings", {}).get("items", []), "timestamp")
+        sensor_items = _sort_by_timestamp(
+            (
+                data.get("listSensorReadingsByGreenhouseAndTimestamp", {}).get("items", [])
+                if sensor_query_mode == "indexed"
+                else data.get("listSensorReadings", {}).get("items", [])
+            ),
+            "timestamp",
+        )
         actuator_items = _sort_by_timestamp(data.get("listActuatorCommands", {}).get("items", []), "executedAt")
         snapshot_items = _sort_by_timestamp(data.get("listAgentSnapshots", {}).get("items", []), "timestamp")
 
@@ -231,6 +334,9 @@ def format_greenhouse_snapshot(snapshot: dict[str, Any]) -> str:
                 f"- nutrient_ec: {latest.get('nutrientEc', 'unknown')}",
                 f"- water_litres: {latest.get('waterLitres', 'unknown')}",
                 f"- radiation_msv: {latest.get('radiationMsv', 'unknown')}",
+                f"- recycle_rate_pct: {latest.get('recycleRatePercent', 'unknown')}",
+                f"- power_kw: {latest.get('powerKw', 'unknown')}",
+                f"- crop_stress_index: {latest.get('cropStressIndex', 'unknown')}",
             ]
         )
     else:

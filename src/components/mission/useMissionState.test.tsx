@@ -1,11 +1,15 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('./chatApi', () => ({
-  sendChatQuery: vi.fn().mockResolvedValue({
+const { sendChatQueryMock } = vi.hoisted(() => ({
+  sendChatQueryMock: vi.fn().mockResolvedValue({
     steps: [{ agent: 'environment', message: 'Using environment_agent to evaluate climate and power stress.' }],
     response: 'Agent analysis complete.',
   }),
+}));
+
+vi.mock('./chatApi', () => ({
+  sendChatQuery: sendChatQueryMock,
 }));
 
 vi.mock('./telemetryApi', () => ({
@@ -45,5 +49,16 @@ describe('useMissionState', () => {
     expect(result.current.chatMessages.some((message) => message.author === 'simulation')).toBe(true);
     expect(result.current.chatMessages.some((message) => message.message.includes('Using environment_agent'))).toBe(true);
     expect(result.current.chatMessages.some((message) => message.message.includes('Agent analysis complete.'))).toBe(true);
+    expect(sendChatQueryMock).toHaveBeenCalledWith(
+      expect.stringContaining('Temperature: 16°C'),
+      expect.objectContaining({
+        operatorTelemetry: {
+          timestamp: expect.any(String),
+          temperature: 16,
+          waterRecycling: 60,
+          powerAvailability: 30,
+        },
+      })
+    );
   });
 });
