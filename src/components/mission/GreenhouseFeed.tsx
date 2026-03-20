@@ -14,7 +14,8 @@ import {
   selectionToViewportRect,
   zoomAroundPoint,
 } from './liveInspection';
-import type { CameraViewportState, InspectionSelection, MarsBase } from './types';
+import { inspectDisease } from './inspectionApi';
+import type { CameraViewportState, DiseaseInspectionAssessment, InspectionSelection, MarsBase } from './types';
 import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react';
 
 const CAMERA_ID = 'CAM-01';
@@ -63,6 +64,9 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
   const [selection, setSelection] = useState<InspectionSelection | null>(initialSelection);
   const [inspectionDialogOpen, setInspectionDialogOpen] = useState(false);
   const [inspectionPreviewUrl, setInspectionPreviewUrl] = useState<string | null>(null);
+  const [inspectionAssessment, setInspectionAssessment] = useState<DiseaseInspectionAssessment | null>(null);
+  const [inspectionLoading, setInspectionLoading] = useState(false);
+  const [inspectionError, setInspectionError] = useState<string | null>(null);
 
   const selectionOverlay = useMemo(() => {
     if (!selectionDraft) {
@@ -287,6 +291,29 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
     setCameraMode('pan');
     setInspectionDialogOpen(false);
     setInspectionPreviewUrl(null);
+    setInspectionAssessment(null);
+    setInspectionError(null);
+    setInspectionLoading(false);
+  };
+
+  const handleInspectDisease = async () => {
+    if (!selection || !inspectionPreviewUrl) {
+      setInspectionError('Open a valid inspection crop before requesting disease analysis.');
+      return;
+    }
+
+    setInspectionLoading(true);
+    setInspectionError(null);
+
+    try {
+      const assessment = await inspectDisease(inspectionPreviewUrl, selection);
+      setInspectionAssessment(assessment);
+    } catch (error) {
+      setInspectionError(error instanceof Error ? error.message : 'Disease inspection failed.');
+      setInspectionAssessment(null);
+    } finally {
+      setInspectionLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -307,6 +334,19 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
       })
     );
   }, [inspectionDialogOpen, selection]);
+
+  useEffect(() => {
+    setInspectionAssessment(null);
+    setInspectionError(null);
+    setInspectionLoading(false);
+  }, [selection]);
+
+  const riskTone =
+    inspectionAssessment?.riskLevel === 'high'
+      ? 'text-red-300'
+      : inspectionAssessment?.riskLevel === 'medium'
+        ? 'text-amber-200'
+        : 'text-emerald-200';
 
   return (
     <div className="panel h-full flex flex-col overflow-hidden p-0">
@@ -511,6 +551,52 @@ export function GreenhouseFeed({ base, initialSelection = null }: GreenhouseFeed
                 <div className="absolute bottom-4 left-4 rounded-full border border-white/10 bg-slate-950/80 px-3 py-1.5 text-[10px] font-mono text-emerald-50">
                   {selection.normalizedBounds.width.toFixed(4)}w x {selection.normalizedBounds.height.toFixed(4)}h
                 </div>
+              </div>
+
+              <div className="mt-5 rounded-[24px] border border-border/80 bg-slate-950/45 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Disease inspection
+                    </div>
+                    <div className="mt-1 text-[13px] text-foreground/88">
+                      Analyze this cropped region for a quick disease-risk read.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleInspectDisease}
+                    data-testid="inspect-disease-button"
+                    className="rounded-full border border-emerald-300/40 bg-emerald-400 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-950 shadow-[0_10px_24px_rgba(52,211,153,0.28)] transition-colors hover:bg-emerald-300 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-slate-700 disabled:text-slate-300 disabled:shadow-none disabled:opacity-80"
+                    disabled={inspectionLoading || !inspectionPreviewUrl}
+                  >
+                    {inspectionLoading ? 'Inspecting...' : 'Inspect disease'}
+                  </button>
+                </div>
+
+                {inspectionError && (
+                  <div
+                    className="mt-4 rounded-2xl border border-red-200/30 bg-red-950/40 px-4 py-3 text-[13px] text-red-100"
+                    data-testid="inspection-error"
+                  >
+                    {inspectionError}
+                  </div>
+                )}
+
+                {inspectionAssessment && (
+                  <div
+                    className="mt-4 rounded-2xl border border-emerald-200/20 bg-black/25 px-4 py-3 text-[13px]"
+                    data-testid="inspection-assessment"
+                  >
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="font-semibold text-foreground">Disease: {inspectionAssessment.disease}</span>
+                      <span className={`font-mono uppercase tracking-[0.16em] ${riskTone}`}>
+                        Risk: {inspectionAssessment.riskLevel}
+                      </span>
+                    </div>
+                    <p className="mt-2 leading-relaxed text-muted-foreground">{inspectionAssessment.explanation}</p>
+                  </div>
+                )}
               </div>
             </div>
           )}

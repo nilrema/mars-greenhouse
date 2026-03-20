@@ -65,3 +65,17 @@ Notes:
 - Added a dedicated `Technology` tab between `Greenhouse` and `Astronauts` in the center panel.
 - Rendered mocked operational cards for all five requested devices with the requested telemetry fields.
 - Added a frontend smoke test that verifies the tab switch and device field visibility.
+
+## 5. Disease Inspection In Inspection Popup
+
+Marin needs to connect the existing inspection popup to the Mars knowledge base so operators can ask for a quick disease risk assessment on the currently cropped image region. The goal is to keep the workflow inside the popup, reuse the current MCP integration, and return a concise result that is easy to read during the demo.
+
+This task should add the inspection action, send the current crop preview to the backend bridge, request a disease-oriented assessment from the Mars knowledge base MCP, and render loading, success, and failure states cleanly in the popup.
+
+Status: completed on `feature/inspect-disease-popup`
+
+Notes:
+- Added a dedicated `/api/inspect-disease` frontend bridge that calls a Python inspection wrapper.
+- Added direct Bedrock Nova multimodal image analysis for the cropped inspection preview because the current MCP gateway only exposes retrieval, not image-specific diagnosis.
+- Added concise popup rendering for disease, risk level, and a brief explanation, plus graceful loading and error states.
+- Added frontend and backend regression coverage for the new inspection flow.

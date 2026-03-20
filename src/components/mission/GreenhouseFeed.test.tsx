@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GreenhouseFeed } from './GreenhouseFeed';
 import type { InspectionSelection, MarsBase } from './types';
 
@@ -55,6 +55,10 @@ const initialSelection: InspectionSelection = {
 };
 
 describe('GreenhouseFeed', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('supports zooming and exposes an explicit inspection mode', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-03-19T10:00:00.000Z'));
@@ -122,6 +126,88 @@ describe('GreenhouseFeed', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Close/i }));
     expect(screen.queryByText(/Inspection Target Preview/i)).not.toBeInTheDocument();
+  });
+
+  it('requests a disease inspection and renders the concise result in the popup', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        disease: 'Powdery mildew',
+        riskLevel: 'high',
+        explanation: 'White surface spotting suggests a likely fungal outbreak.',
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { rerender } = render(<GreenhouseFeed base={base} initialSelection={initialSelection} />);
+    const viewport = screen.getByTestId('greenhouse-camera-viewport');
+    Object.defineProperty(viewport, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        x: 0,
+        y: 0,
+        left: 0,
+        top: 0,
+        right: 200,
+        bottom: 120,
+        width: 200,
+        height: 120,
+        toJSON: () => ({}),
+      }),
+    });
+    rerender(<GreenhouseFeed base={base} initialSelection={initialSelection} />);
+
+    fireEvent.click(screen.getByTestId('inspection-selection'));
+    fireEvent.click(screen.getByTestId('inspect-disease-button'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('inspection-assessment')).toHaveTextContent('Disease: Powdery mildew');
+    });
+    expect(screen.getByTestId('inspection-assessment')).toHaveTextContent('Risk: high');
+    expect(screen.getByTestId('inspection-assessment')).toHaveTextContent(
+      'White surface spotting suggests a likely fungal outbreak.'
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/inspect-disease',
+      expect.objectContaining({
+        method: 'POST',
+      })
+    );
+  });
+
+  it('shows an error message when the disease inspection request fails', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({
+        error: 'Knowledge base unavailable.',
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { rerender } = render(<GreenhouseFeed base={base} initialSelection={initialSelection} />);
+    const viewport = screen.getByTestId('greenhouse-camera-viewport');
+    Object.defineProperty(viewport, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({
+        x: 0,
+        y: 0,
+        left: 0,
+        top: 0,
+        right: 200,
+        bottom: 120,
+        width: 200,
+        height: 120,
+        toJSON: () => ({}),
+      }),
+    });
+    rerender(<GreenhouseFeed base={base} initialSelection={initialSelection} />);
+
+    fireEvent.click(screen.getByTestId('inspection-selection'));
+    fireEvent.click(screen.getByTestId('inspect-disease-button'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('inspection-error')).toHaveTextContent('Knowledge base unavailable.');
+    });
   });
 
   it('lets reset and clear controls work while zoomed in', () => {
