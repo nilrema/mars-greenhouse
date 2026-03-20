@@ -13,7 +13,22 @@ const agents: AgentStatusCard[] = [
 const messages: ChatMessage[] = [
   { id: 'system-1', role: 'system', author: 'system', agent: 'system', message: 'Mars greenhouse agents online.' },
   { id: 'user-1', role: 'user', author: 'operator', agent: 'user', message: 'How are the crops doing?' },
-  { id: 'agent-1', role: 'agent', author: 'agent system', agent: 'orchestrator', message: '### Crop Status\n- **Potatoes** are stable.' },
+  {
+    id: 'agent-1',
+    role: 'agent',
+    author: 'agent system',
+    agent: 'orchestrator',
+    message: '- Turn on the heating because the temperature is 16.00°C',
+    toolCalls: [
+      {
+        id: 'turn_on_heater-1',
+        type: 'turn_on_heater',
+        label: 'Heater',
+        summary: 'Turn on the heating because the temperature is 16.00°C',
+        agent: 'environment',
+      },
+    ],
+  },
 ];
 
 const interactions: AgentInteraction[] = [
@@ -36,8 +51,8 @@ describe('AgentChatPanel', () => {
     );
 
     expect(screen.getByText('How are the crops doing?')).toBeInTheDocument();
-    expect(screen.getByText('Crop Status')).toBeInTheDocument();
-    expect(screen.getByText('Routing operator request.')).toBeInTheDocument();
+    expect(screen.getByText('Turn on the heating because the temperature is 16.00°C')).toBeInTheDocument();
+    expect(screen.getByText('Working')).toBeInTheDocument();
 
     fireEvent.change(screen.getByPlaceholderText(/greenhouse operations assessment/i), {
       target: { value: 'Power is dropping' },

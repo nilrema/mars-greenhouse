@@ -92,6 +92,7 @@ export interface ChatMessage {
   author: string;
   message: string;
   agent?: AgentId | 'system' | 'user';
+  toolCalls?: AgentToolCall[];
 }
 
 export interface AgentInteraction {
@@ -99,6 +100,20 @@ export interface AgentInteraction {
   agent: AgentId;
   message: string;
   status: 'queued' | 'active' | 'complete';
+  timestamp: number;
+}
+
+export interface AgentToolCall {
+  id: string;
+  type: string;
+  label: string;
+  summary: string;
+  agent: AgentId;
+  metadata?: Record<string, string | number | boolean | null>;
+}
+
+export interface ToolCallTile extends AgentToolCall {
+  status: 'active' | 'complete';
   timestamp: number;
 }
 

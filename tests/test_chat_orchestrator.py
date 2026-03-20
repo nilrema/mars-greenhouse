@@ -68,15 +68,17 @@ def test_handle_chat_prefers_operator_telemetry_for_current_temperature(monkeypa
         operator_telemetry={
             "timestamp": "2026-03-20T10:01:00Z",
             "temperature": 16,
+            "humidity": 59,
             "waterRecycling": 60,
             "powerAvailability": 30,
+            "healthScore": 72,
         },
     ) == (
         "- Current temperature: 16.00°C\n"
-        "- Current humidity: 64%\n"
+        "- Current humidity: 59%\n"
         "- Water recycling: 60%\n"
         "- Power availability: 30%\n"
-        "- Health score: 66"
+        "- Health score: 72"
     )
 
 
@@ -119,7 +121,7 @@ def test_handle_chat_turn_uses_telemetry_step_for_current_state():
     ]
 
 
-def test_handle_chat_uses_data_actions_for_simulation_telemetry(monkeypatch):
+def test_handle_chat_uses_orchestrator_agent_for_simulation_telemetry(monkeypatch):
     monkeypatch.setattr(orchestrator, "get_greenhouse_snapshot", lambda **kwargs: {
         "greenhouseId": "mars-greenhouse-1",
         "latestSensorReading": {
@@ -135,11 +137,107 @@ def test_handle_chat_uses_data_actions_for_simulation_telemetry(monkeypatch):
         "actuatorCommands": [],
     })
 
+    class FakeOrchestrator:
+        def __call__(self, query: str) -> str:
+            assert "Analyze this simulation update for temperature, water recycling, and power." in query
+            return (
+                "- Turn on the heating because the temperature is 16.00°C\n"
+                "- Increase flow in the irrigation pump because water recycling is at 60%\n"
+                "- Reduce LED light usage because power availability is at 30%"
+            )
+
+    monkeypatch.setattr(orchestrator, "create_orchestrator_agent", lambda: FakeOrchestrator())
+
     assert orchestrator.handle_chat("Analyze this simulation update for temperature, water recycling, and power.") == (
         "- Turn on the heating because the temperature is 16.00°C\n"
         "- Increase flow in the irrigation pump because water recycling is at 60%\n"
         "- Reduce LED light usage because power availability is at 30%"
     )
+
+
+def test_handle_chat_turn_returns_structured_tool_calls_for_simulation_telemetry(monkeypatch):
+    monkeypatch.setattr(orchestrator, "get_greenhouse_snapshot", lambda **kwargs: {
+        "greenhouseId": "mars-greenhouse-1",
+        "latestSensorReading": {
+            "timestamp": "2026-03-20T10:00:00Z",
+            "temperature": 16,
+            "recycleRatePercent": 60,
+            "powerKw": 2.76,
+        },
+        "cropRecords": [],
+        "moduleSummaries": [],
+        "agentSnapshots": [],
+        "actionRequests": [],
+        "actuatorCommands": [],
+    })
+    monkeypatch.setattr(orchestrator, "environment_agent", lambda query: "- Turn on the heating because the temperature is 16.00°C")
+    monkeypatch.setattr(orchestrator, "resource_agent", lambda query: (
+        "- Increase flow in the irrigation pump because water recycling is at 60%\n"
+        "- Reduce LED light usage because power availability is at 30%"
+    ))
+
+    class FakeOrchestrator:
+        def __call__(self, query: str) -> str:
+            orchestrator.tracked_environment_agent("temperature is dropping")
+            orchestrator.tracked_resource_agent("water recycling and power are low")
+            return (
+                "- Turn on the heating because the temperature is 16.00°C\n"
+                "- Increase flow in the irrigation pump because water recycling is at 60%\n"
+                "- Reduce LED light usage because power availability is at 30%"
+            )
+
+    monkeypatch.setattr(orchestrator, "create_orchestrator_agent", lambda: FakeOrchestrator())
+
+    payload = orchestrator.handle_chat_turn(
+        "Analyze this simulation update for temperature, water recycling, and power."
+    )
+
+    assert payload["steps"] == [
+        {
+            "agent": "environment",
+            "message": "Using environment_agent to evaluate climate and power stress.",
+        },
+        {
+            "agent": "resource",
+            "message": "Using resource_agent to evaluate water and power constraints.",
+        },
+    ]
+    assert payload["toolCalls"] == [
+        {
+            "id": "turn_on_heater-1",
+            "type": "turn_on_heater",
+            "label": "Heater",
+            "summary": "Turn on the heating because the temperature is 16.00°C",
+            "agent": "environment",
+            "metadata": {
+                "currentTemperature": 16,
+                "targetTemperature": 22.0,
+            },
+        },
+        {
+            "id": "increase_irrigation_pump-2",
+            "type": "increase_irrigation_pump",
+            "label": "Pump",
+            "summary": "Increase flow in the irrigation pump because water recycling is at 60%",
+            "agent": "resource",
+            "metadata": {
+                "currentWaterRecycling": 60.0,
+                "targetWaterRecycling": 78.0,
+            },
+        },
+        {
+            "id": "reduce_led_light_usage-3",
+            "type": "reduce_led_light_usage",
+            "label": "LED",
+            "summary": "Reduce LED light usage because power availability is at 30%",
+            "agent": "resource",
+            "metadata": {
+                "currentPowerAvailability": 30.0,
+                "targetPowerAvailability": 55.0,
+                "targetLedBrightness": 24,
+            },
+        },
+    ]
 
 
 def test_create_orchestrator_agent_registers_specialists_and_kb(monkeypatch):
@@ -156,10 +254,10 @@ def test_create_orchestrator_agent_registers_specialists_and_kb(monkeypatch):
 
     assert captured["name"] == "chat_orchestrator"
     assert captured["tools"] == [
-        orchestrator.environment_agent,
-        orchestrator.crop_agent,
-        orchestrator.astro_agent,
-        orchestrator.resource_agent,
+        orchestrator.tracked_environment_agent,
+        orchestrator.tracked_crop_agent,
+        orchestrator.tracked_astro_agent,
+        orchestrator.tracked_resource_agent,
         "mars_kb",
     ]
     assert "very brief operator action list" in captured["system_prompt"]

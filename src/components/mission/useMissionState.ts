@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { sendChatQuery } from './chatApi';
+import { getToolCallBehavior } from './toolCallCatalog';
 import {
   GREENHOUSE_ID,
   createSensorReading,
   createUiInputEvent,
-  fetchLatestSensorReading,
   waitForSensorFreshness,
   type SensorReading,
 } from './telemetryApi';
@@ -12,11 +12,14 @@ import type {
   ActivityFeedItem,
   AgentInteraction,
   AgentStatusCard,
+  AgentToolCall,
   AstronautRecord,
   ChatMessage,
+  HardwareState,
   HumanMetrics,
   MarsBase,
   SimulationParams,
+  ToolCallTile,
 } from './types';
 
 const NOMINAL_TEMPERATURE = 24;
@@ -103,7 +106,7 @@ const defaultSimParams: SimulationParams = {
   powerAvailability: 100,
 };
 
-const AGENT_STEP_REVEAL_MS = import.meta.env.MODE === 'test' ? 0 : 260;
+const TOOL_EFFECT_TICK_MS = import.meta.env.MODE === 'test' ? 40 : 700;
 
 const initialChatMessages: ChatMessage[] = [
   {
@@ -119,10 +122,19 @@ function createChatMessageId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function createDelay(ms: number) {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms);
-  });
+function shouldDisplayToolCallTile(toolCall: AgentToolCall) {
+  return toolCall.type !== 'operator_action';
+}
+
+function upsertToolCallTile(currentTiles: ToolCallTile[], nextTile: ToolCallTile) {
+  const existingIndex = currentTiles.findIndex((tile) => tile.type === nextTile.type);
+  if (existingIndex === -1) {
+    return [...currentTiles.slice(-11), nextTile];
+  }
+
+  const updatedTiles = [...currentTiles];
+  updatedTiles[existingIndex] = nextTile;
+  return updatedTiles;
 }
 
 function buildSimulationAgentPrompt(params: SimulationParams) {
@@ -234,6 +246,24 @@ function createSensorReadingInput(params: SimulationParams, timestamp: string): 
   };
 }
 
+function deriveLiveOperatorTelemetry(params: SimulationParams, timestamp = new Date().toISOString()) {
+  const cropStressIndex = Math.round(getStress(params));
+  const humidity = Math.max(
+    20,
+    68 - Math.round(Math.max(0, (15 - params.temperature) * 0.5)) + Math.round((100 - params.waterRecycling) * 0.1)
+  );
+
+  return {
+    timestamp,
+    temperature: params.temperature,
+    humidity,
+    waterRecycling: params.waterRecycling,
+    powerAvailability: params.powerAvailability,
+    cropStressIndex,
+    healthScore: Math.max(0, Math.min(100, Math.round(100 - cropStressIndex))),
+  };
+}
+
 function computeHardware(params: SimulationParams) {
   const effectiveTemp = params.temperature;
   const heaterNeeded = effectiveTemp < 18;
@@ -265,7 +295,7 @@ function stressLabel(stress: number) {
   return 'Healthy';
 }
 
-function computeBaseFromParams(params: SimulationParams): MarsBase {
+function computeBaseFromParams(params: SimulationParams, hardwareOverrides: Partial<HardwareState> = {}): MarsBase {
   const effectiveTemp = params.temperature;
   const totalStress = getStress(params);
   const status = totalStress > 50 ? 'critical' : totalStress > 20 ? 'warning' : 'nominal';
@@ -294,7 +324,10 @@ function computeBaseFromParams(params: SimulationParams): MarsBase {
       light: params.powerAvailability,
       water: params.waterRecycling,
     },
-    hardware: computeHardware(params),
+    hardware: {
+      ...computeHardware(params),
+      ...hardwareOverrides,
+    },
   };
 }
 
@@ -427,6 +460,8 @@ export function useMissionState() {
   const [logs, setLogs] = useState<ActivityFeedItem[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(initialChatMessages);
   const [agentInteractions, setAgentInteractions] = useState<AgentInteraction[]>([]);
+  const [toolCallTiles, setToolCallTiles] = useState<ToolCallTile[]>([]);
+  const [activeToolEffects, setActiveToolEffects] = useState<AgentToolCall[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [metrics, setMetrics] = useState<HumanMetrics>({ ...initialMetrics });
   const [simParams, setSimParams] = useState<SimulationParams>({ ...defaultSimParams });
@@ -434,49 +469,89 @@ export function useMissionState() {
   const [latestOperatorTelemetry, setLatestOperatorTelemetry] = useState<{
     timestamp: string;
     temperature: number;
+    humidity: number;
     waterRecycling: number;
     powerAvailability: number;
-  } | null>(null);
+    cropStressIndex: number;
+    healthScore: number;
+  } | null>(() => deriveLiveOperatorTelemetry(defaultSimParams));
+  const simParamsRef = useRef(simParams);
+  const activeToolEffectsRef = useRef(activeToolEffects);
+  const latestOperatorTelemetryRef = useRef(latestOperatorTelemetry);
 
-  const updateSimulation = useCallback((params: SimulationParams) => {
+  const syncOperatorTelemetry = useCallback((
+    params: SimulationParams,
+    timestamp = new Date().toISOString(),
+  ) => {
+    const nextTelemetry = deriveLiveOperatorTelemetry(params, timestamp);
+    latestOperatorTelemetryRef.current = nextTelemetry;
+    setLatestOperatorTelemetry(nextTelemetry);
+  }, []);
+
+  const applyMissionSnapshot = useCallback((params: SimulationParams, hardwareOverrides: Partial<HardwareState> = {}) => {
     const stress = getStress(params);
     setSimParams(params);
-    setBase(computeBaseFromParams(params));
+    setBase(computeBaseFromParams(params, hardwareOverrides));
     setAstronauts(computeAstronautsFromStress(stress));
     setAgents(computeAgents(params, stress));
     setMetrics(computeMetricsFromStress(stress));
     setLogs(createLogs(params, stress));
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
+  const updateSimulation = useCallback((params: SimulationParams) => {
+    setActiveToolEffects([]);
+    applyMissionSnapshot(params);
+  }, [applyMissionSnapshot]);
 
-    const bootstrapFromBackend = async () => {
-      try {
-        const latest = await fetchLatestSensorReading(GREENHOUSE_ID);
-        if (!latest || cancelled) {
-          return;
+  useEffect(() => {
+    simParamsRef.current = simParams;
+  }, [simParams]);
+
+  useEffect(() => {
+    activeToolEffectsRef.current = activeToolEffects;
+  }, [activeToolEffects]);
+
+  useEffect(() => {
+    latestOperatorTelemetryRef.current = latestOperatorTelemetry;
+  }, [latestOperatorTelemetry]);
+
+  useEffect(() => {
+    if (activeToolEffects.length === 0) {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(() => {
+      let nextParams = simParamsRef.current;
+      const remainingEffects: AgentToolCall[] = [];
+      let combinedHardware: Partial<HardwareState> = {};
+
+      for (const toolCall of activeToolEffectsRef.current) {
+        const behavior = getToolCallBehavior(toolCall);
+        if (!behavior.applyEffect) {
+          continue;
         }
 
-        updateSimulation(deriveParamsFromSensor(latest));
-        setLatestOperatorTelemetry({
-          timestamp: latest.timestamp,
-          temperature: deriveParamsFromSensor(latest).temperature,
-          waterRecycling: deriveParamsFromSensor(latest).waterRecycling,
-          powerAvailability: deriveParamsFromSensor(latest).powerAvailability,
-        });
-        setTemperatureRange(deriveTemperatureRange(latest));
-      } catch {
-        // Keep local defaults if backend is temporarily unreachable.
+        const effectResult = behavior.applyEffect(nextParams, toolCall);
+        nextParams = effectResult.nextParams;
+        combinedHardware = { ...combinedHardware, ...effectResult.hardware };
+        if (!effectResult.isComplete) {
+          remainingEffects.push(toolCall);
+        }
       }
-    };
 
-    void bootstrapFromBackend();
+      if (remainingEffects.length !== activeToolEffectsRef.current.length) {
+        activeToolEffectsRef.current = remainingEffects;
+        setActiveToolEffects(remainingEffects);
+      }
+
+      applyMissionSnapshot(nextParams, combinedHardware);
+      syncOperatorTelemetry(nextParams);
+    }, TOOL_EFFECT_TICK_MS);
 
     return () => {
-      cancelled = true;
+      window.clearInterval(intervalId);
     };
-  }, [updateSimulation]);
+  }, [activeToolEffects, applyMissionSnapshot, syncOperatorTelemetry]);
 
   const requestAgentResponse = useCallback(async (
     query: string,
@@ -484,56 +559,27 @@ export function useMissionState() {
     operatorTelemetryOverride?: {
       timestamp: string;
       temperature: number;
+      humidity: number;
       waterRecycling: number;
       powerAvailability: number;
+      cropStressIndex: number;
+      healthScore: number;
     }
   ) => {
     const payload = await sendChatQuery(query, {
       greenhouseId: GREENHOUSE_ID,
       freshAfterTimestamp,
-      operatorTelemetry: operatorTelemetryOverride ?? latestOperatorTelemetry ?? undefined,
+      operatorTelemetry: operatorTelemetryOverride ?? latestOperatorTelemetryRef.current ?? undefined,
     });
-    const nextInteractions: AgentInteraction[] = payload.steps.map((step, index) => ({
-      id: createChatMessageId(`interaction-${step.agent}`),
-      agent: step.agent as AgentInteraction['agent'],
-      message: step.message,
-      status: index === 0 ? 'active' : 'queued',
-      timestamp: Date.now() + index,
-    }));
-
-    if (nextInteractions.length > 0) {
-      setAgentInteractions(nextInteractions);
-
-      for (let index = 0; index < nextInteractions.length; index += 1) {
-        const interaction = nextInteractions[index];
-        setAgentInteractions((current) =>
-          current.map((item, itemIndex) => {
-            if (item.id === interaction.id) {
-              return { ...item, status: 'active' };
-            }
-            if (itemIndex < index) {
-              return { ...item, status: 'complete' };
-            }
-            return item;
-          })
-        );
-        setChatMessages((currentMessages) => [
-          ...currentMessages,
-          {
-            id: createChatMessageId(interaction.agent),
-            role: 'system',
-            author: interaction.agent === 'orchestrator' ? 'orchestrator' : 'system',
-            agent: interaction.agent,
-            message: interaction.message,
-          },
-        ]);
-        await createDelay(AGENT_STEP_REVEAL_MS);
-      }
-
-      setAgentInteractions((current) => current.map((item) => ({ ...item, status: 'complete' })));
-    } else {
-      setAgentInteractions([]);
-    }
+    setAgentInteractions(
+      payload.steps.map((step, index) => ({
+        id: createChatMessageId(`interaction-${step.agent}`),
+        agent: step.agent as AgentInteraction['agent'],
+        message: step.message,
+        status: 'active',
+        timestamp: Date.now() + index,
+      }))
+    );
 
     setChatMessages((currentMessages) => [
       ...currentMessages,
@@ -543,9 +589,29 @@ export function useMissionState() {
         author: 'agent system',
         agent: 'orchestrator',
         message: payload.response,
+        toolCalls: payload.toolCalls,
       },
     ]);
-  }, [latestOperatorTelemetry]);
+
+    for (let index = 0; index < payload.toolCalls.length; index += 1) {
+      const toolCall = payload.toolCalls[index];
+      const shouldDisplayTile = shouldDisplayToolCallTile(toolCall);
+      const tileId = createChatMessageId(`tool-${toolCall.type}`);
+      const nextTile: ToolCallTile = {
+        ...toolCall,
+        id: tileId,
+        status: 'complete',
+        timestamp: Date.now() + index,
+      };
+
+      if (shouldDisplayTile) {
+        setToolCallTiles((currentTiles) => upsertToolCallTile(currentTiles, nextTile));
+      }
+      if (getToolCallBehavior(toolCall).applyEffect) {
+        setActiveToolEffects((currentEffects) => [...currentEffects, toolCall]);
+      }
+    }
+  }, []);
 
   const sendChatMessage = useCallback(async (query: string) => {
     const cleanedQuery = query.trim();
@@ -563,15 +629,7 @@ export function useMissionState() {
         message: cleanedQuery,
       },
     ]);
-    setAgentInteractions([
-      {
-        id: createChatMessageId('orchestrator-live'),
-        agent: 'orchestrator',
-        message: 'Parsing operator request and selecting the right specialists.',
-        status: 'active',
-        timestamp: Date.now(),
-      },
-    ]);
+    setAgentInteractions([]);
     setIsChatLoading(true);
 
     try {
@@ -612,15 +670,7 @@ export function useMissionState() {
         message: `Simulation started: temperature ${params.temperature}°C, water recycling ${params.waterRecycling}%, power availability ${params.powerAvailability}%.`,
       },
     ]);
-    setAgentInteractions([
-      {
-        id: createChatMessageId('orchestrator-live'),
-        agent: 'orchestrator',
-        message: 'Simulation received. Waiting for fresh telemetry and coordinating specialist review.',
-        status: 'active',
-        timestamp: Date.now(),
-      },
-    ]);
+    setAgentInteractions([]);
     setIsChatLoading(true);
 
     try {
@@ -646,18 +696,10 @@ export function useMissionState() {
 
       const syncedParams = deriveParamsFromSensor(confirmedLatest);
       updateSimulation(syncedParams);
-      setLatestOperatorTelemetry({
-        timestamp: confirmedLatest.timestamp,
-        temperature: syncedParams.temperature,
-        waterRecycling: syncedParams.waterRecycling,
-        powerAvailability: syncedParams.powerAvailability,
-      });
+      syncOperatorTelemetry(syncedParams, confirmedLatest.timestamp);
       setTemperatureRange(deriveTemperatureRange(confirmedLatest));
       await requestAgentResponse(buildSimulationAgentPrompt(syncedParams), timestamp, {
-        timestamp: confirmedLatest.timestamp,
-        temperature: syncedParams.temperature,
-        waterRecycling: syncedParams.waterRecycling,
-        powerAvailability: syncedParams.powerAvailability,
+        ...deriveLiveOperatorTelemetry(syncedParams, confirmedLatest.timestamp),
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'The backend chat bridge is unavailable.';
@@ -675,7 +717,7 @@ export function useMissionState() {
     } finally {
       setIsChatLoading(false);
     }
-  }, [requestAgentResponse, updateSimulation]);
+  }, [requestAgentResponse, syncOperatorTelemetry, updateSimulation]);
 
   return {
     base,
@@ -689,6 +731,7 @@ export function useMissionState() {
     runSimulation,
     simParams,
     temperatureRange,
+    toolCallTiles,
     sendChatMessage,
     updateSimulation,
   };

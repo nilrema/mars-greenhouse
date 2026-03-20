@@ -1,3 +1,5 @@
+import type { AgentToolCall } from './types';
+
 export interface ChatStep {
   agent: string;
   message: string;
@@ -6,6 +8,7 @@ export interface ChatStep {
 export interface ChatResponsePayload {
   steps: ChatStep[];
   response: string;
+  toolCalls: AgentToolCall[];
 }
 
 export interface ChatQueryOptions {
@@ -14,8 +17,11 @@ export interface ChatQueryOptions {
   operatorTelemetry?: {
     timestamp: string;
     temperature: number;
+    humidity: number;
     waterRecycling: number;
     powerAvailability: number;
+    cropStressIndex: number;
+    healthScore: number;
   };
 }
 
@@ -40,6 +46,7 @@ export async function sendChatQuery(query: string, options: ChatQueryOptions = {
 
   return {
     steps: payload.steps ?? [],
+    toolCalls: payload.toolCalls ?? [],
     response: payload.response ?? 'No response received from the agent system.',
   };
 }

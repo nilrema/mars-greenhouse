@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bot, SendHorizonal } from 'lucide-react';
+import { SendHorizonal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -19,12 +19,6 @@ const statusBg = {
   nominal: 'bg-success',
   warning: 'bg-warning',
   critical: 'bg-destructive',
-};
-
-const interactionTone = {
-  queued: 'border-slate-300/50 bg-white/55 text-slate-500',
-  active: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-950 shadow-[0_0_0_1px_rgba(16,185,129,0.08)]',
-  complete: 'border-slate-900/10 bg-slate-900/[0.05] text-slate-700',
 };
 
 const agentCapabilityMap: Record<AgentStatusCard['id'], { summary: string; capabilities: string[] }> = {
@@ -92,6 +86,14 @@ function compactAgentName(agent: AgentStatusCard) {
   return agent.name.replace('_AGENT', '');
 }
 
+function activeAgentIds(interactions: AgentInteraction[]) {
+  return new Set(
+    interactions
+      .filter((interaction) => interaction.agent !== 'orchestrator' && interaction.status !== 'complete')
+      .map((interaction) => interaction.agent)
+  );
+}
+
 export function AgentChatPanel({
   agents,
   interactions,
@@ -107,6 +109,7 @@ export function AgentChatPanel({
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState('');
+  const workingAgents = activeAgentIds(interactions);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -137,17 +140,46 @@ export function AgentChatPanel({
                 <DialogTrigger asChild>
                   <button
                     type="button"
-                    className="flex min-w-0 items-center gap-2 rounded-2xl border border-white/50 bg-[linear-gradient(180deg,rgba(17,24,39,0.95),rgba(30,41,59,0.9))] px-3 py-2 text-left text-[11px] shadow-[0_14px_30px_rgba(15,23,42,0.16)] transition-transform duration-150 hover:-translate-y-0.5 hover:border-emerald-300/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/50"
+                    className={cn(
+                      'relative flex min-w-0 items-center gap-2 rounded-2xl border px-3 py-2 text-left text-[11px] transition-transform duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/50',
+                      workingAgents.has(agent.id)
+                        ? 'border-emerald-300/70 bg-[linear-gradient(180deg,rgba(6,95,70,0.98),rgba(15,118,110,0.94))] shadow-[0_0_0_1px_rgba(110,231,183,0.35),0_18px_34px_rgba(5,46,22,0.28)] hover:-translate-y-0.5'
+                        : 'border-white/50 bg-[linear-gradient(180deg,rgba(17,24,39,0.95),rgba(30,41,59,0.9))] shadow-[0_14px_30px_rgba(15,23,42,0.16)] hover:-translate-y-0.5 hover:border-emerald-300/30'
+                    )}
+                    data-working={workingAgents.has(agent.id) ? 'true' : 'false'}
                   >
+                    {workingAgents.has(agent.id) ? (
+                      <motion.div
+                        className="absolute inset-0 rounded-2xl border border-emerald-200/60"
+                        animate={{ opacity: [0.95, 0.35, 0.95] }}
+                        transition={{ duration: 1.2, repeat: Infinity }}
+                      />
+                    ) : null}
                     <div className={`status-led ${statusBg[agent.status]}`} />
-                    <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full border border-white/10 bg-white/10 px-1.5 font-mono text-[10px] font-semibold text-white">
+                    <span
+                      className={cn(
+                        'inline-flex h-7 min-w-7 items-center justify-center rounded-full px-1.5 font-mono text-[10px] font-semibold text-white',
+                        workingAgents.has(agent.id)
+                          ? 'border border-emerald-100/50 bg-white/20 shadow-[0_0_16px_rgba(110,231,183,0.28)]'
+                          : 'border border-white/10 bg-white/10'
+                      )}
+                    >
                       {agent.icon}
                     </span>
                     <div className="min-w-0">
-                      <div className="truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-white/90">
-                        {compactAgentName(agent)}
+                      <div className="flex items-center gap-2">
+                        <div className="truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-white/90">
+                          {compactAgentName(agent)}
+                        </div>
+                        {workingAgents.has(agent.id) ? (
+                          <span className="rounded-full border border-emerald-100/45 bg-white/20 px-1.5 py-px text-[7px] font-semibold uppercase tracking-[0.14em] text-emerald-50">
+                            Working
+                          </span>
+                        ) : null}
                       </div>
-                      <div className="truncate text-[10px] text-slate-300">{agent.currentAction}</div>
+                      <div className={cn('truncate text-[10px]', workingAgents.has(agent.id) ? 'text-emerald-50/90' : 'text-slate-300')}>
+                        {agent.currentAction}
+                      </div>
                     </div>
                   </button>
                 </DialogTrigger>
@@ -183,62 +215,8 @@ export function AgentChatPanel({
           </div>
         </div>
 
-        <div className="grid min-h-0 flex-1 grid-rows-[10.5rem_minmax(0,1fr)] gap-3 px-4 pb-4 pt-3">
-          <div className="min-h-0 rounded-3xl border border-white/60 bg-white/55 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
-            <div className="mb-3 flex items-center gap-2">
-              <Bot className="h-4 w-4 text-emerald-800" />
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">Live Agent Traffic</div>
-            </div>
-            <div className="h-[calc(100%-1.75rem)] overflow-y-auto pr-1">
-              <div className="space-y-2">
-              <AnimatePresence initial={false}>
-                {interactions.length > 0 ? (
-                  interactions.map((interaction, index) => (
-                    <motion.div
-                      key={interaction.id}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      className={cn(
-                        'grid grid-cols-[1.5rem_1fr] items-start gap-2 rounded-2xl border px-3 py-2 transition-colors',
-                        interactionTone[interaction.status]
-                      )}
-                    >
-                      <div className="relative flex justify-center">
-                        <span className={cn(
-                          'mt-1 h-3 w-3 rounded-full border-2',
-                          interaction.status === 'active'
-                            ? 'border-emerald-600 bg-emerald-500 shadow-[0_0_0_6px_rgba(16,185,129,0.12)]'
-                            : interaction.status === 'complete'
-                              ? 'border-slate-500 bg-slate-500'
-                              : 'border-slate-300 bg-white'
-                        )} />
-                        {index < interactions.length - 1 ? (
-                          <span className="absolute top-5 h-6 w-px bg-slate-300/80" />
-                        ) : null}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-semibold uppercase tracking-[0.18em]">{interaction.agent}</span>
-                          <span className="text-[10px] opacity-60">
-                            {interaction.status === 'active' ? 'live' : interaction.status === 'queued' ? 'queued' : 'done'}
-                          </span>
-                        </div>
-                        <div className="mt-1 text-[12px] leading-5">{interaction.message}</div>
-                      </div>
-                    </motion.div>
-                  ))
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-slate-300/80 bg-white/40 px-3 py-3 text-[12px] text-slate-500">
-                    Specialist handoffs will appear here as the agent system routes a question.
-                  </div>
-                )}
-              </AnimatePresence>
-              </div>
-            </div>
-          </div>
-
-          <div className="min-h-0 rounded-[1.8rem] border border-white/60 bg-[linear-gradient(180deg,rgba(253,254,253,0.92),rgba(247,250,248,0.92))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
+        <div className="min-h-0 flex-1 px-4 pb-4 pt-3">
+          <div className="h-full min-h-0 rounded-[1.8rem] border border-white/60 bg-[linear-gradient(180deg,rgba(253,254,253,0.92),rgba(247,250,248,0.92))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
             <div className="mb-3 flex items-center justify-between">
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">Operations Feed</div>
               <div className="text-[10px] uppercase tracking-[0.18em] text-slate-400">{messages.length} entries</div>
@@ -272,7 +250,18 @@ export function AgentChatPanel({
                             ) : null}
                           </div>
                           {message.role === 'agent' ? (
-                            <ChatMarkdown content={message.message} />
+                            message.toolCalls && message.toolCalls.length > 0 ? (
+                              <ul className="space-y-2 text-[12px] leading-relaxed">
+                                {message.toolCalls.map((toolCall) => (
+                                  <li key={toolCall.id} className="flex gap-2">
+                                    <span className="mt-[0.45rem] h-1.5 w-1.5 rounded-full bg-current/70" />
+                                    <span>{toolCall.summary}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <ChatMarkdown content={message.message} />
+                            )
                           ) : (
                             <div className={cn(
                               'text-[12px] leading-relaxed whitespace-pre-wrap',
