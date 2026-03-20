@@ -5,8 +5,16 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from agents import orchestrator, specialized_agents
-from agents.bedrock_config import DEFAULT_BEDROCK_MODEL, DEFAULT_BEDROCK_REGION, resolve_bedrock_model
+from agents.bedrock_config import (
+    DEFAULT_BEDROCK_MODEL,
+    DEFAULT_BEDROCK_REGION,
+    DEFAULT_ORCHESTRATOR_MODEL,
+    DEFAULT_SPECIALIST_MODEL,
+    normalize_bedrock_model_id,
+    resolve_bedrock_model,
+)
 from agents.mcp import DEFAULT_MARS_KB_URL, build_mars_kb_tools
+from agents.response_cleaning import clean_agent_response
 
 
 def test_handle_chat_rejects_blank_query():
@@ -59,7 +67,6 @@ def test_environment_agent_returns_clean_response(monkeypatch):
             return "  concise answer  "
 
     monkeypatch.setattr(specialized_agents, "Agent", FakeAgent)
-    monkeypatch.setattr(specialized_agents, "build_mars_kb_tools", lambda: ["mars_kb"])
     monkeypatch.setattr(specialized_agents, "get_greenhouse_snapshot", lambda: {
         "greenhouseId": "mars-greenhouse-1",
         "latestSensorReading": {
@@ -82,7 +89,7 @@ def test_environment_agent_returns_clean_response(monkeypatch):
     })
 
     assert specialized_agents.environment_agent("The greenhouse temperature is falling fast") == "concise answer"
-    assert specialized_agents.greenhouse_data_tool in captured["tools"]
+    assert captured["tools"] == []
 
 
 def test_specialized_agent_handles_errors(monkeypatch):
@@ -91,7 +98,6 @@ def test_specialized_agent_handles_errors(monkeypatch):
             raise RuntimeError("boom")
 
     monkeypatch.setattr(specialized_agents, "Agent", FailingAgent)
-    monkeypatch.setattr(specialized_agents, "build_mars_kb_tools", lambda: [])
     monkeypatch.setattr(specialized_agents, "get_greenhouse_snapshot", lambda: {
         "greenhouseId": "mars-greenhouse-1",
         "latestSensorReading": None,
@@ -106,16 +112,73 @@ def test_specialized_agent_handles_errors(monkeypatch):
     assert "resource_agent could not complete the request" in response
 
 
+def test_clean_agent_response_removes_thinking_and_tool_chatter():
+    raw = """
+<thinking>internal</thinking>
+Tool #1: greenhouse_data_tool
+
+Keep heating active.
+"""
+    assert clean_agent_response(raw) == "Keep heating active."
+
+
 def test_resolve_bedrock_model_defaults_to_us_west_2(monkeypatch):
     monkeypatch.delenv("STRANDS_MODEL", raising=False)
     monkeypatch.delenv("BEDROCK_MODEL_ID", raising=False)
+    monkeypatch.delenv("STRANDS_ORCHESTRATOR_MODEL", raising=False)
+    monkeypatch.delenv("STRANDS_SPECIALIST_MODEL", raising=False)
     monkeypatch.delenv("AGENT_AWS_REGION", raising=False)
     monkeypatch.delenv("AWS_REGION", raising=False)
     monkeypatch.delenv("AWS_DEFAULT_REGION", raising=False)
+    monkeypatch.setattr(
+        "agents.bedrock_config._list_system_inference_profile_ids",
+        lambda region: frozenset(),
+    )
 
     assert resolve_bedrock_model() == DEFAULT_BEDROCK_MODEL
+    assert resolve_bedrock_model("orchestrator") == DEFAULT_ORCHESTRATOR_MODEL
+    assert resolve_bedrock_model("specialist") == DEFAULT_SPECIALIST_MODEL
     assert os.environ["AWS_REGION"] == DEFAULT_BEDROCK_REGION
     assert os.environ["AWS_DEFAULT_REGION"] == DEFAULT_BEDROCK_REGION
+
+
+def test_resolve_bedrock_model_prefers_role_specific_overrides(monkeypatch):
+    monkeypatch.delenv("STRANDS_MODEL", raising=False)
+    monkeypatch.delenv("BEDROCK_MODEL_ID", raising=False)
+    monkeypatch.setenv("STRANDS_ORCHESTRATOR_MODEL", "amazon.nova-lite-v1:0")
+    monkeypatch.setenv("STRANDS_SPECIALIST_MODEL", "anthropic.claude-3-5-haiku-20241022-v1:0")
+    monkeypatch.setattr(
+        "agents.bedrock_config._list_system_inference_profile_ids",
+        lambda region: frozenset({
+            "us.amazon.nova-lite-v1:0",
+            "us.anthropic.claude-3-5-haiku-20241022-v1:0",
+        }),
+    )
+
+    assert resolve_bedrock_model("orchestrator") == "us.amazon.nova-lite-v1:0"
+    assert resolve_bedrock_model("specialist") == "us.anthropic.claude-3-5-haiku-20241022-v1:0"
+
+
+def test_resolve_bedrock_model_prefers_global_override(monkeypatch):
+    monkeypatch.setenv("STRANDS_MODEL", "anthropic.claude-haiku-4-5-20251001-v1:0")
+    monkeypatch.setenv("STRANDS_ORCHESTRATOR_MODEL", "amazon.nova-micro-v1:0")
+    monkeypatch.setenv("STRANDS_SPECIALIST_MODEL", "amazon.nova-lite-v1:0")
+    monkeypatch.setattr(
+        "agents.bedrock_config._list_system_inference_profile_ids",
+        lambda region: frozenset({"global.anthropic.claude-haiku-4-5-20251001-v1:0"}),
+    )
+
+    assert resolve_bedrock_model("orchestrator") == "global.anthropic.claude-haiku-4-5-20251001-v1:0"
+    assert resolve_bedrock_model("specialist") == "global.anthropic.claude-haiku-4-5-20251001-v1:0"
+
+
+def test_normalize_bedrock_model_id_leaves_unknown_models_unchanged(monkeypatch):
+    monkeypatch.setattr(
+        "agents.bedrock_config._list_system_inference_profile_ids",
+        lambda region: frozenset({"us.amazon.nova-lite-v1:0"}),
+    )
+
+    assert normalize_bedrock_model_id("custom.model-v1:0", region="us-west-2") == "custom.model-v1:0"
 
 
 def test_mcp_defaults_to_mars_crop_knowledge_base(monkeypatch):
