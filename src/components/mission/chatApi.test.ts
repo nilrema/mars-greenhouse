@@ -7,6 +7,7 @@ describe('sendChatQuery', () => {
       ok: true,
       json: async () => ({
         steps: [{ agent: 'environment', message: 'Using environment_agent...' }],
+        toolCalls: [{ id: 'turn_on_heater-1', type: 'turn_on_heater', label: 'Heater', summary: 'Turn on the heating', agent: 'environment' }],
         response: 'Stabilization started.',
       }),
     });
@@ -19,6 +20,7 @@ describe('sendChatQuery', () => {
     }));
     expect(result).toEqual({
       steps: [{ agent: 'environment', message: 'Using environment_agent...' }],
+      toolCalls: [{ id: 'turn_on_heater-1', type: 'turn_on_heater', label: 'Heater', summary: 'Turn on the heating', agent: 'environment' }],
       response: 'Stabilization started.',
     });
   });
@@ -28,6 +30,7 @@ describe('sendChatQuery', () => {
       ok: true,
       json: async () => ({
         steps: [],
+        toolCalls: [],
         response: 'Stabilization started.',
       }),
     });
@@ -37,8 +40,11 @@ describe('sendChatQuery', () => {
       operatorTelemetry: {
         timestamp: '2026-03-20T10:01:00Z',
         temperature: 16,
+        humidity: 62,
         waterRecycling: 60,
         powerAvailability: 30,
+        cropStressIndex: 34,
+        healthScore: 66,
       },
     });
 
@@ -50,8 +56,11 @@ describe('sendChatQuery', () => {
         operatorTelemetry: {
           timestamp: '2026-03-20T10:01:00Z',
           temperature: 16,
+          humidity: 62,
           waterRecycling: 60,
           powerAvailability: 30,
+          cropStressIndex: 34,
+          healthScore: 66,
         },
       }),
     }));

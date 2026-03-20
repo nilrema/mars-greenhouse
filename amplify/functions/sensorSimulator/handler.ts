@@ -378,13 +378,14 @@ export async function fetchMissionBackendSnapshot(
       { limit: 80 }
     ),
   ]);
+  const sensorItems =
+    ('listSensorReadingsByGreenhouseAndTimestamp' in sensorData
+      ? sensorData.listSensorReadingsByGreenhouseAndTimestamp?.items
+      : undefined) ??
+    ('listSensorReadings' in sensorData ? sensorData.listSensorReadings?.items : undefined);
 
   return {
-    sensorReadings: normalizeItems(
-      'listSensorReadingsByGreenhouseAndTimestamp' in sensorData
-        ? sensorData.listSensorReadingsByGreenhouseAndTimestamp?.items
-        : sensorData.listSensorReadings?.items
-    ),
+    sensorReadings: normalizeItems(sensorItems),
     cropRecords: normalizeItems(cropData.listCropRecords?.items),
     astronautProfiles: normalizeItems(astronautData.listAstronautProfiles?.items),
     agentEvents: normalizeItems(eventData.listAgentEvents?.items),
