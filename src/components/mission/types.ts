@@ -94,6 +94,14 @@ export interface ChatMessage {
   agent?: AgentId | 'system' | 'user';
 }
 
+export interface AgentInteraction {
+  id: string;
+  agent: AgentId;
+  message: string;
+  status: 'queued' | 'active' | 'complete';
+  timestamp: number;
+}
+
 export interface HumanMetrics {
   nutritionScore: number;
   mealDiversity: number;

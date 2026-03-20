@@ -5,7 +5,7 @@ import { AgentChatPanel } from '@/components/mission/AgentChatPanel';
 import { useMissionState } from '@/components/mission/useMissionState';
 
 const Index = () => {
-  const { base, astronauts, agents, chatMessages, isChatLoading, runSimulation, simParams, temperatureRange, sendChatMessage } = useMissionState();
+  const { base, astronauts, agentInteractions, agents, chatMessages, isChatLoading, runSimulation, simParams, temperatureRange, sendChatMessage } = useMissionState();
   const chaosActive =
     simParams.temperature !== 24 || simParams.waterRecycling !== 100 || simParams.powerAvailability !== 100;
 
@@ -25,6 +25,7 @@ const Index = () => {
         <div className="w-[28%] min-h-0">
           <AgentChatPanel
             agents={agents}
+            interactions={agentInteractions}
             messages={chatMessages}
             isLoading={isChatLoading}
             onSendMessage={sendChatMessage}

@@ -10,6 +10,7 @@ from strands import Agent
 from .bedrock_config import resolve_bedrock_model
 from .greenhouse_data import clear_required_fresh_after_timestamp, set_required_fresh_after_timestamp
 from .mcp import build_mars_kb_tools
+from .response_cleaning import clean_agent_response
 from .specialized_agents import (
     astro_agent,
     crop_agent,
@@ -51,7 +52,7 @@ ROUTING_KEYWORDS = {
 def create_orchestrator_agent() -> Agent:
     """Build the orchestrator agent with specialist tools and Mars MCP access."""
     return Agent(
-        model=resolve_bedrock_model(),
+        model=resolve_bedrock_model("orchestrator"),
         name="chat_orchestrator",
         system_prompt=ORCHESTRATOR_SYSTEM_PROMPT,
         tools=[
@@ -72,7 +73,7 @@ def handle_chat(query: str, *, fresh_after_timestamp: str | None = None) -> str:
 
     try:
         set_required_fresh_after_timestamp(fresh_after_timestamp)
-        return str(create_orchestrator_agent()(cleaned_query)).strip()
+        return clean_agent_response(str(create_orchestrator_agent()(cleaned_query)).strip())
     except Exception as exc:
         return f"Sorry, the agent orchestrator is unavailable right now: {exc}"
     finally:

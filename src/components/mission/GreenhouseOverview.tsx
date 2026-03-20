@@ -103,9 +103,22 @@ export function GreenhouseOverview({
 
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[13px] font-semibold text-foreground">{crop.name}</span>
-                  <span className={`text-[12px] font-mono font-semibold ${crop.health < 70 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                    HP {crop.health}%
-                  </span>
+                  <div className="text-right">
+                    <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      Growth Rate
+                    </div>
+                    <span
+                      className={`font-mono text-[18px] font-semibold leading-none ${
+                        crop.growthStage > 80
+                          ? 'text-success'
+                          : crop.growthStage > 50
+                            ? 'text-primary'
+                            : 'text-warning'
+                      }`}
+                    >
+                      {crop.growthStage}%
+                    </span>
+                  </div>
                 </div>
 
                 <div className="mb-1 h-1.5 w-full rounded-full bg-muted">
@@ -127,7 +140,7 @@ export function GreenhouseOverview({
 
                 <div className="flex justify-between text-[10px] text-muted-foreground">
                   <span>
-                    Growth {crop.growthStage}% · {crop.daysToHarvest}d to harvest
+                    {crop.daysToHarvest}d to harvest
                   </span>
                   <span>{crop.projectedYield.toLocaleString()} kcal</span>
                 </div>

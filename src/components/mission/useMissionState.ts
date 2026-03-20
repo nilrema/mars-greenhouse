@@ -10,6 +10,7 @@ import {
 } from './telemetryApi';
 import type {
   ActivityFeedItem,
+  AgentInteraction,
   AgentStatusCard,
   AstronautRecord,
   ChatMessage,
@@ -102,6 +103,8 @@ const defaultSimParams: SimulationParams = {
   powerAvailability: 100,
 };
 
+const AGENT_STEP_REVEAL_MS = import.meta.env.MODE === 'test' ? 0 : 260;
+
 const initialChatMessages: ChatMessage[] = [
   {
     id: 'system-welcome',
@@ -114,6 +117,12 @@ const initialChatMessages: ChatMessage[] = [
 
 function createChatMessageId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function createDelay(ms: number) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
 }
 
 function buildSimulationAgentPrompt(params: SimulationParams) {
@@ -417,6 +426,7 @@ export function useMissionState() {
   const [agents, setAgents] = useState<AgentStatusCard[]>(initialAgents);
   const [logs, setLogs] = useState<ActivityFeedItem[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(initialChatMessages);
+  const [agentInteractions, setAgentInteractions] = useState<AgentInteraction[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [metrics, setMetrics] = useState<HumanMetrics>({ ...initialMetrics });
   const [simParams, setSimParams] = useState<SimulationParams>({ ...defaultSimParams });
@@ -461,18 +471,53 @@ export function useMissionState() {
       greenhouseId: GREENHOUSE_ID,
       freshAfterTimestamp,
     });
+    const nextInteractions: AgentInteraction[] = payload.steps.map((step, index) => ({
+      id: createChatMessageId(`interaction-${step.agent}`),
+      agent: step.agent as AgentInteraction['agent'],
+      message: step.message,
+      status: index === 0 ? 'active' : 'queued',
+      timestamp: Date.now() + index,
+    }));
+
+    if (nextInteractions.length > 0) {
+      setAgentInteractions(nextInteractions);
+
+      for (let index = 0; index < nextInteractions.length; index += 1) {
+        const interaction = nextInteractions[index];
+        setAgentInteractions((current) =>
+          current.map((item, itemIndex) => {
+            if (item.id === interaction.id) {
+              return { ...item, status: 'active' };
+            }
+            if (itemIndex < index) {
+              return { ...item, status: 'complete' };
+            }
+            return item;
+          })
+        );
+        setChatMessages((currentMessages) => [
+          ...currentMessages,
+          {
+            id: createChatMessageId(interaction.agent),
+            role: 'system',
+            author: interaction.agent === 'orchestrator' ? 'orchestrator' : 'system',
+            agent: interaction.agent,
+            message: interaction.message,
+          },
+        ]);
+        await createDelay(AGENT_STEP_REVEAL_MS);
+      }
+
+      setAgentInteractions((current) => current.map((item) => ({ ...item, status: 'complete' })));
+    } else {
+      setAgentInteractions([]);
+    }
+
     setChatMessages((currentMessages) => [
       ...currentMessages,
-      ...payload.steps.map((step) => ({
-        id: createChatMessageId(step.agent),
-        role: 'system' as const,
-        author: step.agent === 'orchestrator' ? 'orchestrator' : 'system',
-        agent: step.agent === 'orchestrator' ? 'orchestrator' : (step.agent as 'environment' | 'crop' | 'astro' | 'resource'),
-        message: step.message,
-      })),
       {
         id: createChatMessageId('agent'),
-        role: 'agent' as const,
+        role: 'agent',
         author: 'agent system',
         agent: 'orchestrator',
         message: payload.response,
@@ -494,6 +539,15 @@ export function useMissionState() {
         author: 'operator',
         agent: 'user',
         message: cleanedQuery,
+      },
+    ]);
+    setAgentInteractions([
+      {
+        id: createChatMessageId('orchestrator-live'),
+        agent: 'orchestrator',
+        message: 'Parsing operator request and selecting the right specialists.',
+        status: 'active',
+        timestamp: Date.now(),
       },
     ]);
     setIsChatLoading(true);
@@ -519,6 +573,7 @@ export function useMissionState() {
           message,
         },
       ]);
+      setAgentInteractions([]);
     } finally {
       setIsChatLoading(false);
     }
@@ -533,6 +588,15 @@ export function useMissionState() {
         author: 'simulation',
         agent: 'system',
         message: `Simulation started: temperature ${params.temperature}°C, water recycling ${params.waterRecycling}%, power availability ${params.powerAvailability}%.`,
+      },
+    ]);
+    setAgentInteractions([
+      {
+        id: createChatMessageId('orchestrator-live'),
+        agent: 'orchestrator',
+        message: 'Simulation received. Waiting for fresh telemetry and coordinating specialist review.',
+        status: 'active',
+        timestamp: Date.now(),
       },
     ]);
     setIsChatLoading(true);
@@ -574,6 +638,7 @@ export function useMissionState() {
           message,
         },
       ]);
+      setAgentInteractions([]);
     } finally {
       setIsChatLoading(false);
     }
@@ -582,6 +647,7 @@ export function useMissionState() {
   return {
     base,
     astronauts,
+    agentInteractions,
     agents,
     chatMessages,
     isChatLoading,
