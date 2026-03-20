@@ -407,6 +407,13 @@ def _resolve_chat_payload(
         }
 
     steps: list[dict[str, str]] = []
+    if _is_current_state_query(cleaned_query):
+        steps = [
+            {
+                "agent": "orchestrator",
+                "message": "Reading the latest greenhouse telemetry for your request.",
+            }
+        ]
 
     try:
         set_required_fresh_after_timestamp(fresh_after_timestamp)
@@ -414,12 +421,6 @@ def _resolve_chat_payload(
         effective_conditions = _get_effective_conditions(snapshot, operator_telemetry)
 
         if _is_current_state_query(cleaned_query):
-            steps = [
-                {
-                    "agent": "orchestrator",
-                    "message": "Reading the latest greenhouse telemetry for your request.",
-                }
-            ]
             response = _format_current_state_response(effective_conditions)
             tool_calls: list[dict[str, Any]] = []
         else:
