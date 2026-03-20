@@ -182,3 +182,9 @@ export interface InspectionSelection {
   normalizedBounds: NormalizedInspectionBounds;
   viewport: CameraViewportState;
 }
+
+export interface DiseaseInspectionAssessment {
+  disease: string;
+  riskLevel: 'low' | 'medium' | 'high';
+  explanation: string;
+}

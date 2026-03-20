@@ -41,20 +41,10 @@ function resolvePythonExecutable() {
   return process.env.PYTHON || 'python3';
 }
 
-function callPythonChat(payload: {
-  query: string;
-  greenhouseId?: string;
-  freshAfterTimestamp?: string;
-  operatorTelemetry?: {
-    timestamp: string;
-    temperature: number;
-    waterRecycling: number;
-    powerAvailability: number;
-  };
-}): Promise<string> {
+function callPythonModule(moduleName: string, payload: Record<string, unknown>): Promise<string> {
   return new Promise((resolve, reject) => {
     const pythonExecutable = resolvePythonExecutable();
-    const process = spawn(pythonExecutable, ['-m', 'agents.chat_api'], {
+    const process = spawn(pythonExecutable, ['-m', moduleName], {
       cwd: __dirname,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
@@ -122,7 +112,7 @@ function chatBridgePlugin(): Plugin {
                   powerAvailability: Number((payload.operatorTelemetry as Record<string, unknown>).powerAvailability),
                 }
               : undefined;
-          const result = await callPythonChat({
+          const result = await callPythonModule('agents.chat_api', {
             query,
             greenhouseId,
             freshAfterTimestamp,
@@ -142,6 +132,31 @@ function chatBridgePlugin(): Plugin {
           response.statusCode = 500;
           response.setHeader('Content-Type', 'application/json');
           response.end(JSON.stringify({ error: error instanceof Error ? error.message : 'Chat bridge failed.' }));
+        }
+      });
+
+      server.middlewares.use('/api/inspect-disease', async (request, response, next) => {
+        if (request.method !== 'POST') {
+          next();
+          return;
+        }
+
+        try {
+          const payload = await readJsonBody(request);
+          const result = await callPythonModule('agents.inspection_api', {
+            imageDataUrl: typeof payload.imageDataUrl === 'string' ? payload.imageDataUrl : '',
+            selection: payload.selection && typeof payload.selection === 'object' ? payload.selection : undefined,
+            cameraId: typeof payload.cameraId === 'string' ? payload.cameraId : undefined,
+          });
+          response.statusCode = 200;
+          response.setHeader('Content-Type', 'application/json');
+          response.end(result);
+        } catch (error) {
+          response.statusCode = 500;
+          response.setHeader('Content-Type', 'application/json');
+          response.end(
+            JSON.stringify({ error: error instanceof Error ? error.message : 'Disease inspection bridge failed.' })
+          );
         }
       });
     },
